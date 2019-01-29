@@ -299,62 +299,15 @@ function reg_name_abi(r) = {
   }
 }
 
-/* UP TO HERE, code is updated for Patmos */
-
 /* instruction fields */
 
-type opcode = bits(7)
+type bundle = bits(1)
+type func3  = bits(3)
+type func4  = bits(4)
 type imm12  = bits(12)
-type imm20  = bits(20)
-type amo    = bits(1)  /* amo opcode flags */
+type imm32  = bits(32) /* for long immediate */
+type pred   = bits(4)  /* predicates */
 
-/* base architecture definitions */
-
-enum Architecture = {RV32, RV64, RV128}
-type arch_rlen = bits(2)
-function architecture(a : arch_rlen) -> option(Architecture) =
-  match (a) {
-    0b01 => Some(RV32),
-    0b10 => Some(RV64),
-    0b11 => Some(RV128),
-    _    => None()
-  }
-
-function arch_to_bits(a : Architecture) -> arch_rlen =
-  match (a) {
-    RV32  => 0b01,
-    RV64  => 0b10,
-    RV128 => 0b11
-  }
-
-/* privilege levels */
-
-type priv_level = bits(2)
-enum Privilege  = {User, Supervisor, Machine}
-
-val cast privLevel_to_bits : Privilege -> priv_level
-function privLevel_to_bits (p) =
-  match (p) {
-    User       => 0b00,
-    Supervisor => 0b01,
-    Machine    => 0b11
-  }
-
-val cast privLevel_of_bits : priv_level -> Privilege
-function privLevel_of_bits (p) =
-  match (p) {
-    0b00 => User,
-    0b01 => Supervisor,
-    0b11 => Machine
-  }
-
-val cast privLevel_to_str : Privilege -> string
-function privLevel_to_str (p) =
-  match (p) {
-    User       => "U",
-    Supervisor => "S",
-    Machine    => "M"
-  }
 
 /* memory access types */
 
@@ -381,169 +334,13 @@ function readType_to_str (r) =
 enum word_width = {BYTE, HALF, WORD, DOUBLE}
 
 /* architectural interrupt definitions */
-
-type exc_code = bits(4)
-
-enum InterruptType = {
-  I_U_Software,
-  I_S_Software,
-  I_M_Software,
-  I_U_Timer,
-  I_S_Timer,
-  I_M_Timer,
-  I_U_External,
-  I_S_External,
-  I_M_External
-}
-
-val cast interruptType_to_bits : InterruptType -> exc_code
-function interruptType_to_bits (i) =
-  match (i) {
-    I_U_Software => 0x0,
-    I_S_Software => 0x1,
-    I_M_Software => 0x3,
-    I_U_Timer    => 0x4,
-    I_S_Timer    => 0x5,
-    I_M_Timer    => 0x7,
-    I_U_External => 0x8,
-    I_S_External => 0x9,
-    I_M_External => 0xb
-  }
-
-/* architectural exception definitions */
-
-enum ExceptionType = {
- E_Fetch_Addr_Align,
- E_Fetch_Access_Fault,
- E_Illegal_Instr,
- E_Breakpoint,
- E_Load_Addr_Align,
- E_Load_Access_Fault,
- E_SAMO_Addr_Align,
- E_SAMO_Access_Fault,
- E_U_EnvCall,
- E_S_EnvCall,
- E_Reserved_10,
- E_M_EnvCall,
- E_Fetch_Page_Fault,
- E_Load_Page_Fault,
- E_Reserved_14,
- E_SAMO_Page_Fault
-}
-
-val cast exceptionType_to_bits : ExceptionType -> exc_code
-function exceptionType_to_bits(e) =
-  match (e) {
-    E_Fetch_Addr_Align   => 0x0,
-    E_Fetch_Access_Fault => 0x1,
-    E_Illegal_Instr      => 0x2,
-    E_Breakpoint         => 0x3,
-    E_Load_Addr_Align    => 0x4,
-    E_Load_Access_Fault  => 0x5,
-    E_SAMO_Addr_Align    => 0x6,
-    E_SAMO_Access_Fault  => 0x7,
-    E_U_EnvCall          => 0x8,
-    E_S_EnvCall          => 0x9,
-    E_Reserved_10        => 0xa,
-    E_M_EnvCall          => 0xb,
-    E_Fetch_Page_Fault   => 0xc,
-    E_Load_Page_Fault    => 0xd,
-    E_Reserved_14        => 0xe,
-    E_SAMO_Page_Fault    => 0xf
-  }
-
-val cast exceptionType_to_str : ExceptionType -> string
-function exceptionType_to_str(e) =
-  match (e) {
-    E_Fetch_Addr_Align   => "misaligned-fetch",
-    E_Fetch_Access_Fault => "fetch-access-fault",
-    E_Illegal_Instr      => "illegal-instruction",
-    E_Breakpoint         => "breakpoint",
-    E_Load_Addr_Align    => "misaligned-load",
-    E_Load_Access_Fault  => "load-access-fault",
-    E_SAMO_Addr_Align    => "misaliged-store/amo",
-    E_SAMO_Access_Fault  => "store/amo-access-fault",
-    E_U_EnvCall          => "u-call",
-    E_S_EnvCall          => "s-call",
-    E_Reserved_10        => "reserved-0",
-    E_M_EnvCall          => "m-call",
-    E_Fetch_Page_Fault   => "fetch-page-fault",
-    E_Load_Page_Fault    => "load-page-fault",
-    E_Reserved_14        => "reserved-1",
-    E_SAMO_Page_Fault    => "store/amo-page-fault"
-  }
-
-/* model-internal exceptions */
-
-union exception = {
-  Error_not_implemented : string,
-  Error_internal_error  : unit
-}
-
-val not_implemented : forall ('a : Type). string -> 'a effect {escape}
-function not_implemented message = throw(Error_not_implemented(message))
-
-val internal_error : forall ('a : Type). string -> 'a effect {escape}
-function internal_error(s) = {
-    assert (false, s);
-    throw Error_internal_error()
-}
+/* TODO */
 
 /* trap modes */
-
-type tv_mode = bits(2)
-enum TrapVectorMode = {TV_Direct, TV_Vector, TV_Reserved}
-
-val cast trapVectorMode_of_bits : tv_mode -> TrapVectorMode
-function trapVectorMode_of_bits (m) =
-  match (m) {
-    0b00 => TV_Direct,
-    0b01 => TV_Vector,
-    _    => TV_Reserved
-  }
-
-/* extension context status */
-
-type ext_status = bits(2)
-enum ExtStatus = {Off, Initial, Clean, Dirty}
-
-val cast extStatus_to_bits : ExtStatus -> ext_status
-function extStatus_to_bits(e) =
-  match (e) {
-    Off     => 0b00,
-    Initial => 0b01,
-    Clean   => 0b10,
-    Dirty   => 0b11
-  }
-
-val cast extStatus_of_bits : ext_status -> ExtStatus
-function extStatus_of_bits(e) =
-  match (e) {
-    0b00 => Off,
-    0b01 => Initial,
-    0b10 => Clean,
-    0b11 => Dirty
-  }
-
-/* supervisor-level address translation modes */
-
-type satp_mode = bits(4)
-enum SATPMode = {Sbare, Sv32, Sv39}
-
-function satpMode_of_bits(a : Architecture, m : satp_mode) -> option(SATPMode) =
-  match (a, m) {
-    (_,    0x0) => Some(Sbare),
-    (RV32, 0x1) => Some(Sv32),
-    (RV64, 0x8) => Some(Sv39),
-    (_, _)      => None()
-  }
-
-/* CSR access control bits (from CSR addresses) */
-
-type csrRW = bits(2)  /* read/write */
+/* TODO */
 
 /* instruction opcode grouping */
-enum uop = {RISCV_LUI, RISCV_AUIPC}               /* upper immediate ops */
+enum binalu_op = {PATMOS_LUI, RISCV_AUIPC}               /* upper immediate ops */
 enum bop = {RISCV_BEQ, RISCV_BNE, RISCV_BLT,
             RISCV_BGE, RISCV_BLTU, RISCV_BGEU}    /* branch ops */
 enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
@@ -563,51 +360,24 @@ enum csrop = {CSRRW, CSRRS, CSRRC}                /* CSR ops */
 
 /* mappings for assembly */
 
-val reg_name : bits(5) <-> string
+val sreg_name : bits(4) <-> string
 mapping reg_name = {
-    0b00000 <-> "zero",
-    0b00001 <-> "ra",
-    0b00010 <-> "sp",
-    0b00011 <-> "gp",
-    0b00100 <-> "tp",
-    0b00101 <-> "t0",
-    0b00110 <-> "t1",
-    0b00111 <-> "t2",
-    0b01000 <-> "fp",
-    0b01001 <-> "s1",
-    0b01010 <-> "a0",
-    0b01011 <-> "a1",
-    0b01100 <-> "a2",
-    0b01101 <-> "a3",
-    0b01110 <-> "a4",
-    0b01111 <-> "a5",
-    0b10000 <-> "a6",
-    0b10001 <-> "a7",
-    0b10010 <-> "s2",
-    0b10011 <-> "s3",
-    0b10100 <-> "s4",
-    0b10101 <-> "s5",
-    0b10110 <-> "s6",
-    0b10111 <-> "s7",
-    0b11000 <-> "s8",
-    0b11001 <-> "s9",
-    0b11010 <-> "s10",
-    0b11011 <-> "s11",
-    0b11100 <-> "t3",
-    0b11101 <-> "t4",
-    0b11110 <-> "t5",
-    0b11111 <-> "t6"
-}
-
-mapping creg_name : bits(3) <-> string = {
-  0b000 <-> "s0",
-  0b001 <-> "s1",
-  0b010 <-> "a0",
-  0b011 <-> "a1",
-  0b100 <-> "a2",
-  0b101 <-> "a3",
-  0b110 <-> "a4",
-  0b111 <-> "a5"
+    0b0000 <-> "s0",
+    0b0001 <-> "s1",
+    0b0010 <-> "sl",
+    0b0011 <-> "sh",
+    0b0100 <-> "s4",
+    0b0101 <-> "ss",
+    0b0110 <-> "st",
+    0b0111 <-> "srb",
+    0b1000 <-> "sro",
+    0b1001 <-> "sxb",
+    0b1010 <-> "sxo",
+    0b1011 <-> "s11",
+    0b1100 <-> "s12",
+    0b1101 <-> "s13",
+    0b1110 <-> "s14",
+    0b1111 <-> "s15",
 }
 
 val sep : unit <-> string
