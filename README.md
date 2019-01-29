@@ -39,6 +39,14 @@ The model contains the following Sail modules in the `model` directory:
 
 - `patmos_types.sail` contains some basic Patmos definitions
 
+- `patmos.sail` captures the instruction definitions (a few currently) and their assembly language formats
+
+- `patmos_insts_[begin|end].sail` contains the declaration of scattered functions (decode, execute)
+
+- `patmos_step.sail` contains the fetch and execute functions used by SAIL
+
+- `patmos_main.sail` guess what, the main function used by SAIL, calling functions from patmos_step.sail file
+
 - more files will come in ...
 
 Building simulators need to be checked later ...
