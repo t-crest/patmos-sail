@@ -52,65 +52,11 @@ type mem_region = {
     size : Int64.t
 }
 
-(* dts from spike *)
-let spike_dts isa_spec cpu_hz insns_per_rtc_tick mems =
-    "/dts-v1/;\n"
-  ^ "\n"
-  ^ "/ {\n"
-  ^ "  #address-cells = <2>;\n"
-  ^ "  #size-cells = <2>;\n"
-  ^ "  compatible = \"ucbbar,spike-bare-dev\";\n"
-  ^ "  model = \"ucbbar,spike-bare\";\n"
-  ^ "  cpus {\n"
-  ^ "    #address-cells = <1>;\n"
-  ^ "    #size-cells = <0>;\n"
-  ^ "    timebase-frequency = <" ^ string_of_int (cpu_hz/insns_per_rtc_tick) ^ ">;\n"
-  ^ "    CPU0: cpu@0 {\n"
-  ^ "      device_type = \"cpu\";\n"
-  ^ "      reg = <0>;\n"
-  ^ "      status = \"okay\";\n"
-  ^ "      compatible = \"riscv\";\n"
-  ^ "      riscv,isa = \"" ^ isa_spec ^ "\";\n"
-  ^ "      mmu-type = \"riscv,sv39\";\n"
-  ^ "      clock-frequency = <" ^ string_of_int cpu_hz ^ ">;\n"
-  ^ "      CPU0_intc: interrupt-controller {\n"
-  ^ "        #interrupt-cells = <1>;\n"
-  ^ "        interrupt-controller;\n"
-  ^ "        compatible = \"riscv,cpu-intc\";\n"
-  ^ "      };\n"
-  ^ "    };\n"
-  ^ "  };\n"
-  ^ (List.fold_left (^) ""
-       (List.map (fun m ->
-         "  memory@" ^ Printf.sprintf "%Lx" m.addr ^ " {\n"
-         ^ "    device_type = \"memory\";\n"
-         ^ "    reg = <0x" ^ Printf.sprintf "%Lx" Int64.(shift_right_logical m.addr 32) ^ " 0x" ^ Printf.sprintf "%Lx" Int64.(logand m.addr 0xffffffffL)
-         ^           " 0x" ^ Printf.sprintf "%Lx" Int64.(shift_right_logical m.size 32) ^ " 0x" ^ Printf.sprintf "%Lx" Int64.(logand m.size 0xffffffffL) ^ ">;\n"
-         ^ "  };\n") mems))
-  ^ "  soc {\n"
-  ^ "    #address-cells = <2>;\n"
-  ^ "    #size-cells = <2>;\n"
-  ^ "    compatible = \"ucbbar,spike-bare-soc\", \"simple-bus\";\n"
-  ^ "    ranges;\n"
-  ^ "    clint@" ^ Printf.sprintf "%Lx" clint_base ^ " {\n"
-  ^ "      compatible = \"riscv,clint0\";\n"
-  ^ "      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7 >;\n"
-  ^ "      reg = <0x" ^ Printf.sprintf "%Lx" Int64.(shift_right_logical clint_base 32) ^ " 0x" ^ Printf.sprintf "%Lx" Int64.(logand clint_base 0xffffffffL)
-  ^             " 0x" ^ Printf.sprintf "%Lx" Int64.(shift_right_logical clint_size 32) ^ " 0x" ^ Printf.sprintf "%Lx" Int64.(logand clint_size 0xffffffffL) ^ ">;\n"
-  ^ "    };\n"
-  ^ "  };\n"
-  ^ "  htif {\n"
-  ^ "    compatible = \"ucb,htif0\";\n"
-  ^ "  };\n"
-  ^ "};\n"
-
 let cpu_hz = 1000000000;;
 let insns_per_tick = 100;;
 
 let make_mems () = [{ addr = dram_base;
                       size = !dram_size_ref }];;
-
-let make_dts () = spike_dts "rv64imac" cpu_hz insns_per_tick (make_mems ());;
 
 let bytes_to_string bytes =
   String.init (List.length bytes) (fun i -> Char.chr (List.nth bytes i))

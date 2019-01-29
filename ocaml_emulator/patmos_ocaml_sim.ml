@@ -50,11 +50,11 @@
 
 open Elf_loader
 open Sail_lib
-open Riscv
+open Patmos
 module PI = Platform_impl
 module P = Platform
 
-(* OCaml driver for generated RISC-V model. *)
+(* OCaml driver for generated Patmos model. *)
 
 let opt_file_arguments = ref ([] : string list)
 
@@ -84,7 +84,7 @@ let options = Arg.align ([("-dump-dts",
                            " full path to dtc to use")
                          ])
 
-let usage_msg = "RISC-V platform options:"
+let usage_msg = "Patmos platform options:"
 
 let elf_arg =
   Arg.parse options (fun s -> opt_file_arguments := !opt_file_arguments @ [s])
@@ -92,7 +92,7 @@ let elf_arg =
   if !opt_dump_dts then (PI.dump_dts (); exit 0);
   if !opt_dump_dtb then (PI.dump_dtb (); exit 0);
   ( match !opt_file_arguments with
-      | f :: _ -> prerr_endline ("Sail/RISC-V: running ELF file " ^ f); f
+      | f :: _ -> prerr_endline ("Sail/Patmos: running ELF file " ^ f); f
       | _ -> (prerr_endline "Please provide an ELF file."; exit 0)
   )
 
@@ -127,5 +127,5 @@ let () =
   let init_end = Unix.times () in
   let _ = run pc in
   let run_end = Unix.times () in
-  let insts = Big_int.to_int64 (uint (!Riscv.zminstret)) in
+  let insts = Big_int.to_int64 (uint (!Patmos.zminstret)) in
   show_times init_start init_end run_end insts
