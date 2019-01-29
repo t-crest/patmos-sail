@@ -1,5 +1,8 @@
-# patmos-sail
-[Sail ISA model](https://www.cl.cam.ac.uk/~pes20/sail/). of Patmos
+=======
+# Sail ISA model of Patmos
+This repository will contain a [Sail](https://github.com/rems-project/sail)
+description of the instruction et architecture (ISA) of
+[Patmos](https://github.com/t-crest/patmos).
 
 It is currently a WiP, starting from RISCV sail model.
 
@@ -40,4 +43,8 @@ The model contains the following Sail modules in the `model` directory:
 - more files will come in ...
 
 Building simulators need to be checked later ...
+
+
+
+
 
