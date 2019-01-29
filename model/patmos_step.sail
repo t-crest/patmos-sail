@@ -10,6 +10,7 @@ function isBundle64(d : double) -> bool = (d[63] == 0b1)
 
 val fetch : unit -> FetchResult effect {escape, rmem, rreg, wmv, wreg}
 function fetch() -> FetchResult =
+/* TODO: this need to be updated with Patmos mem operations are defined */
   match checked_mem_read(Instruction, ppclo, 2, false, false, false) {
      MemException(e) => F_Error(E_Fetch_Access_Fault, PC),
      MemValue(ilo) => {
