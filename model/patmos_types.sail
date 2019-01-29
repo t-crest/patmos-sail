@@ -299,6 +299,8 @@ function reg_name_abi(r) = {
   }
 }
 
+/* UP TO HERE, code is updated for Patmos */
+
 /* instruction fields */
 
 type opcode = bits(7)
