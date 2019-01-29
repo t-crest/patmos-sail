@@ -7,8 +7,9 @@ let rslen_max_unsigned = 2 ^ rslen - 1
 let rslen_max_signed = 2 ^ (rslen - 1) - 1
 let rslen_min_signed = 0 - 2 ^ (rslen - 1)
 
-type half = bits(16)
-type word = bits(32)
+type half   = bits(16)
+type word   = bits(32)
+type double = bits(64)
 
 /* register identifiers */
 
@@ -340,23 +341,13 @@ enum word_width = {BYTE, HALF, WORD, DOUBLE}
 /* TODO */
 
 /* instruction opcode grouping */
-enum binalu_op = {PATMOS_LUI, RISCV_AUIPC}               /* upper immediate ops */
-enum bop = {RISCV_BEQ, RISCV_BNE, RISCV_BLT,
-            RISCV_BGE, RISCV_BLTU, RISCV_BGEU}    /* branch ops */
-enum iop = {RISCV_ADDI, RISCV_SLTI, RISCV_SLTIU,
-            RISCV_XORI, RISCV_ORI, RISCV_ANDI}    /* immediate ops */
-enum sop = {RISCV_SLLI, RISCV_SRLI, RISCV_SRAI}   /* shift ops */
-enum rop = {RISCV_ADD, RISCV_SUB, RISCV_SLL, RISCV_SLT,
-            RISCV_SLTU, RISCV_XOR, RISCV_SRL, RISCV_SRA,
-            RISCV_OR, RISCV_AND}                  /* reg-reg ops */
+enum alu_reg_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
+ 		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
+		   PATMOS_OR, PATMOS_AND}
 
-enum ropw  = {RISCV_ADDW, RISCV_SUBW, RISCV_SLLW,
-              RISCV_SRLW, RISCV_SRAW}             /* reg-reg 32-bit ops */
-enum sopw = {RISCV_SLLIW, RISCV_SRLIW,
-             RISCV_SRAIW}                         /* RV64-only shift ops */
-enum amoop = {AMOSWAP, AMOADD, AMOXOR, AMOAND, AMOOR,
-              AMOMIN, AMOMAX, AMOMINU, AMOMAXU}   /* AMO ops */
-enum csrop = {CSRRW, CSRRS, CSRRC}                /* CSR ops */
+enum alu_imm_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
+ 		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
+		   PATMOS_OR, PATMOS_AND}
 
 /* mappings for assembly */
 
