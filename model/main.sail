@@ -11,12 +11,12 @@ val elf_entry = {
 val main : unit -> unit effect {barr, eamem, escape, exmem, rmem, rreg, wmv, wreg}
 
 function main () = {
-
+  /* TODO: needs to be setup to the correct value */
   PC = zero_extend(0x0000, 32);
   print_bits("PC = ", PC);
   try {
     init_platform();
-    init_sys();
+    /* TODO: currently no system mode init_sys();*/
     loop()
   } catch {
     Error_not_implemented(s) => print_string("Error: Not implemented: ", s),
