@@ -1,9 +1,5 @@
 # patmos-sail
-Sail ISA model of Patmos
-
-This is a common project between CEA LIST and DTU to describe the ISA
-of [Patmos processor](http://patmos.compute.dtu.dk/) using the
-[Sail language](https://www.cl.cam.ac.uk/~pes20/sail/).
+[Sail ISA model](https://www.cl.cam.ac.uk/~pes20/sail/). of Patmos
 
 It is currently a WiP, starting from RISCV sail model.
 
