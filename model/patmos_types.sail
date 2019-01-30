@@ -166,33 +166,12 @@ enum word_width = {BYTE, HALF, WORD, DOUBLE}
 /* instruction opcode grouping */
 enum alu_reg_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
-		   PATMOS_OR, PATMOS_AND}
+		   PATMOS_OR, PATMOS_AND, PATMOS_NOR,
+		   PATMOS_SHADD, PATMOS_SHADD2}
 
 enum alu_imm_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
 		   PATMOS_OR, PATMOS_AND}
-
-/* mappings for assembly */
-
-val sreg_name : bits(4) <-> string
-mapping reg_name = {
-    0b0000 <-> "s0",
-    0b0001 <-> "s1",
-    0b0010 <-> "sl",
-    0b0011 <-> "sh",
-    0b0100 <-> "s4",
-    0b0101 <-> "ss",
-    0b0110 <-> "st",
-    0b0111 <-> "srb",
-    0b1000 <-> "sro",
-    0b1001 <-> "sxb",
-    0b1010 <-> "sxo",
-    0b1011 <-> "s11",
-    0b1100 <-> "s12",
-    0b1101 <-> "s13",
-    0b1110 <-> "s14",
-    0b1111 <-> "s15",
-}
 
 val sep : unit <-> string
 mapping sep : unit <-> string = {
