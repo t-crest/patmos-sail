@@ -11,6 +11,10 @@ type half   = bits(16)
 type word   = bits(32)
 type double = bits(64)
 
+/* Predicate register stuff */
+
+type predbits = bits(4)    
+
 /* register identifiers */
 
 type rregbits = bits(5)	   /* general purpose registers
