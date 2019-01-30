@@ -160,6 +160,22 @@ enum word_width = {BYTE, HALF, WORD, DOUBLE}
 /* architectural interrupt definitions */
 /* TODO */
 
+/* model-internal exceptions */
+
+union exception = {
+  Error_not_implemented : string,
+  Error_internal_error  : unit
+}
+
+val not_implemented : forall ('a : Type). string -> 'a effect {escape}
+function not_implemented message = throw(Error_not_implemented(message))
+
+val internal_error : forall ('a : Type). string -> 'a effect {escape}
+function internal_error(s) = {
+    assert (false, s);
+    throw Error_internal_error()
+}
+
 /* trap modes */
 /* TODO */
 
