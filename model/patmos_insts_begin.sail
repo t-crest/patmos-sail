@@ -6,7 +6,7 @@
 scattered union ast
 
 /* returns whether an instruction was retired */
-val execute : ast -> bool effect {escape, wreg, rreg, rmem, wmem}
+val execute : ast -> bool effect {wreg, rreg, wmea, wmv, rmem, escape}
 scattered function execute
 
 val assembly : ast <-> string
