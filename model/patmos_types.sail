@@ -17,7 +17,7 @@ type predbits = bits(4)
 
 /* register identifiers */
 
-type rregbits = bits(5)	   /* general purpose registers
+type rregbits = bits(5)	   /* general purpose registers */
 type sregbits = bits(4)    /* special purpose registers */
 
 /* register file indexing */
@@ -40,27 +40,26 @@ register nextPC   : rslenbits
 
 register Rs : vector(32, dec, rslenbits)
 
-val rR : forall 'n, 0 <= 'n < 32. regno('n) -> rslenbits effect {rreg}
+val rR : forall 'n, 0 <= 'n < 32. rregno('n) -> rslenbits effect {rreg}
 function rR 0 = 0x00000000
 and rR (r if r > 0) = Rs[r]
 
-val wR : forall 'n, 0 <= 'n < 32. (regno('n), rslenbits) -> unit effect {wreg}
+val wR : forall 'n, 0 <= 'n < 32. (rregno('n), rslenbits) -> unit effect {wreg}
 function wR (r, v) =
   if (r != 0) then {
      Rs[r] = v;
-
-}
+  }
 
 overload R = {rR, wR}
 
 /* special register file and accessors */
 
-register Ss : vector(32, dec, rslenbits)
+register Ss : vector(16, dec, rslenbits)
 
-val rS : forall 'n, 0 <= 'n < 32. regno('n) -> rslenbits effect {rreg}
+val rS : forall 'n, 0 <= 'n < 16. sregno('n) -> rslenbits effect {rreg}
 function rS s = Ss[s]
 
-val wS : forall 'n, 0 <= 'n < 32. (regno('n), rslenbits) -> unit effect {wreg}
+val wS : forall 'n, 0 <= 'n < 16. (sregno('n), rslenbits) -> unit effect {wreg}
 function wS (r, v) = Ss[r] = v
 
 overload S = {rS, wS}
@@ -123,19 +122,9 @@ function sreg_name_abi(s) = {
     0b1100 => "s12",
     0b1101 => "s13",
     0b1110 => "s14",
-    0b1111 => "s15",
+    0b1111 => "s15"
   }
 }
-
-/* instruction fields */
-
-type bundle = bits(1)
-type func3  = bits(3)
-type func4  = bits(4)
-type imm12  = bits(12)
-type imm32  = bits(32) /* for long immediate */
-type pred   = bits(4)  /* predicates */
-
 
 /* memory access types */
 
@@ -184,14 +173,14 @@ function internal_error(s) = {
 /* TODO */
 
 /* instruction opcode grouping */
-enum alu_reg_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
- 		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
-		   PATMOS_OR, PATMOS_AND, PATMOS_NOR,
-		   PATMOS_SHADD, PATMOS_SHADD2}
-
-enum alu_imm_op = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
+enum alu_func3 =  {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
 		   PATMOS_OR, PATMOS_AND}
+
+enum alu_func4 = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
+ 		  PATMOS_SL, PATMOS_SR, PATMOS_SRA,
+		  PATMOS_OR, PATMOS_AND, PATMOS_NOR,
+		  PATMOS_SHADD, PATMOS_SHADD2}
 
 val sep : unit <-> string
 mapping sep : unit <-> string = {
