@@ -11,7 +11,7 @@ function isBundle64(d : double) -> bool = (d[63] == 0b1)
 val fetch : unit -> FetchResult effect {escape, rmem, rreg, wmv, wreg}
 function fetch() -> FetchResult =
 /* TODO: this need to be updated with Patmos mem operations are defined */
-  match checked_mem_read(Instruction, ppclo, 2, false, false, false) {
+match checked_mem_read(Instruction, ppclo, 2, false, false, false) {
      MemException(e) => F_Error(E_Fetch_Access_Fault, PC),
      MemValue(ilo) => {
        if isBundle64(ilo) then F_Bundle64(ilo)
@@ -26,11 +26,11 @@ function fetch() -> FetchResult =
                 }
               }
             }
-          }
-        }
-      }
-    }
-  }
+       }
+     }
+}
+
+  
 
 /* returns whether to increment the step count in the trace */
 val step : int -> bool effect {barr, eamem, escape, exmem, rmem, rreg, wmv, wreg}
