@@ -4,6 +4,7 @@
  * to MMIO regions can be dispatched.
  */
 
+/* memory access exceptions */
 function is_aligned_addr forall 'n. (addr : rslenbits, width : atom('n)) -> bool =
   unsigned(addr) % width == 0
 
@@ -26,12 +27,12 @@ function checked_mem_read forall 'n, 'n > 0. (t : ReadType, addr : rslenbits, wi
 
 /* Atomic accesses can be done to MMIO regions, e.g. in kernel access to device registers. */
 
-val MEMr                         : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
-val MEMr_acquire                 : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
-val MEMr_strong_acquire          : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
-val MEMr_reserved                : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
-val MEMr_reserved_acquire        : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
-val MEMr_reserved_strong_acquire : forall 'n, 'n > 0. (xlenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg}
+val MEMr                         : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
+val MEMr_acquire                 : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
+val MEMr_strong_acquire          : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
+val MEMr_reserved                : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
+val MEMr_reserved_acquire        : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
+val MEMr_reserved_strong_acquire : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
 
 function MEMr                         (addr, width) = checked_mem_read(Data, addr, width, false, false, false)
 function MEMr_acquire                 (addr, width) = checked_mem_read(Data, addr, width, true, false, false)
@@ -40,7 +41,7 @@ function MEMr_reserved                (addr, width) = checked_mem_read(Data, add
 function MEMr_reserved_acquire        (addr, width) = checked_mem_read(Data, addr, width, true, false, true)
 function MEMr_reserved_strong_acquire (addr, width) = checked_mem_read(Data, addr, width, true, true, true)
 
-val mem_read : forall 'n, 'n > 0. (xlenbits, atom('n), bool, bool, bool) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, rreg, escape}
+val mem_read : forall 'n, 'n > 0. (rslenbits, atom('n), bool, bool, bool) -> MemoryOpResult(bits(8 * 'n)) effect {rmem, escape}
 
 function mem_read (addr, width, aq, rl, res) = {
  let result : MemoryOpResult(bits(8 * 'n)) =
@@ -60,19 +61,19 @@ function mem_read (addr, width, aq, rl, res) = {
 }
 
 val MEMea = {lem: "MEMea", coq: "MEMea", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 val MEMea_release = {lem: "MEMea_release", coq: "MEMea_release", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 val MEMea_strong_release = {lem: "MEMea_strong_release", coq: "MEMea_strong_release", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 val MEMea_conditional = {lem: "MEMea_conditional", coq: "MEMea_conditional", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 val MEMea_conditional_release = {lem: "MEMea_conditional_release", coq: "MEMea_conditional_release", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 val MEMea_conditional_strong_release = {lem: "MEMea_conditional_strong_release", coq: "MEMea_conditional_strong_release", _: "memea"} : forall 'n.
-  (xlenbits, atom('n)) -> unit effect {eamem}
+  (rslenbits, atom('n)) -> unit effect {eamem}
 
-val mem_write_ea : forall 'n. (xlenbits, atom('n), bool, bool, bool) -> MemoryOpResult(unit) effect {eamem, escape}
+val mem_write_ea : forall 'n. (rslenbits, atom('n), bool, bool, bool) -> MemoryOpResult(unit) effect {eamem, escape}
 
 function mem_write_ea (addr, width, aq, rl, con) = {
   if (rl | con) & (~ (is_aligned_addr(addr, width)))
@@ -90,13 +91,13 @@ function mem_write_ea (addr, width, aq, rl, con) = {
 }
 
 // only used for actual memory regions, to avoid MMIO effects
-function phys_mem_write forall 'n. (addr : xlenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) = {
+function phys_mem_write forall 'n. (addr : rslenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) = {
   print_mem("mem[" ^ BitStr(addr) ^ "] <- " ^ BitStr(data));
   MemValue(__Patmos_write(addr, width, data))
 }
 
 // dispatches to MMIO regions or physical memory regions depending on physical memory map
-function checked_mem_write forall 'n, 'n > 0. (addr : xlenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) =
+function checked_mem_write forall 'n, 'n > 0. (addr : rslenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) =
   if   within_mmio_writable(addr, width)
   then mmio_write(addr, width, data)
   else if within_phys_mem(addr, width)
@@ -105,12 +106,12 @@ function checked_mem_write forall 'n, 'n > 0. (addr : xlenbits, width : atom('n)
 
 /* Atomic accesses can be done to MMIO regions, e.g. in kernel access to device registers. */
 
-val MEMval                            : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
-val MEMval_release                    : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
-val MEMval_strong_release             : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
-val MEMval_conditional                : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
-val MEMval_conditional_release        : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
-val MEMval_conditional_strong_release : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv, rreg, wreg}
+val MEMval                            : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
+val MEMval_release                    : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
+val MEMval_strong_release             : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
+val MEMval_conditional                : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
+val MEMval_conditional_release        : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
+val MEMval_conditional_strong_release : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n)) -> MemoryOpResult(bool) effect {wmv}
 
 function MEMval                            (addr, width, data) = checked_mem_write(addr, width, data)
 function MEMval_release                    (addr, width, data) = checked_mem_write(addr, width, data)
@@ -121,10 +122,9 @@ function MEMval_conditional_strong_release (addr, width, data) = checked_mem_wri
 
 
 /* NOTE: The wreg effect is due to MMIO, the rreg is due to checking mtime. */
-val mem_write_value : forall 'n, 'n > 0. (xlenbits, atom('n), bits(8 * 'n), bool, bool, bool) -> MemoryOpResult(bool) effect {wmv, rreg, wreg, escape}
+val mem_write_value : forall 'n, 'n > 0. (rslenbits, atom('n), bits(8 * 'n), bool, bool, bool) -> MemoryOpResult(bool) effect {wmv, escape}
 
 function mem_write_value (addr, width, value, aq, rl, con) = {
-  rvfi_write(addr, width, value);
   if (rl | con) & (~ (is_aligned_addr(addr, width)))
   then MemException(E_SAMO_Addr_Align)
   else match (aq, rl, con) {
