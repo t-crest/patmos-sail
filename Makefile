@@ -1,9 +1,9 @@
 SAIL_INST_SRCS = patmos_insts_begin.sail patmos.sail patmos_insts_end.sail
 
 # non-instruction sources
-SAIL_OTHER_SRCS = prelude.sail patmos_types.sail 
+SAIL_OTHER_SRCS = prelude.sail patmos_types.sail patmos_platform.sail patmos_mem.sail
 
-SAIL_SRCS      = $(addprefix model/,$(SAIL_OTHER_SRCS) $(SAIL_INST_SRCS))
+SAIL_SRCS      = $(addprefix model/,$(SAIL_OTHER_SRCS) $(SAIL_INST_SRCS) patmos_step.sail)
 
 #Attempt to work with either sail from opam or built from repo in SAIL_DIR
 ifneq ($(SAIL_DIR),)
