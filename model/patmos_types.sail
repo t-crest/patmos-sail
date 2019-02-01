@@ -41,8 +41,10 @@ register nextPC   : rslenbits
 register Rs : vector(32, dec, rslenbits)
 
 val rR : forall 'n, 0 <= 'n < 32. rregno('n) -> rslenbits effect {rreg}
-function rR 0 = 0x00000000
-and rR (r if r > 0) = Rs[r]
+function rR (r) = {
+  if (r == 0) then 0x00000000
+  else Rs[r]
+  }
 
 val wR : forall 'n, 0 <= 'n < 32. (rregno('n), rslenbits) -> unit effect {wreg}
 function wR (r, v) =
@@ -150,8 +152,37 @@ function readType_to_str (r) =
 
 enum word_width = {BYTE, HALF, WORD, DOUBLE}
 
-/* architectural interrupt definitions */
-/* TODO */
+/* architectural exception definitions */
+
+type exc_code = bits(4)
+
+enum ExceptionType = {
+ E_Fetch_Access_Fault,
+ E_Load_Access_Fault,
+ E_Load_Addr_Align,
+ E_SAMO_Addr_Align,
+ E_SAMO_Access_Fault
+}
+
+val cast exceptionType_to_bits : ExceptionType -> exc_code
+function exceptionType_to_bits(e) =
+  match (e) {
+    E_Fetch_Access_Fault => 0x0,
+    E_Load_Access_Fault  => 0x1,
+    E_Load_Addr_Align    => 0x2,
+    E_SAMO_Addr_Align    => 0x3,
+    E_SAMO_Access_Fault  => 0x4
+  }
+
+val cast exceptionType_to_str : ExceptionType -> string
+function exceptionType_to_str(e) =
+  match (e) {
+    E_Fetch_Access_Fault => "fetch-access-fault",
+    E_Load_Access_Fault  => "load-access-fault",
+    E_Load_Addr_Align    => "misaligned-load",
+    E_SAMO_Addr_Align    => "misaliged-store/amo",
+    E_SAMO_Access_Fault  => "store/amo-access-fault"
+  }
 
 /* model-internal exceptions */
 
@@ -173,14 +204,9 @@ function internal_error(s) = {
 /* TODO */
 
 /* instruction opcode grouping */
-enum alu_func3 =  {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
- 		   PATMOS_SL, PATMOS_SR, PATMOS_SRA,
-		   PATMOS_OR, PATMOS_AND}
-
 enum alu_func4 = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		  PATMOS_SL, PATMOS_SR, PATMOS_SRA,
-		  PATMOS_OR, PATMOS_AND, PATMOS_NOR,
-		  PATMOS_SHADD, PATMOS_SHADD2}
+		  PATMOS_OR, PATMOS_AND, PATMOS_NOR}
 
 val sep : unit <-> string
 mapping sep : unit <-> string = {
