@@ -307,18 +307,8 @@ val __ReadRAM_reserved_acquire = { lem: "MEMr_reserved_acquire", _ : "read_ram" 
 val __ReadRAM_reserved_strong_acquire = { lem: "MEMr_reserved_strong_acquire", _ : "read_ram" } : forall 'n 'm, 'n >= 0.
   (atom('m), atom('n), bits('m), bits('m)) -> bits(8 * 'n) effect {rmem}
 
-val __Patmos_read : forall 'n, 'n >= 0. (bits(32), atom('n), bool, bool, bool) -> option(bits(8 * 'n)) effect {rmem}
-function __Patmos_read (addr, width, aq, rl, res) =
-  match (aq, rl, res) {
-    (false, false, false) => Some(__ReadRAM(32, width, 0x0000_0000, addr)),
-    (true,  false, false) => Some(__ReadRAM_acquire(32, width, 0x0000_0000, addr)),
-    (true,  true,  false) => Some(__ReadRAM_strong_acquire(32, width, 0x0000_0000, addr)),
-    (false, false, true)  => Some(__ReadRAM_reserved(32, width, 0x0000_0000, addr)),
-    (true,  false, true)  => Some(__ReadRAM_reserved_acquire(32, width, 0x0000_0000, addr)),
-    (true,  true,  true)  => Some(__ReadRAM_reserved_strong_acquire(32, width, 0x0000_0000, addr)),
-    (false, true,  false) => None(),
-    (false, true,  true)  => None()
-  }
+val __Patmos_read : forall 'n, 'n >= 0. (bits(32), atom('n)) -> option(bits(8 * 'n)) effect {rmem}
+function __Patmos_read (addr, width) = Some(__ReadRAM(32, width, 0x0000_0000, addr))
 
 val __TraceMemoryRead : forall 'n 'm. (atom('n), bits('m), bits(8 * 'n)) -> unit
 
