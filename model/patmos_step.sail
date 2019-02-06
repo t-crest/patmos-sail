@@ -5,7 +5,7 @@ union FetchResult = {
   F_Error     : (ExceptionType, rslenbits)  /* exception and PC */  
 }
 
-val fetch : unit -> FetchResult effect {escape, rmem, rreg, wmv, wreg}
+val fetch : unit -> FetchResult effect {rmem, rreg}
 function fetch() -> FetchResult =
 match checked_mem_read(Instruction, PC, 4) {
   MemException(e) => F_Error(E_Fetch_Access_Fault, PC),
@@ -13,13 +13,13 @@ match checked_mem_read(Instruction, PC, 4) {
 }
 
 /* returns whether to increment the step count in the trace */
-val step : int -> bool effect {barr, eamem, escape, exmem, rmem, rreg, wmv, wreg}
+val step : int -> bool effect {escape, rmem, rreg, wmem, wreg}
 function step(step_no) = {
   let (retired) : (bool) =
     match fetch() {
       F_Error(e, addr) => {
-      		 handle_mem_exception(addr, e);
-      		 (false)
+      	handle_mem_exception(addr, e);
+      	(false)
       },
       F_Bundle32(w) => {
         match decode(w) {
@@ -41,7 +41,7 @@ function step(step_no) = {
   true
 }
 
-val loop : unit -> unit effect {barr, eamem, escape, exmem, rmem, rreg, wmv, wreg}
+val loop : unit -> unit effect {escape, rmem, rreg, wmem, wreg}
 function loop () = {
   let insns_per_tick = plat_insns_per_tick();
   i : int = 0;

@@ -36,6 +36,9 @@ function sregbits_to_sregno b = let 's = unsigned(b) in s
 register PC       : rslenbits
 register nextPC   : rslenbits
 
+/* internal state to hold instruction bits for faulting instructions */
+register instbits : rslenbits
+
 /* general register file and accessors */
 
 register Rs : vector(32, dec, rslenbits)

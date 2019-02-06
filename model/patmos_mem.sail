@@ -60,3 +60,7 @@ function mem_write_value (addr, width, value) = {
   else checked_mem_write(addr, width, value)
 }
 
+function handle_mem_exception(addr : rslenbits, e : ExceptionType) -> unit = {
+  nextPC = EXTZ(0b0);
+}
+
