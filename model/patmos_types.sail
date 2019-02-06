@@ -209,7 +209,8 @@ function internal_error(s) = {
 /* instruction opcode grouping */
 enum alu_func4 = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		  PATMOS_SL, PATMOS_SR, PATMOS_SRA,
-		  PATMOS_OR, PATMOS_AND, PATMOS_NOR}
+		  PATMOS_OR, PATMOS_AND, PATMOS_NOR,
+		  PATMOS_SHADD, PATMOS_SHADD2}
 
 val sep : unit <-> string
 mapping sep : unit <-> string = {

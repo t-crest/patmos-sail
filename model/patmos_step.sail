@@ -13,7 +13,7 @@ match checked_mem_read(Instruction, PC, 4) {
 }
 
 /* returns whether to increment the step count in the trace */
-val step : int -> bool effect {escape, rmem, rreg, wmem, wreg}
+val step : int -> bool effect {rmem, rreg, wreg}
 function step(step_no) = {
   let (retired) : (bool) =
     match fetch() {
@@ -41,7 +41,7 @@ function step(step_no) = {
   true
 }
 
-val loop : unit -> unit effect {escape, rmem, rreg, wmem, wreg}
+val loop : unit -> unit effect {rmem, rreg, wreg}
 function loop () = {
   let insns_per_tick = plat_insns_per_tick();
   i : int = 0;

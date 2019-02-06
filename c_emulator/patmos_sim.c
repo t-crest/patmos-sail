@@ -118,11 +118,6 @@ void init_sail_reset_vector(uint64_t entry)
   for (int i = 0; i < sizeof(reset_vec); i++)
     write_mem(addr++, (uint64_t)((char *)reset_vec)[i]);
 
-  if (dtb && dtb_len) {
-    for (size_t i = 0; i < dtb_len; i++)
-      write_mem(addr++, dtb[i]);
-  }
-
   /* zero-fill to page boundary */
   const int align = 0x1000;
   uint64_t rom_end = (addr + align -1)/align * align;
@@ -139,7 +134,6 @@ void init_sail(uint64_t elf_entry)
 {
   model_init();
   zinit_platform(UNIT);
-  zinit_sys(UNIT);
   init_sail_reset_vector(elf_entry);
 }
 
@@ -219,8 +213,6 @@ int main(int argc, char **argv)
   uint64_t entry = load_sail(file);
 
   init_sail(entry);
-
-  if (!init_check(s)) finish(1);
 
   if (gettimeofday(&init_end, NULL) < 0) {
     fprintf(stderr, "Cannot gettimeofday: %s\n", strerror(errno));

@@ -8,7 +8,7 @@ val elf_entry = {
   c: "elf_entry"
 } : unit -> int
 
-val main : unit -> unit effect {rreg, wreg, rmem, wmem, escape}
+val main : unit -> unit effect {rreg, wreg, rmem}
 
 function main () = {
   /* TODO: needs to be setup to the correct value */
