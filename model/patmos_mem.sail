@@ -29,17 +29,6 @@ function mem_read (addr, width) = {
  result
 }
 
-val MEMea = {lem: "MEMea", coq: "MEMea", _: "memea"} : forall 'n.
-  (rslenbits, atom('n)) -> unit effect {eamem}
-
-val mem_write_ea : forall 'n. (rslenbits, atom('n)) -> MemoryOpResult(unit) effect {eamem}
-
-function mem_write_ea (addr, width) = {
-  if (~ (is_aligned_addr(addr, width)))
-  then MemException(E_SAMO_Addr_Align)
-  else MemValue(MEMea(addr, width))
-}
-
 // only used for actual memory regions, to avoid MMIO effects
 function phys_mem_write forall 'n. (addr : rslenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) = {
   print_mem("mem[" ^ BitStr(addr) ^ "] <- " ^ BitStr(data));

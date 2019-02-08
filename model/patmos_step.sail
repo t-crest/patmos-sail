@@ -43,21 +43,10 @@ function step(step_no) = {
 
 val loop : unit -> unit effect {rmem, rreg, wreg}
 function loop () = {
-  let insns_per_tick = plat_insns_per_tick();
-  i : int = 0;
   step_no : int = 0;
   while (true) do {
     let stepped = step(step_no);
     if stepped then step_no = step_no + 1;
-
-    /* update time */
-    i = i + 1;
-    if i == insns_per_tick then {
-      tick_clock();
-      /* for now, we drive the platform i/o at every clock tick. */
-      tick_platform();
-      i = 0;
-    }
   }
 }
 

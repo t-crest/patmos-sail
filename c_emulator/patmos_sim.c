@@ -133,13 +133,12 @@ void init_sail_reset_vector(uint64_t entry)
 void init_sail(uint64_t elf_entry)
 {
   model_init();
-  zinit_platform(UNIT);
   init_sail_reset_vector(elf_entry);
 }
 
 void finish(int ec)
 {
-  model_done();
+  model_fini();
   if (gettimeofday(&run_end, NULL) < 0) {
     fprintf(stderr, "Cannot gettimeofday: %s\n", strerror(errno));
     exit(1);
@@ -184,20 +183,10 @@ void run_sail(void)
     insn_cnt++;
     total_insns++;
   }
-
-  if (insn_cnt == rv_insns_per_tick) {
-    insn_cnt = 0;
-    ztick_clock(UNIT);
-    ztick_platform(UNIT);
-  }
 }
 
 void init_logs()
 {
-  if ((term_fd = open(term_log, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IRGRP|S_IROTH|S_IWUSR)) < 0) {
-    fprintf(stderr, "Cannot create terminal log '%s': %s\n", term_log, strerror(errno));
-    exit(1);
-  }
 }
 
 int main(int argc, char **argv)

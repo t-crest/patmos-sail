@@ -45,41 +45,9 @@ function within_phys_mem forall 'n. (addr : rslenbits, width : atom('n)) -> bool
   }
 }
 
-val plat_insns_per_tick = {ocaml: "Platform.insns_per_tick", c: "plat_insns_per_tick", lem: "plat_insns_per_tick"} : unit -> int
-
-register cycle : rslenbits
-
-val tick_clock : unit -> unit effect {rreg, wreg}
-function tick_clock() = {
-  cycle = cycle + 1;
-}
-
-/* Basic terminal character I/O. */
-
-val plat_term_write = {ocaml: "Platform.term_write", c: "plat_term_write", lem: "plat_term_write"} : bits(8) -> unit
-val plat_term_read  = {ocaml: "Platform.term_read",  c: "plat_term_read", lem: "plat_term_read"}  : unit -> bits(8)
-
 union MemoryOpResult ('a : Type) = {
   MemValue     : 'a,
   MemException : ExceptionType
-}
-
-function within_mmio_readable forall 'n. (addr : rslenbits, width : atom('n)) -> bool = false
-
-function within_mmio_writable forall 'n. (addr : rslenbits, width : atom('n)) -> bool = false
-
-function mmio_read forall 'n, 'n > 0. (addr : rslenbits, width : atom('n)) -> MemoryOpResult(bits(8 * 'n)) = MemValue(zero_extend_type_hack(0x0, sizeof(8 * 'n)))
-
-function mmio_write forall 'n, 'n > 0. (addr : rslenbits, width : atom('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) = MemValue(true)
-
-/* Platform initialization and ticking. */
-
-function init_platform() -> unit = {
-  cycle = cycle + 1;
-}
-
-function tick_platform() -> unit = {
-  cycle = cycle + 1;
 }
 
 /* Platform-specific handling of instruction faults */

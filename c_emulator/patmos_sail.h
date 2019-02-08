@@ -7,7 +7,7 @@ typedef int unit;
 typedef uint32_t mach_32bits;
 
 void model_init(void);
-void model_done(void);
+void model_fini(void);
 
 unit zinit_platform(unit);
 bool zstep(sail_int);

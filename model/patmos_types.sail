@@ -43,17 +43,124 @@ register instbits : rslenbits
 
 register Rs : vector(32, dec, rslenbits)
 
-val rR : forall 'n, 0 <= 'n < 32. rregno('n) -> rslenbits effect {rreg}
-function rR (r) = {
-  if (r == 0) then 0x00000000
-  else Rs[r]
-  }
+register r1  : rslenbits
+register r2  : rslenbits
+register r3  : rslenbits
+register r4  : rslenbits
+register r5  : rslenbits
+register r6  : rslenbits
+register r7  : rslenbits
+register r8  : rslenbits
+register r9  : rslenbits
+register r10 : rslenbits
+register r11 : rslenbits
+register r12 : rslenbits
+register r13 : rslenbits
+register r14 : rslenbits
+register r15 : rslenbits
+register r16 : rslenbits
+register r17 : rslenbits
+register r18 : rslenbits
+register r19 : rslenbits
+register r20 : rslenbits
+register r21 : rslenbits
+register r22 : rslenbits
+register r23 : rslenbits
+register r24 : rslenbits
+register r25 : rslenbits
+register r26 : rslenbits
+register r27 : rslenbits
+register r28 : rslenbits
+register r29 : rslenbits
+register r30 : rslenbits
+register r31 : rslenbits
 
+val rR : forall 'n, 0 <= 'n < 32. rregno('n) -> rslenbits effect {rreg}
+/* The following code does not seem to work when generating the C simulator */
+/* function rR (r) = { */
+/*   if (r == 0) then 0x00000000 */
+/*   else Rs[r] */
+/* } */
+function rR r = match r {
+  0 => 0x00000000,
+  1 => r1,
+  2 => r2,
+  3 => r3,
+  4 => r4,
+  5 => r5,
+  6 => r6,
+  7 => r7,
+  8 => r8,
+  9 => r9,
+  10 => r10,
+  11 => r11,
+  12 => r12,
+  13 => r13,
+  14 => r14,
+  15 => r15,
+  16 => r16,
+  17 => r17,
+  18 => r18,
+  19 => r19,
+  20 => r20,
+  21 => r21,
+  22 => r22,
+  23 => r23,
+  24 => r24,
+  25 => r25,
+  26 => r26,
+  27 => r27,
+  28 => r28,
+  29 => r29,
+  30 => r30,
+  31 => r31
+}
+
+/* The following code does not seem to work when generating the C simulator */
+/* function wR (r, v) = */
+/*   if (r != 0) then { */
+/*      Rs[r] = v; */
+/*   } */
 val wR : forall 'n, 0 <= 'n < 32. (rregno('n), rslenbits) -> unit effect {wreg}
-function wR (r, v) =
+function wR (r, v) = {
+  match r {
+    0 => (),
+    1 => r1 = v,
+    2 => r2 = v,
+    3 => r3 = v,
+    4 => r4 = v,
+    5 => r5 = v,
+    6 => r6 = v,
+    7 => r7 = v,
+    8 => r8 = v,
+    9 => r9 = v,
+    10 => r10 = v,
+    11 => r11 = v,
+    12 => r12 = v,
+    13 => r13 = v,
+    14 => r14 = v,
+    15 => r15 = v,
+    16 => r16 = v,
+    17 => r17 = v,
+    18 => r18 = v,
+    19 => r19 = v,
+    20 => r20 = v,
+    21 => r21 = v,
+    22 => r22 = v,
+    23 => r23 = v,
+    24 => r24 = v,
+    25 => r25 = v,
+    26 => r26 = v,
+    27 => r27 = v,
+    28 => r28 = v,
+    29 => r29 = v,
+    30 => r30 = v,
+    31 => r31 = v
+  };
   if (r != 0) then {
-     Rs[r] = v;
+     print_reg("x" ^ string_of_int(r) ^ " <- " ^ BitStr(v));
   }
+}
 
 overload R = {rR, wR}
 
@@ -211,6 +318,45 @@ enum alu_func4 = {PATMOS_ADD, PATMOS_SUB, PATMOS_XOR,
  		  PATMOS_SL, PATMOS_SR, PATMOS_SRA,
 		  PATMOS_OR, PATMOS_AND, PATMOS_NOR,
 		  PATMOS_SHADD, PATMOS_SHADD2}
+
+/* mappings for assembly */
+
+val reg_name : bits(5) <-> string
+mapping reg_name = {
+    0b00000 <-> "zero",
+    0b00001 <-> "r1",
+    0b00010 <-> "r2",
+    0b00011 <-> "r3",
+    0b00100 <-> "r4",
+    0b00101 <-> "r5",
+    0b00110 <-> "r6",
+    0b00111 <-> "r7",
+    0b01000 <-> "r8",
+    0b01001 <-> "r9",
+    0b01010 <-> "r10",
+    0b01011 <-> "r11",
+    0b01100 <-> "r12",
+    0b01101 <-> "r13",
+    0b01110 <-> "r14",
+    0b01111 <-> "r15",
+    0b10000 <-> "r16",
+    0b10001 <-> "r17",
+    0b10010 <-> "r18",
+    0b10011 <-> "r19",
+    0b10100 <-> "r20",
+    0b10101 <-> "r21",
+    0b10110 <-> "r22",
+    0b10111 <-> "r23",
+    0b11000 <-> "r24",
+    0b11001 <-> "r25",
+    0b11010 <-> "r26",
+    0b11011 <-> "r27",
+    0b11100 <-> "r28",
+    0b11101 <-> "r29",
+    0b11110 <-> "r30",
+    0b11111 <-> "r31"
+}
+
 
 val sep : unit <-> string
 mapping sep : unit <-> string = {

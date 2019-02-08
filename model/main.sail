@@ -15,8 +15,6 @@ function main () = {
   PC = zero_extend(0x0000, 32);
   print_bits("PC = ", PC);
   try {
-    init_platform();
-    /* TODO: currently no system mode init_sys();*/
     loop()
   } catch {
     Error_not_implemented(s) => print_string("Error: Not implemented: ", s),
