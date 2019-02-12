@@ -20,7 +20,7 @@ SAIL_SRC_DIR:=$(SAIL_DIR)/src
 
 C_WARNINGS ?=
 #-Wall -Wextra -Wno-unused-label -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-function
-C_INCS = $(addprefix c_emulator/,patmos_config.h patmos_prelude.h patmos_platform_impl.h patmos_platform.h)
+C_INCS = $(addprefix c_emulator/,patmos_prelude.h patmos_platform_impl.h patmos_platform.h)
 C_SRCS = $(addprefix c_emulator/,patmos_prelude.c patmos_platform_impl.c patmos_platform.c)
 
 C_FLAGS = -I $(SAIL_LIB_DIR) -I c_emulator
@@ -72,8 +72,13 @@ clean:
 
 PATMOS?=../patmos
 ASMPATH?=$(PATMOS)/asm
+TEST_DIR=test
 APP?=basic
 
 assemble:
 	paasm $(ASMPATH)/$(APP).s $(APP).bin
+
+test:
+	patmos-clang -nostartfiles -nodefaultlibs -o $(TEST_DIR)/test01.o $(TEST_DIR)/test01.s
+	patmos-llvm-objdump -d $(TEST_DIR)/test01.o > $(TEST_DIR)/test01.dump
 
