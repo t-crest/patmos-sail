@@ -143,14 +143,17 @@ void run_sail(void)
 
   sail_int sail_step;
   CREATE(sail_int)(&sail_step);
-  CONVERT_OF(sail_int, mach_int)(&sail_step, step_no);
-  stepped = zstep(sail_step);
-  flush_logs();
-  KILL(sail_int)(&sail_step);
-  if (stepped) {
-    step_no++;
-    insn_cnt++;
-    total_insns++;
+
+  while (stepped) {
+    CONVERT_OF(sail_int, mach_int)(&sail_step, step_no);
+    stepped = zstep(sail_step);
+    flush_logs();
+    KILL(sail_int)(&sail_step);
+    if (stepped) {
+      step_no++;
+      insn_cnt++;
+      total_insns++;
+    } 
   }
 }
 

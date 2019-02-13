@@ -20,6 +20,25 @@ val maybe_int_of_prefix = "maybe_int_of_prefix" : string -> option((int, nat))
 val maybe_nat_of_prefix = "maybe_nat_of_prefix" : string -> option((nat, nat))
 val maybe_int_of_string = "maybe_int_of_string" : string -> option(int)
 
+val hex_bits_12 : bits(12) <-> string
+val hex_bits_12_forwards = "decimal_string_of_bits" : bits(12) -> string
+val hex_bits_12_forwards_matches : bits(12) -> bool
+function hex_bits_12_forwards_matches bv = true
+val "hex_bits_12_matches_prefix" : string -> option((bits(12), nat))
+val hex_bits_12_backwards_matches : string -> bool
+function hex_bits_12_backwards_matches s = match s {
+  s if match hex_bits_12_matches_prefix(s) {
+    Some (_, n) if n == string_length(s) => true,
+    _ => false
+  } => true,
+  _ => false
+}
+val hex_bits_12_backwards : string -> bits(12)
+function hex_bits_12_backwards s =
+  match hex_bits_12_matches_prefix(s) {
+      Some (bv, n) if n == string_length(s) => bv
+  }
+
 val eq_vec = {ocaml: "eq_list", lem: "eq_vec", coq: "eq_vec", c: "eq_bits"} : forall 'n. (bits('n), bits('n)) -> bool
 
 val eq_string = {c: "eq_string", ocaml: "eq_string", lem: "eq", coq: "generic_eq"} : (string, string) -> bool
