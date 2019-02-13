@@ -38,6 +38,7 @@ function step(step_no) = {
       }
     };
   PC = nextPC;
+  print_instr("New PC = " ^ BitStr(PC));
   true
 }
 
@@ -45,6 +46,7 @@ val loop : unit -> unit effect {rmem, rreg, wreg}
 function loop () = {
   step_no : int = 0;
   while (true) do {
+    print_instr("PC = " ^ BitStr(PC));
     let stepped = step(step_no);
     if stepped then step_no = step_no + 1;
   }

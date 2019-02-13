@@ -15,9 +15,9 @@ function phys_mem_read forall 'n, 'n >= 0. (t : ReadType, addr : rslenbits, widt
   }
 
 function checked_mem_read forall 'n, 'n > 0. (t : ReadType, addr : rslenbits, width : atom('n)) -> MemoryOpResult(bits(8 * 'n)) =
-  if within_phys_mem(addr, width)
-  then phys_mem_read(t, addr, width)
-  else MemException(E_Load_Access_Fault)
+/*  if within_phys_mem(addr, width)*/
+   phys_mem_read(t, addr, width)
+/*  else MemException(E_Load_Access_Fault)*/
 
 val mem_read : forall 'n, 'n > 0. (rslenbits, atom('n)) -> MemoryOpResult(bits(8 * 'n)) effect {rmem}
 
