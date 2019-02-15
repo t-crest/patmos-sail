@@ -158,7 +158,7 @@ function wR (r, v) = {
     31 => r31 = v
   };
   if (r != 0) then {
-     print_reg("x" ^ string_of_int(r) ^ " <- " ^ BitStr(v));
+     print_reg("r" ^ string_of_int(r) ^ " <- " ^ BitStr(v));
   }
 }
 
