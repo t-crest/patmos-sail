@@ -6,5 +6,3 @@
 
 uint32_t rv_ram_base = UINT32_C(0x00020000);
 uint32_t rv_ram_size = UINT32_C(0x00010000);
-
-uint32_t rv_insns_per_tick = UINT32_C(100);

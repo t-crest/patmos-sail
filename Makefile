@@ -30,7 +30,7 @@ ifneq (,$(COVERAGE))
 C_FLAGS += --coverage -O1
 SAIL_FLAGS += -Oconstant_fold
 else
-C_FLAGS += -O2
+C_FLAGS += -g -O0
 endif
 
 all: check c_emulator/patmos_sim
