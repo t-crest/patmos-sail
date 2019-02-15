@@ -18,6 +18,8 @@ endif
 SAIL_LIB_DIR:=$(SAIL_DIR)/lib
 SAIL_SRC_DIR:=$(SAIL_DIR)/src
 
+PLATFORM_OCAML_SRCS = $(addprefix ocaml_emulator/,platform.ml platform_impl.ml patmos_ocaml_sim.ml)
+
 C_WARNINGS ?=
 #-Wall -Wextra -Wno-unused-label -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-function
 C_INCS = $(addprefix c_emulator/,patmos_prelude.h patmos_platform_impl.h patmos_platform.h)
@@ -45,6 +47,24 @@ interpret: $(SAIL_SRCS) model/main.sail
 
 cgen: $(SAIL_SRCS) model/main.sail
 	$(SAIL) -cgen $(SAIL_FLAGS) $(SAIL_SRCS) model/main.sail
+
+generated_definitions/ocaml/patmos.ml: $(SAIL_SRCS) Makefile
+	mkdir -p generated_definitions/ocaml
+	$(SAIL) $(SAIL_FLAGS) -ocaml -ocaml-nobuild -ocaml_build_dir generated_definitions/ocaml -o patmos $(SAIL_SRCS)
+
+ocaml_emulator/_sbuild/patmos_ocaml_sim.native: generated_definitions/ocaml/patmos.ml ocaml_emulator/_tags $(PLATFORM_OCAML_SRCS) Makefile
+	mkdir -p ocaml_emulator/_sbuild
+	cp ocaml_emulator/_tags $(PLATFORM_OCAML_SRCS) generated_definitions/ocaml/*.ml ocaml_emulator/_sbuild
+	cd ocaml_emulator/_sbuild && ocamlbuild -use-ocamlfind patmos_ocaml_sim.native
+
+ocaml_emulator/_sbuild/coverage.native: generated_definitions/ocaml/patmos.ml ocaml_emulator/_tags.bisect $(PLATFORM_OCAML_SRCS) Makefile
+	mkdir -p ocaml_emulator/_sbuild
+	cp $(PLATFORM_OCAML_SRCS) generated_definitions/ocaml/*.ml ocaml_emulator/_sbuild
+	cp ocaml_emulator/_tags.bisect ocaml_emulator/_sbuild/_tags
+	cd ocaml_emulator/_sbuild && ocamlbuild -use-ocamlfind patmos_ocaml_sim.native && cp -L patmos_ocaml_sim.native coverage.native
+
+ocaml_emulator/riscv_ocaml_sim: ocaml_emulator/_sbuild/patmos_ocaml_sim.native
+	rm -f $@ && ln -s _sbuild/patmos_ocaml_sim.native $@
 
 generated_definitions/c/patmos.c: $(SAIL_SRCS) model/main.sail Makefile
 	mkdir -p generated_definitions/c
