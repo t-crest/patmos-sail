@@ -15,11 +15,11 @@ match checked_mem_read(Instruction, PC, 4) {
 /* returns whether to increment the step count in the trace */
 val step : int -> bool effect {rmem, rreg, wreg}
 function step(step_no) = {
-  let (retired) : (bool) =
+  let (retired, stepped) : (bool, bool) =
     match fetch() {
       F_Error(e, addr) => {
       	handle_mem_exception(addr, e);
-      	(false)
+      	(false, false)
       },
       F_Bundle32(w) => {
         match decode(w) {
@@ -27,19 +27,19 @@ function step(step_no) = {
              print_instr("[" ^ string_of_int(step_no) ^ "]: " ^ BitStr(PC) ^ " (" ^ BitStr(w) ^ ") <no-decode>");
              instbits = EXTZ(w);
              handle_illegal();
-             (false)
+             (false, true)
            },
            Some(ast) => {
              print_instr("[" ^ string_of_int(step_no) ^ "]: " ^ BitStr(PC) ^ " (" ^ BitStr(w) ^ ") " ^ ast);
              nextPC = PC + 4;
-             (execute(ast))
+             (execute(ast), true)
            }
         }
       }
     };
   PC = nextPC;
   print_instr("New PC = " ^ BitStr(PC));
-  true
+  stepped
 }
 
 val loop : unit -> unit effect {rmem, rreg, wreg}
