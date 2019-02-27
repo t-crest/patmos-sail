@@ -1,6 +1,8 @@
 // Model of SIC (strictly in-order pipeline)
 // We remove any latency information in the model which add nothing
 
+// run it using: uclid -m pipeline sic.ucl
+
 // I tried to implement the model using a module for instruction and a
 // module for the pipeline. However this is not pssible as the pipeline
 // module would then require to have one instance of instruction per
@@ -9,18 +11,17 @@
 
 module pipeline
 {
+  // Number of instructions in the trace
+  const trace_length : integer = 8;
+
   // Words -- Addresses, Data, etc.
   type word_t = bv32;
-
-  // I tried to change bv3 with a custom type to more easily change the
-  // trace length, but range function does not accept the new type
-  // type trace_length_t = bv3;
 
   // Pipeline stages
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
 
   // Instruction 
-  type inst_t = record { position: bv3, stage:stage_t };
+  type inst_t = record { position: integer, stage:stage_t };
 
   // Opcode 
   type opcode_t = enum { nop, load, store, branch, other };
@@ -38,7 +39,7 @@ module pipeline
   function inst2stage (instruction:inst_t):stage_t;
 
   // An array of instructions
-  var instructions: [bv3]inst_t;
+  var instructions: [integer]inst_t;
 
   procedure ready (instruction:inst_t) returns (b:boolean)
   {
@@ -57,15 +58,52 @@ module pipeline
 
   procedure will_be_free (instruction:inst_t) returns (b:boolean)
   {
-    var b:boolean
-    
+     b = true;
+     
+     if (instruction.stage != post) { b = false; }
+     else
+     {
+       for (i : integer) in range (0, trace_length)
+       {
+         var other_instruction : inst_t;
+
+         other_instruction = instructions[i];
+         if (other_instruction == instruction_stage) { b = true; }
+       }
+     }    
+  }
+
+  // next is a keyword in uclid!
+  procedure next_instruction (instruction:inst_t) returns (b:boolean)
+  {
+    if (instruction.stage == pre) { b = true; } else { b = false; }
+  }
+
+  procedure branch_pending (instruction: inst_t) returns (b:boolean)
+  {
+
+  }
+
+  procedure load_pending (instruction: inst_t) returns (b:boolean)
+  {
+
+  }
+
+  procedure store_pending (instruction: inst_t) returns (b:boolean)
+  {
+
+  }
+
+  procedure data_dependant (instruction: inst_t) returns (b:boolean)
+  {
+
   }
 
   // Specify the new stage of each instruction
-  procedure stage (current_instructions:[bv3] inst_t)
-    returns (next_instructions:[bv3] inst_t)
+  procedure stage (current_instructions:[integer] inst_t)
+    returns (next_instructions:[integer] inst_t)
   {
-    for i in range (0 bv3, 7 bv3)
+    for (i : integer) in range (1, trace_length)
     {
 	var current_instruction:inst_t;
 	var current_stage:stage_t;
@@ -102,7 +140,7 @@ module pipeline
   // with its position and stage
   init
   {
-    for i in range (0 bv3, 7 bv3)
+    for (i : integer) in range (1, trace_length)
     {
 	var instruction:inst_t;
 	instruction.position = i;
