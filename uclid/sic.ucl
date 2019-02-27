@@ -10,13 +10,18 @@ module pipeline {
   // Words -- Addresses, Data, etc.
   type word_t = bv32;
 
-  // Pipeline stage
+// I tried to change bv3 with a custom type to more easily change the
+// trace length, but range function does not accept the new type
+  // type trace_length_t = bv3;
+
+  // Pipeline stages
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
   
   // Instruction 
   type inst_t = record { position : bv3, stage : stage_t };
 
-  type opcode_t = enum { nop, load, store, cond_branch, other };
+  // Opcode 
+  type opcode_t = enum { nop, load, store, branch, other };
 
   // Registers
   type reg_t = word_t;
@@ -92,9 +97,10 @@ module pipeline {
   }
 
   control {
-    unroll(10);
+    vobj = unroll(10);
     check;
     print_results;
+    vobj.print_cex(instructions);
   }
 }
 	
