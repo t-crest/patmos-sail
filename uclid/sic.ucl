@@ -20,11 +20,8 @@ module pipeline
   // Pipeline stages
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
 
-  // Instruction 
-  type inst_t = record { position: integer, stage:stage_t };
-
   // Opcode 
-  type opcode_t = enum { nop, load, store, branch, other };
+  type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
 
   // Registers
   type reg_t = word_t;
@@ -32,7 +29,15 @@ module pipeline
   // Source registers
   type src_regs_t = record { src1: reg_t, src2:reg_t };
 
+  // Instruction 
+  type inst_t = record { position: integer,
+       	      	       	 opcode: opcode_t,
+			 srcs: src_regs_t,
+			 dst: reg_t,
+			 stage: stage_t };
+
   // Non-interpreted function to manipule an instruction
+  // TODO: needed?
   function inst2opc (instruction:inst_t):opcode_t;
   function inst2ops (instruction:inst_t):src_regs_t;
   function inst2target (instruction:inst_t):reg_t;
@@ -43,60 +48,203 @@ module pipeline
 
   procedure ready (instruction:inst_t) returns (b:boolean)
   {
+    var mem_ready, ex_ready, id_ready, pre_ready : boolean;
+
     var opc:opcode_t;
 
-    opc = inst2opc (instruction);
-    b = false;
+    mem_ready = false;
+    ex_ready = false;
+    
+    opc = instruction.opcode;
 
-    if ((instruction.stage == MEM && opc == store)
-	|| (instruction.stage == EX && ((opc != load) || (opc != store)))
-	|| (instruction.stage == ID) || (instruction.stage == pre))
-      {
-	b = true;
-      }
+    if (instruction.stage == MEM && opc == store_op) { mem_ready = true; }
+    
+    if (instruction.stage == EX && ((opc != load_op) && (opc != store_op)))
+    {
+	var store : boolean;
+
+	call (store) = store_pending(instruction);
+	ex_ready = !store;
+    }
+
+    if (instruction.stage == ID)
+    {
+	var stall : boolean;
+
+	call (stall) = data_dependant(instruction);
+	id_ready = !stall;
+    }
+
+    if (instruction.stage == pre)
+    {
+	var next_ins, branch, mem : boolean;
+	call (branch) = branch_pending(instruction);
+	call (next_ins) = next_instruction(instruction);
+	call (mem) = mem_pending(instruction);
+	pre_ready = !branch && next_ins && !mem;
+    }
+
+    b = mem_ready || ex_ready || id_ready || pre_ready;
   }
 
   procedure will_be_free (instruction:inst_t) returns (b:boolean)
   {
-     b = true;
-     
-     if (instruction.stage != post) { b = false; }
-     else
-     {
-       for (i : integer) in range (0, trace_length)
-       {
-         var other_instruction : inst_t;
+    var executed, stage_occupied, stage_next_free: boolean;
+    
+    executed = false;
+    stage_occupied = false;
+    stage_next_free = false;
 
-         other_instruction = instructions[i];
-         if (other_instruction == instruction_stage) { b = true; }
-       }
-     }    
+    if (instruction.stage == post) { executed = true; } 
+
+    for (i : integer) in range (0, trace_length)
+    {
+	var other_ins : inst_t;
+
+	other_ins = instructions[i];
+	if (instruction.stage == other_ins.stage)
+	{
+	  var ready_ins : boolean;	
+	
+	  stage_occupied = true;
+	  
+	  call (ready_ins) = ready(other_ins);
+	  
+	  if (ready_ins)
+	  {
+	    call (stage_next_free) = will_be_free(other_ins);
+	  }
+	}
+    }
+
+    b = executed || !stage_occupied || stage_next_free;
   }
 
   // next is a keyword in uclid!
   procedure next_instruction (instruction:inst_t) returns (b:boolean)
   {
-    if (instruction.stage == pre) { b = true; } else { b = false; }
+    b = false;
+    
+    if (instruction.stage == pre)
+    {
+      var in_pre : boolean;
+      in_pre = false;      
+
+      // TODO: the upper bound should be set to instruction.position.
+      // but was currently unable to express it like this ...
+      for (j : integer) in range (0, trace_length)
+      {
+	var other_ins : inst_t;
+
+	other_ins = instructions[j];
+	if (other_ins.position < instruction.position && other_ins.stage == pre)
+	{
+	  in_pre = true;
+	}
+      }
+      
+      if (!in_pre) { b = true; }
+    }  
   }
 
   procedure branch_pending (instruction: inst_t) returns (b:boolean)
   {
+    b = false;
 
+    // TODO: the upper bound should be set to instruction.position.
+    // but was currently unable to express it like this ...
+    for (j : integer) in range (0, trace_length)
+    {
+      var other_ins : inst_t;
+
+      other_ins = instructions[j];    
+      if (other_ins.opcode == branch_op &&
+      	  (other_ins.stage == IF ||
+	   other_ins.stage == ID ||
+	   other_ins.stage == EX))
+      {
+	b = true;
+      }
+    }   
   }
 
-  procedure load_pending (instruction: inst_t) returns (b:boolean)
+  procedure mem_pending (instruction: inst_t) returns (b:boolean)
   {
+    var store, load : boolean;
 
+    store = false;
+    load = false;
+    b = false;
+    
+    // TODO: the upper bound should be set to instruction.position.
+    // but was currently unable to express it like this ...
+    for (j : integer) in range (0, trace_length)
+    {
+      var other_ins : inst_t;
+
+      other_ins = instructions[j];    
+      if (other_ins.opcode == load_op &&
+      	  (other_ins.stage == IF ||
+	   other_ins.stage == ID ||
+	   other_ins.stage == EX ||
+	   other_ins.stage == MEM))
+      {
+	load = true;
+      }
+    }
+
+    call (store) = store_pending(instruction);
+
+    b = store || load;
   }
 
   procedure store_pending (instruction: inst_t) returns (b:boolean)
   {
+    b = false;
 
+    // TODO: the upper bound should be set to instruction.position.
+    // but was currently unable to express it like this ...
+    for (j : integer) in range (0, trace_length)
+    {
+      var other_ins : inst_t;
+
+      other_ins = instructions[j];    
+      if (other_ins.opcode == store_op &&
+      	  (other_ins.stage == IF ||
+	   other_ins.stage == ID ||
+	   other_ins.stage == EX ||
+	   other_ins.stage == MEM ||
+	   other_ins.stage == ST))
+      {
+	b = true;
+      }
+    }   
   }
 
   procedure data_dependant (instruction: inst_t) returns (b:boolean)
   {
+    b = false;
 
+    // TODO: the upper bound should be set to instruction.position.
+    // but was currently unable to express it like this ...
+    for (j : integer) in range (0, trace_length)
+    {
+      var other_ins : inst_t;
+
+      other_ins = instructions[j];    
+      if (other_ins.opcode == load_op &&
+      	  (other_ins.stage == IF ||
+	   other_ins.stage == ID ||
+	   other_ins.stage == EX ||
+	   other_ins.stage == MEM))
+      {
+	if (instruction.srcs.src1 == other_ins.dst ||
+	    instruction.srcs.src2 == other_ins.dst)
+	{
+	  b = true;
+	}
+      }
+    }   
   }
 
   // Specify the new stage of each instruction
@@ -110,18 +258,18 @@ module pipeline
 	var next_stage:stage_t;
 
 	current_instruction = current_instructions[i];
-	current_stage = inst2stage (current_instruction);
+	current_stage = current_instruction.stage;
 
 	case
 	  (current_stage == pre) : { next_stage = IF; }
 	  (current_stage == IF)  : { next_stage = ID; }
-	  (current_stage == ID)  : { if (inst2opc (current_instruction) != nop)
+	  (current_stage == ID)  : { if (current_instruction.opcode != nop)
 	  		    	     { next_stage = EX; }
 				     else
 				     { next_stage = post; }
 				   }
 	   (current_stage == EX) : { next_stage = MEM; }
-	   (current_stage == MEM): { if (inst2opc (current_instruction) == store)
+	   (current_stage == MEM): { if (current_instruction.opcode == store_op)
 	   		     	     { next_stage = ST; }
 				     else
 				     { next_stage = WB; }
