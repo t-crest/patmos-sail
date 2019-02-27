@@ -1,4 +1,5 @@
 // Model of SIC (strictly in-order pipeline)
+// We remove any latency information in the model which add nothing
 
 // I tried to implement the model using a module for instruction and a
 // module for the pipeline. However this is not pssible as the pipeline
@@ -6,19 +7,20 @@
 // instruction which cannot be generalized to any length. Declaring an
 // array of instances seems also not possible ...
 
-module pipeline {
+module pipeline
+{
   // Words -- Addresses, Data, etc.
   type word_t = bv32;
 
-// I tried to change bv3 with a custom type to more easily change the
-// trace length, but range function does not accept the new type
+  // I tried to change bv3 with a custom type to more easily change the
+  // trace length, but range function does not accept the new type
   // type trace_length_t = bv3;
 
   // Pipeline stages
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
-  
+
   // Instruction 
-  type inst_t = record { position : bv3, stage : stage_t };
+  type inst_t = record { position: bv3, stage:stage_t };
 
   // Opcode 
   type opcode_t = enum { nop, load, store, branch, other };
@@ -27,75 +29,97 @@ module pipeline {
   type reg_t = word_t;
 
   // Source registers
-  type src_regs_t = record { src1 : reg_t, src2 : reg_t };
-    
-  function inst2opc (instruction : inst_t) : opcode_t;
-  function inst2ops (instruction : inst_t) : src_regs_t;
-  function inst2target (instruction : inst_t) : reg_t;
-  function inst2stage (instruction : inst_t) : stage_t;
+  type src_regs_t = record { src1: reg_t, src2:reg_t };
 
-  var instructions : [bv3]inst_t;
+  // Non-interpreted function to manipule an instruction
+  function inst2opc (instruction:inst_t):opcode_t;
+  function inst2ops (instruction:inst_t):src_regs_t;
+  function inst2target (instruction:inst_t):reg_t;
+  function inst2stage (instruction:inst_t):stage_t;
 
-  procedure ready (ins: inst_t) returns (b: boolean)
+  // An array of instructions
+  var instructions: [bv3]inst_t;
+
+  procedure ready (instruction:inst_t) returns (b:boolean)
   {
-      var opc : opcode_t;
-      var b : boolean;
+    var opc:opcode_t;
 
-      opc = inst2opc(ins);
-      b = false;
+    opc = inst2opc (instruction);
+    b = false;
 
-      if ((ins.stage == MEM && opc == store)
-      	  || (ins.stage == EX && ((opc != load) || (opc != store)))
-	  || (ins.stage == ID)
-	  || (ins.stage == pre))
+    if ((instruction.stage == MEM && opc == store)
+	|| (instruction.stage == EX && ((opc != load) || (opc != store)))
+	|| (instruction.stage == ID) || (instruction.stage == pre))
       {
-      	 b = true;
+	b = true;
       }
   }
 
-  procedure stage (instructions : [bv3]inst_t)
-  returns (new_instructions : [bv3]inst_t)
+  procedure will_be_free (instruction:inst_t) returns (b:boolean)
   {
-      for i in range(0bv3, 7bv3) {
-      	    var current_instruction : inst_t;
-
-            var current_stage : stage_t;
-      	    var new_stage : stage_t;
-
-	    current_instruction = instructions[i];
-            current_stage = inst2stage(current_instruction);
-	    
-      	    case
-	    (current_stage == pre) : { new_stage = IF; }
-	    (current_stage == IF)  : { new_stage = ID; }
-	    (current_stage == ID)  : { if (inst2opc(current_instruction) != nop) { new_stage = EX; }
-	    		      	       else { new_stage = post; } }	
-	    (current_stage == EX)  : { new_stage = MEM; }
-	    (current_stage == MEM) : { if (inst2opc(current_instruction) == store) { new_stage = ST; }
-	    		      	       else { new_stage = WB; } }
-	    (current_stage == ST)  : { new_stage = post; }
-	    (current_stage == WB)  : { new_stage = post; }
-	    (current_stage == post): { }
-      	    esac
-	    
-	    current_instruction.stage = new_stage;
-	    new_instructions[i] = current_instruction;
-      }
+    var b:boolean
+    
   }
 
-  init {
-    for i in range(0bv3, 7bv3) {
-    	var ins : inst_t;
-	ins.position = i;
-	ins.stage = pre;
-    	instructions[i] = ins;
+  // Specify the new stage of each instruction
+  procedure stage (current_instructions:[bv3] inst_t)
+    returns (next_instructions:[bv3] inst_t)
+  {
+    for i in range (0 bv3, 7 bv3)
+    {
+	var current_instruction:inst_t;
+	var current_stage:stage_t;
+	var next_stage:stage_t;
+
+	current_instruction = current_instructions[i];
+	current_stage = inst2stage (current_instruction);
+
+	case
+	  (current_stage == pre) : { next_stage = IF; }
+	  (current_stage == IF)  : { next_stage = ID; }
+	  (current_stage == ID)  : { if (inst2opc (current_instruction) != nop)
+	  		    	     { next_stage = EX; }
+				     else
+				     { next_stage = post; }
+				   }
+	   (current_stage == EX) : { next_stage = MEM; }
+	   (current_stage == MEM): { if (inst2opc (current_instruction) == store)
+	   		     	     { next_stage = ST; }
+				     else
+				     { next_stage = WB; }
+				   }
+	    (current_stage == ST): { next_stage = post; }
+	    (current_stage == WB): { next_stage = post; }
+	    (current_stage == post) : { next_stage = current_stage;}
+	 esac
+	 
+	 current_instruction.stage = next_stage;
+	 next_instructions[i] = current_instruction;
     }
   }
 
-  next {
-      call (instructions') = stage(instructions);
+  // Simply initialize each instruction
+  // with its position and stage
+  init
+  {
+    for i in range (0 bv3, 7 bv3)
+    {
+	var instruction:inst_t;
+	instruction.position = i;
+	instruction.stage = pre;
+	instructions[i] = instruction;
+    }
   }
 
+  // Updating the state of the pipeline,
+  // i.e. the stage of each instruction
+  next
+  {
+   
+    call (instructions ') = stage(instructions);
+  }
+
+  // Bounded model checking limit
   control {
     vobj = unroll(10);
     check;
@@ -104,4 +128,5 @@ module pipeline {
   }
 }
 	
+
 
