@@ -1,6 +1,12 @@
 // Model of SIC (strictly in-order pipeline)
 
-module common {
+// I tried to implement the model using a module for instruction and a
+// module for the pipeline. However this is not pssible as the pipeline
+// module would then require to have one instance of instruction per
+// instruction which cannot be generalized to any length. Declaring an
+// array of instances seems also not possible ...
+
+module pipeline {
   // Words -- Addresses, Data, etc.
   type word_t = bv32;
 
@@ -8,7 +14,7 @@ module common {
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
   
   // Instruction 
-  type inst_t = record { position : integer, stage : stage_t };
+  type inst_t = record { position : bv3, stage : stage_t };
 
   type opcode_t = enum { nop, load, store, cond_branch, other };
 
@@ -22,22 +28,8 @@ module common {
   function inst2ops (instruction : inst_t) : src_regs_t;
   function inst2target (instruction : inst_t) : reg_t;
   function inst2stage (instruction : inst_t) : stage_t;
-}
 
-// Faire un modèle des instructions pour mettre à jour une instruction
-// mais passer en paramètre la liste des instructions qui précédent?
-// Il tel modèle nécessite de connaitre les instructions qui précédentes
-=> un instruction est vu comme une instance. Il faut déclarer autant d'instruction que d'instance et pas moyen de passer 
-
-// NON, il faut faire différent => module par étage
-
-// Faire un modèle du pipeline avec l'ensemble des instructions
-
-module instruction {
-
-  input next_ins : [bv3]instruction_t;
-  input position : integer;
-  var ins : instruction_t;
+  var instructions : [bv3]inst_t;
 
   procedure ready (ins: inst_t) returns (b: boolean)
   {
@@ -47,7 +39,7 @@ module instruction {
       opc = inst2opc(ins);
       b = false;
 
-      if ((inst.stage == MEM && opc == store)
+      if ((ins.stage == MEM && opc == store)
       	  || (ins.stage == EX && ((opc != load) || (opc != store)))
 	  || (ins.stage == ID)
 	  || (ins.stage == pre))
@@ -56,53 +48,49 @@ module instruction {
       }
   }
 
-  procedure stage (current_ins : inst_t, i: integer) returns (new_ins : inst_t)
+  procedure stage (instructions : [bv3]inst_t)
+  returns (new_instructions : [bv3]inst_t)
   {
-      var current_stage : stage_t;
-      var new_stage : stage_t;
-      
-      current_stage = inst2stage(current_ins);
-      case
-	(current_stage == pre) : { new_stage = IF; }
-	(current_stage == IF)  : { new_stage = ID; }
-	(current_stage == ID)  : { if (inst2opc(current_ins) != nop) { new_stage = EX; } else { new_stage = post; } }	
-	(current_stage == EX)  : { new_sage = MEM; }
-	(current_stage == MEM) : { if (inst2opc(current_inss) == store) { new_stage = ST; } else { new_stage = WB; } }
-	(current_stage == ST)  : { new_stage = post; }
-	(current_stage == WB)  : { new_stage = post; }
-	(current_stage == post): { }
-      esac
-      new_ins.stage = new_stage;	
+      for i in range(0bv3, 7bv3) {
+      	    var current_instruction : inst_t;
+
+            var current_stage : stage_t;
+      	    var new_stage : stage_t;
+
+	    current_instruction = instructions[i];
+            current_stage = inst2stage(current_instruction);
+	    
+      	    case
+	    (current_stage == pre) : { new_stage = IF; }
+	    (current_stage == IF)  : { new_stage = ID; }
+	    (current_stage == ID)  : { if (inst2opc(current_instruction) != nop) { new_stage = EX; }
+	    		      	       else { new_stage = post; } }	
+	    (current_stage == EX)  : { new_stage = MEM; }
+	    (current_stage == MEM) : { if (inst2opc(current_instruction) == store) { new_stage = ST; }
+	    		      	       else { new_stage = WB; } }
+	    (current_stage == ST)  : { new_stage = post; }
+	    (current_stage == WB)  : { new_stage = post; }
+	    (current_stage == post): { }
+      	    esac
+	    
+	    current_instruction.stage = new_stage;
+	    new_instructions[i] = current_instruction;
+      }
   }
 
   init {
-      ins.position = position;
-      ins.stage = pre;
+    for i in range(0bv3, 7bv3) {
+    	var ins : inst_t;
+	ins.position = i;
+	ins.stage = pre;
+    	instructions[i] = ins;
+    }
   }
 
   next {
-      call (instruction') = stage(instruction);
+      call (instructions') = stage(instructions);
   }
-}
 
-
-
-module sic_pipeline {
-
-  instance i0 : instruction(position : (position), next_ins(next_ins));
-
-  init {
-    for i in range(0bv3, 7bv3) {
-    	instructions[i] = instance instruction(i);
-    }
-  }
- 
-  next {
-    for i in range(0bv3, 7bv3) {
-    	call (instructions'[i] = update_stage(instructions[i]);
-    }
-  }
- 
   control {
     unroll(10);
     check;
