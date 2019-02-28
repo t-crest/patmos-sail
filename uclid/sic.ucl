@@ -5,8 +5,11 @@
 // run with some instructions: uclid sic.ucl
 
 // TODO
-// - Specify the invariant property
 // - Add latencies for instructions
+// - Add the use of ready and enhance it to monitor delays an instruction
+//   is going to suffer from due to previous and subsequent instructions   
+// - Specify the invariant property: basically checking that delays due
+//   subsequent instructions is always 0
 // - Use latency to setup the example of the paper
 // - Remove rules to get a classical in-order pipeline
 
@@ -335,10 +338,13 @@ module main {
     step' = step + 1;  
 
   }
+
+  // The property we are looking at (our paper at WCET 2018?)
+  property[LTL] no_timing_anomalies: G();
   
   // Bounded model checking limit
   control {
-    vobj = unroll(3);
+    vobj = bmc[no_timing_anomalies](3);
     check;
     print_results;
     vobj.print_cex(step, sic.instructions);
