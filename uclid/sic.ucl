@@ -1,7 +1,14 @@
 // Model of SIC (strictly in-order pipeline)
 // We remove any latency information in the model which add nothing
 
-// run it using: uclid -m pipeline sic.ucl
+// check the pipeline: uclid -m pipeline sic.ucl
+// run with some instructions: uclid sic.ucl
+
+// TODO
+// - Specify the invariant property
+// - Add latencies for instructions
+// - Use latency to setup the example of the paper
+// - Remove rules to get a classical in-order pipeline
 
 // I tried to implement the model using a module for instruction and a
 // module for the pipeline. However this is not pssible as the pipeline
@@ -9,11 +16,12 @@
 // instruction which cannot be generalized to any length. Declaring an
 // array of instances seems also not possible ...
 
-module pipeline
-{
-  // Number of instructions in the trace
-  const trace_length : integer = 8;
+module param {
+  // The length of the tace
+  const trace_length: integer = 8;
+}
 
+module isa {
   // Words -- Addresses, Data, etc.
   type word_t = bv32;
 
@@ -23,34 +31,30 @@ module pipeline
   // Opcode 
   type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
 
-  // Registers
-  type reg_t = word_t;
+  // Remove registers as the data dependency is not important
+  /* // Registers */
+  /* type reg_t = word_t; */
 
-  // Source registers
-  type src_regs_t = record { src1: reg_t, src2:reg_t };
+  /* // Source registers */
+  /* type src_regs_t = record { src1: reg_t, src2:reg_t }; */
 
   // Instruction 
   type inst_t = record { position: integer,
        	      	       	 opcode: opcode_t,
-			 srcs: src_regs_t,
-			 dst: reg_t,
+			 /* srcs: src_regs_t, */
+			 /* dst: reg_t, */
 			 stage: stage_t };
+}
 
-  // Non-interpreted function to manipule an instruction
-  // TODO: needed?
-  function inst2opc (instruction:inst_t):opcode_t;
-  function inst2ops (instruction:inst_t):src_regs_t;
-  function inst2target (instruction:inst_t):reg_t;
-  function inst2stage (instruction:inst_t):stage_t;
-
+module pipeline {
   // An array of instructions
-  var instructions: [integer]inst_t;
+  input instructions: [integer]isa.inst_t;
 
-  procedure ready (instruction:inst_t) returns (b:boolean)
+  procedure ready (instruction:isa.inst_t) returns (b:boolean)
   {
-    var mem_ready, ex_ready, id_ready, pre_ready : boolean;
+    var mem_ready, ex_ready, /* id_ready,  */pre_ready : boolean;
 
-    var opc:opcode_t;
+    var opc:isa.opcode_t;
 
     mem_ready = false;
     ex_ready = false;
@@ -67,13 +71,13 @@ module pipeline
 	ex_ready = !store;
     }
 
-    if (instruction.stage == ID)
-    {
-	var stall : boolean;
+    /* if (instruction.stage == ID) */
+    /* { */
+    /* 	var stall : boolean; */
 
-	call (stall) = data_dependant(instruction);
-	id_ready = !stall;
-    }
+    /* 	call (stall) = data_dependant(instruction); */
+    /* 	id_ready = !stall; */
+    /* } */
 
     if (instruction.stage == pre)
     {
@@ -84,10 +88,10 @@ module pipeline
 	pre_ready = !branch && next_ins && !mem;
     }
 
-    b = mem_ready || ex_ready || id_ready || pre_ready;
+    b = mem_ready || ex_ready /* || id_ready */ || pre_ready;
   }
 
-  procedure will_be_free (instruction:inst_t) returns (b:boolean)
+  procedure will_be_free (instruction:isa.inst_t) returns (b:boolean)
   {
     var executed, stage_occupied, stage_next_free: boolean;
     
@@ -97,9 +101,9 @@ module pipeline
 
     if (instruction.stage == post) { executed = true; } 
 
-    for (i : integer) in range (0, trace_length)
+    for (i : integer) in range (0, param.trace_length)
     {
-	var other_ins : inst_t;
+	var other_ins : isa.inst_t;
 
 	other_ins = instructions[i];
 	if (instruction.stage == other_ins.stage)
@@ -121,7 +125,7 @@ module pipeline
   }
 
   // next is a keyword in uclid!
-  procedure next_instruction (instruction:inst_t) returns (b:boolean)
+  procedure next_instruction (instruction:isa.inst_t) returns (b:boolean)
   {
     b = false;
     
@@ -132,9 +136,9 @@ module pipeline
 
       // TODO: the upper bound should be set to instruction.position.
       // but was currently unable to express it like this ...
-      for (j : integer) in range (0, trace_length)
+      for (j : integer) in range (0, param.trace_length)
       {
-	var other_ins : inst_t;
+	var other_ins : isa.inst_t;
 
 	other_ins = instructions[j];
 	if (other_ins.position < instruction.position && other_ins.stage == pre)
@@ -147,15 +151,15 @@ module pipeline
     }  
   }
 
-  procedure branch_pending (instruction: inst_t) returns (b:boolean)
+  procedure branch_pending (instruction: isa.inst_t) returns (b:boolean)
   {
     b = false;
 
     // TODO: the upper bound should be set to instruction.position.
     // but was currently unable to express it like this ...
-    for (j : integer) in range (0, trace_length)
+    for (j : integer) in range (0, param.trace_length)
     {
-      var other_ins : inst_t;
+      var other_ins : isa.inst_t;
 
       other_ins = instructions[j];    
       if (other_ins.opcode == branch_op &&
@@ -168,7 +172,7 @@ module pipeline
     }   
   }
 
-  procedure mem_pending (instruction: inst_t) returns (b:boolean)
+  procedure mem_pending (instruction: isa.inst_t) returns (b:boolean)
   {
     var store, load : boolean;
 
@@ -178,9 +182,9 @@ module pipeline
     
     // TODO: the upper bound should be set to instruction.position.
     // but was currently unable to express it like this ...
-    for (j : integer) in range (0, trace_length)
+    for (j : integer) in range (0, param.trace_length)
     {
-      var other_ins : inst_t;
+      var other_ins : isa.inst_t;
 
       other_ins = instructions[j];    
       if (other_ins.opcode == load_op &&
@@ -198,15 +202,15 @@ module pipeline
     b = store || load;
   }
 
-  procedure store_pending (instruction: inst_t) returns (b:boolean)
+  procedure store_pending (instruction: isa.inst_t) returns (b:boolean)
   {
     b = false;
 
     // TODO: the upper bound should be set to instruction.position.
     // but was currently unable to express it like this ...
-    for (j : integer) in range (0, trace_length)
+    for (j : integer) in range (0, param.trace_length)
     {
-      var other_ins : inst_t;
+      var other_ins : isa.inst_t;
 
       other_ins = instructions[j];    
       if (other_ins.opcode == store_op &&
@@ -221,41 +225,41 @@ module pipeline
     }   
   }
 
-  procedure data_dependant (instruction: inst_t) returns (b:boolean)
-  {
-    b = false;
+  /* procedure data_dependant (instruction: isa.inst_t) returns (b:boolean) */
+  /* { */
+  /*   b = false; */
 
-    // TODO: the upper bound should be set to instruction.position.
-    // but was currently unable to express it like this ...
-    for (j : integer) in range (0, trace_length)
-    {
-      var other_ins : inst_t;
+  /*   // TODO: the upper bound should be set to instruction.position. */
+  /*   // but was currently unable to express it like this ... */
+  /*   for (j : integer) in range (0, param.trace_length) */
+  /*   { */
+  /*     var other_ins : isa.inst_t; */
 
-      other_ins = instructions[j];    
-      if (other_ins.opcode == load_op &&
-      	  (other_ins.stage == IF ||
-	   other_ins.stage == ID ||
-	   other_ins.stage == EX ||
-	   other_ins.stage == MEM))
-      {
-	if (instruction.srcs.src1 == other_ins.dst ||
-	    instruction.srcs.src2 == other_ins.dst)
-	{
-	  b = true;
-	}
-      }
-    }   
-  }
+  /*     other_ins = instructions[j];     */
+  /*     if (other_ins.opcode == load_op && */
+  /*     	  (other_ins.stage == IF || */
+  /* 	   other_ins.stage == ID || */
+  /* 	   other_ins.stage == EX || */
+  /* 	   other_ins.stage == MEM)) */
+  /*     { */
+  /* 	if (instruction.srcs.src1 == other_ins.dst || */
+  /* 	    instruction.srcs.src2 == other_ins.dst) */
+  /* 	{ */
+  /* 	  b = true; */
+  /* 	} */
+  /*     } */
+  /*   }    */
+  /* } */
 
   // Specify the new stage of each instruction
-  procedure stage (current_instructions:[integer] inst_t)
-    returns (next_instructions:[integer] inst_t)
+  procedure stage (current_instructions:[integer] isa.inst_t)
+    returns (next_instructions:[integer] isa.inst_t)
   {
-    for (i : integer) in range (1, trace_length)
+    for (i : integer) in range (1, param.trace_length)
     {
-	var current_instruction:inst_t;
-	var current_stage:stage_t;
-	var next_stage:stage_t;
+	var current_instruction:isa.inst_t;
+	var current_stage:isa.stage_t;
+	var next_stage:isa.stage_t;
 
 	current_instruction = current_instructions[i];
 	current_stage = current_instruction.stage;
@@ -284,33 +288,60 @@ module pipeline
     }
   }
 
-  // Simply initialize each instruction
-  // with its position and stage
-  init
-  {
-    for (i : integer) in range (1, trace_length)
-    {
-	var instruction:inst_t;
-	instruction.position = i;
-	instruction.stage = pre;
-	instructions[i] = instruction;
-    }
-  }
-
   // Updating the state of the pipeline,
   // i.e. the stage of each instruction
   next
   {
-   
-    call (instructions ') = stage(instructions);
+    call (instructions') = stage(instructions);
   }
 
+}
+
+module main {
+  var step : integer;
+  var instructions: [integer]isa.inst_t;
+
+  var current_ins: isa.inst_t;	
+
+  instance sic : pipeline(instructions: (instructions));
+
+  // Here we basically init each instruction
+  init {
+    step = 0;
+    for (i : integer) in range (1, param.trace_length)
+    {
+      var current_ins: isa.inst_t;	    
+      current_ins.position = i;
+      current_ins.stage = pre;
+
+      // Example of the SIC paper
+      case
+	(i == 0) : {
+	  current_ins.opcode = store_op;
+	}
+      	(i == 1) : {
+	  current_ins.opcode = other_op;	
+      	}
+      	(i == 2) : {
+	  current_ins.opcode = load_op;
+      	}
+   	esac;    
+
+      instructions[i] = current_ins;
+    }
+  }
+
+  next {
+    step' = step + 1;  
+
+  }
+  
   // Bounded model checking limit
   control {
-    vobj = unroll(10);
+    vobj = unroll(3);
     check;
     print_results;
-    vobj.print_cex(instructions);
+    vobj.print_cex(step, sic.instructions);
   }
 }
 	
