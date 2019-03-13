@@ -12,6 +12,10 @@
 // - Use latency to setup the example of the paper
 // - Remove rules to get a classical in-order pipeline
 
+// We were unable to model using an array of record using UCLID
+// Arrays of values works well, but we want to update a subset of an element
+// of an array -> TLA+ seems better here.
+
 // In an in-order pipeline, instruction i can be blocked by a
 // subsequent instruction j (j>i) while j is in fetch stage. In SIC,
 // this is avoided as 
@@ -36,85 +40,94 @@ module isa {
 
   // Delay suffered by each instruction
   type delay_t = record { previous: integer, subsequent: integer };
+
+  // Instruction 
+  type inst_t = record { opcode: opcode_t,
+			 latencies: latency_t,
+			 stage: stage_t };
 }
 
 module instruction {
 
-  // We were unable to model using an array of record using UCLID
-  // Arrays of values works well, but we want to update a subset of an element
-  // of an array -> TLA+ seems better here.
-  // input position: integer;
-
-  // Used in this module as read only values 
-  input opcode: isa.opcode_t;
-  input execute: boolean;
-
   // To set the values for the latencies, we need both an input and a var
   // as input are readonly variables ...
-  input init_latencies: isa.latency_t;
-  var latencies: isa.latency_t;
-  // This is to ensure that latencies are properly set to the values we give
-  // as inputs
-  var initialized: boolean;  
+  input in_latencies: isa.latency_t;
+  // The opcode which is set
+  input in_opcode: isa.opcode_t;
+  // Used in this module as read only values 
+  input execute: boolean;
+
+  // The instruction
+  var instruction: isa.inst_t;
 
   // To allow the main module to retrieve values and check delays
   output delays: isa.delay_t;
 
-  // Current stage in which the instruction is
-  var stage: isa.stage_t;
-
   init {
-    stage = pre;
-    initialized = false;
-    execute = false;
+    instruction.stage = pre;
+    delays.previous = 0;
+    delays.subsequent = 0;
   }
   
-  procedure update_IF() modifies latencies; { latencies.fetch = latencies.fetch - 1;}
+  procedure update_IF() modifies instruction; {
+    instruction.latencies.fetch = instruction.latencies.fetch - 1;
+  }
 
-  procedure update_MEM() modifies latencies; { latencies.mem = latencies.mem - 1;}
+  procedure update_MEM() modifies instruction; {
+    instruction.latencies.mem = instruction.latencies.mem - 1;
+  }
 
-  procedure update_ST() modifies latencies; { latencies.st = latencies.st - 1; }
+  procedure update_ST() modifies instruction; {
+    instruction.latencies.st = instruction.latencies.st - 1;
+  }
+
+  procedure update_stage() modifies instruction; {
+       case
+	  (instruction.stage == pre) : { instruction.stage = IF; }
+	  (instruction.stage == IF)  : { if (instruction.latencies.fetch == 0)
+	  		     	       	   { instruction.stage = ID; }
+	  	    	     		 else { call update_IF() ; }}
+	  (instruction.stage == ID)  : { if (instruction.opcode != nop)
+	  		     	       	   { instruction.stage = EX; }
+	  	    	     		 else { instruction.stage = post; }}
+	  (instruction.stage == EX)  : { instruction.stage = MEM; }
+	  (instruction.stage == MEM) : { if (instruction.latencies.mem == 0) {
+	  	    	     	       	   if (instruction.opcode == store_op)
+					   { instruction.stage = ST; }
+	  		     		   else { instruction.stage = WB; } }
+			     		 else { call update_MEM(); }
+	  		   	       }
+	  (instruction.stage == ST)  : { if (instruction.latencies.st == 0)
+	  		     	       	   { instruction.stage = post; }
+			     		 else { call update_ST(); }
+			   		 }
+	  (instruction.stage == WB ) : { instruction.stage = post; }
+      esac
+  }
 
   next {
     if (execute) {
-       case
-	  (stage == pre) : { stage' = IF; }
-	  (stage == IF)  : { if (latencies.fetch == 0) { stage' = ID; }
-	  	    	     else { call update_IF() ; }}
-	  (stage == ID)  : { if (opcode != nop) { stage' = EX; }
-	  	    	     else { stage' = post; }}
-	  (stage == EX)  : { stage' = MEM; }
-	  (stage == MEM) : { if (latencies.mem == 0) {
-	  	    	     	if (opcode == store_op) { stage' = ST; }
-	  		     	else { stage' = WB; } }
-			     else { call update_MEM(); }
-	  		   }
-	  (stage == ST)  : { if (latencies.st == 0) { stage' = post; }
-			     else { call update_ST(); }
-			   }
-	  (stage == WB ) : { stage' = post; }
-      esac
+      call update_stage();
     } 
   }
 }
 
 module sic {
 
-  input previous_opcode, current_opcode: isa.opcode_t;
-  input previous_latencies, current_latencies: isa.latency_t;
+  input current_op, subsequent_op: isa.opcode_t;
+  input current_latencies, subsequent_latencies: isa.latency_t;
 
   var progress: boolean;
+
+  instance current_ins : instruction(in_opcode: (current_op),
+  	   	     		     in_latencies: (current_latencies),
+				     execute: (progress));
+  instance subsequent_ins : instruction(in_opcode: (subsequent_op),
+  	   	      		  	in_latencies: (subsequent_latencies),
+					execute: (true));
+
+  var initialized: boolean;
   
-  // As much as instance as previous instruction can have an impact of the current one
-  // By definition, this number is limited by the number of stages of a pipeline, no?
-  instance previous : instruction(opcode: (previous_opcode),
-  	   	      		  init_latencies: (previous_latencies),
-				  execute: (progress));    
-
-  instance current : instruction(opcode: (current_opcode),
-  	   	     		 init_latencies: (current_latencies),
-				 execute: (progress));
-
   procedure ready (instruction:isa.inst_t) returns (b:boolean)
   {
     var mem_ready, ex_ready, /* id_ready,  */pre_ready : boolean;
@@ -166,18 +179,18 @@ module sic {
 
     if (instruction.stage == post) { executed = true; } 
 
-    if (instruction.stage == previous.stage)
+    if (instruction.stage == subsequent_ins.instruction.stage)
     {
 	var ready_ins : boolean;	
 	
   	stage_occupied = true;
 	  
-  	call (ready_ins) = ready(previous);
+  	call (ready_ins) = ready(subsequent_ins.instruction);
 	  
-  	if (ready_ins)
-  	{
-	   call (stage_next_free) = will_be_free(previous);
-  	}
+  	// if (ready_ins)
+  	// {
+	//    call (stage_next_free) = will_be_free(subsequent_ins.instruction);
+  	//}
     }
 
     b = executed || !stage_occupied || stage_next_free;
@@ -193,7 +206,7 @@ module sic {
       var in_pre : boolean;
       in_pre = false;      
 
-      if (previous.stage == pre)
+      if (subsequent_ins.instruction.stage == pre)
       {
   	  in_pre = true;
       }
@@ -206,10 +219,10 @@ module sic {
   {
     b = false;
 
-    if (previous.opcode == branch_op &&
-        (previous.stage == IF ||
-  	 previous.stage == ID ||
-  	 previous.stage == EX)) {
+    if (subsequent_ins.instruction.opcode == branch_op &&
+        (subsequent_ins.instruction.stage == IF ||
+  	 subsequent_ins.instruction.stage == ID ||
+  	 subsequent_ins.instruction.stage == EX)) {
   	b = true;
     }
   }
@@ -222,11 +235,11 @@ module sic {
     load = false;
     b = false;
     
-    if (previous.opcode == load_op &&
-      	(previous.stage == IF ||
-  	 previous.stage == ID ||
-  	 previous.stage == EX ||
-  	 previous.stage == MEM))  {
+    if (subsequent_ins.instruction.opcode == load_op &&
+      	(subsequent_ins.instruction.stage == IF ||
+  	 subsequent_ins.instruction.stage == ID ||
+  	 subsequent_ins.instruction.stage == EX ||
+  	 subsequent_ins.instruction.stage == MEM))  {
   	load = true;
     }
 
@@ -239,12 +252,12 @@ module sic {
   {
     b = false;
 
-    if (previous.opcode == store_op &&
-        (previous.stage == IF ||
-  	 previous.stage == ID ||
-  	 previous.stage == EX ||
-  	 previous.stage == MEM ||
-  	 previous.stage == ST)) {
+    if (subsequent_ins.instruction.opcode == store_op &&
+        (subsequent_ins.instruction.stage == IF ||
+  	 subsequent_ins.instruction.stage == ID ||
+  	 subsequent_ins.instruction.stage == EX ||
+  	 subsequent_ins.instruction.stage == MEM ||
+  	 subsequent_ins.instruction.stage == ST)) {
   	b = true;
     }   
   }
@@ -276,23 +289,32 @@ module sic {
   /* } */
 
   init {
-       progress = false;
+    progress = false;
+    initialized = false;
   }
 
-// Updating the state of the instruction
+  procedure update_progress() modifies progress; {
+    var is_ready : boolean;
+    var is_free : boolean;
+
+    call (is_ready) = ready(current_ins.instruction);
+    call (is_free) = will_be_free(current_ins.instruction);
+
+    //progress = is_ready && is_free;
+    progress = true;    
+}
+
+  // Updating the state of the instruction
   next  {
     if (!initialized) {
-        assume(latencies == init_latencies);
+	assume(current_ins.instruction.opcode == current_op);
+	assume(subsequent_ins.instruction.opcode == subsequent_op);	
+        assume(current_ins.instruction.latencies == current_latencies);
+        assume(subsequent_ins.instruction.latencies == subsequent_latencies);	
     	initialized' = true;
-    } else {
-        var is_ready : boolean;
-    	var is_free : boolean;
-
-	call (is_ready) = ready(current);
-	call (is_free) = will_be_free(current);
-
-	progress = is_ready && is_free;
-	next(current);
+	} else {
+    call update_progress();
+    if (progress) { next(subsequent_ins); next(current_ins);}
     }
   }
 }
@@ -301,21 +323,24 @@ module main {
   var step : integer;
 
   var op0, op1: isa.opcode_t;
-  var latencies_0, latencies_1: isa.latency_t;
+  var latencies0, latencies1: isa.latency_t;
 
-  instance pipeline : sic(previous_opcode: (op1), current_opcode : (op0),
-  	   	       	  previous_latencies: (latencies_1), current_latencies : (latencies_0))
+  // As much as instance as subsequent instruction can have an impact of the current one
+  // By definition, this number is limited by the number of stages of a pipeline, no?
 
+  instance pipeline : sic(current_op: (op0), subsequent_op: (op1),
+  	   	          current_latencies: (latencies0), subsequent_latencies: (latencies1));
+  
   init {
     step = 0;
     op0 = store_op;
     op1 = other_op;
-    latencies_0.fetch = 2;
-    latencies_0.mem = 2;
-    latencies_0.st = 2;    
-    latencies_1.fetch = 1;
-    latencies_1.mem = 0;
-    latencies_1.st = 0;        
+    latencies0.fetch = 2;
+    latencies0.mem = 2;
+    latencies0.st = 2;    
+    latencies1.fetch = 1;
+    latencies1.mem = 0;
+    latencies1.st = 0;        
   }
 
   next {
@@ -333,9 +358,9 @@ module main {
     vobj = unroll(10);
     check;
     print_results;
-    vobj.print_cex(step, ins0.position, ins0.initialized, ins0.stage, ins0.latencies,
-    			 ins1.position, ins1.stage, ins1.latencies,
-			 ins2.position, ins2.stage, ins2.latencies);
+    vobj.print_cex(step, pipeline.progress, 
+		   pipeline.current_ins.instruction, pipeline.subsequent_ins.instruction,
+		   pipeline.current_ins.delays, pipeline.subsequent_ins.delays);		   
   }
 }
 	
