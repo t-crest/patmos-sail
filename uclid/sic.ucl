@@ -5,19 +5,16 @@
 // run with some instructions: uclid sic.ucl
 
 // TODO
-// - Add latencies for instructions
-// - Add the use of ready and enhance it to monitor delays an instruction
+// - Enhance ready it to monitor delays an instruction
 //   is going to suffer from due to previous and subsequent instructions   
 // - Specify the invariant property: basically checking that delays due
 //   subsequent instructions is always 0
 // - Use latency to setup the example of the paper
 // - Remove rules to get a classical in-order pipeline
 
-// I tried to implement the model using a module for instruction and a
-// module for the pipeline. However this is not pssible as the pipeline
-// module would then require to have one instance of instruction per
-// instruction which cannot be generalized to any length. Declaring an
-// array of instances seems also not possible ...
+// In an in-order pipeline, instruction i can be blocked by a
+// subsequent instruction j (j>i) while j is in fetch stage. In SIC,
+// this is avoided as 
 
 module param {
   // The length of the tace
@@ -34,24 +31,89 @@ module isa {
   // Opcode 
   type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
 
-  // Remove registers as the data dependency is not important
-  /* // Registers */
-  /* type reg_t = word_t; */
+  // Latencies information for each instruction
+  type latency_t = record { fetch: integer, mem: integer, st: integer };
 
-  /* // Source registers */
-  /* type src_regs_t = record { src1: reg_t, src2:reg_t }; */
-
-  // Instruction 
-  type inst_t = record { position: integer,
-       	      	       	 opcode: opcode_t,
-			 /* srcs: src_regs_t, */
-			 /* dst: reg_t, */
-			 stage: stage_t };
+  // Delay suffered by each instruction
+  type delay_t = record { previous: integer, subsequent: integer };
 }
 
-module pipeline {
-  // An array of instructions
-  input instructions: [integer]isa.inst_t;
+module instruction {
+
+  // We were unable to model using an array of record using UCLID
+  // Arrays of values works well, but we want to update a subset of an element
+  // of an array -> TLA+ seems better here.
+  // input position: integer;
+
+  // Used in this module as read only values 
+  input opcode: isa.opcode_t;
+  input execute: boolean;
+
+  // To set the values for the latencies, we need both an input and a var
+  // as input are readonly variables ...
+  input init_latencies: isa.latency_t;
+  var latencies: isa.latency_t;
+  // This is to ensure that latencies are properly set to the values we give
+  // as inputs
+  var initialized: boolean;  
+
+  // To allow the main module to retrieve values and check delays
+  output delays: isa.delay_t;
+
+  // Current stage in which the instruction is
+  var stage: isa.stage_t;
+
+  init {
+    stage = pre;
+    initialized = false;
+    execute = false;
+  }
+  
+  procedure update_IF() modifies latencies; { latencies.fetch = latencies.fetch - 1;}
+
+  procedure update_MEM() modifies latencies; { latencies.mem = latencies.mem - 1;}
+
+  procedure update_ST() modifies latencies; { latencies.st = latencies.st - 1; }
+
+  next {
+    if (execute) {
+       case
+	  (stage == pre) : { stage' = IF; }
+	  (stage == IF)  : { if (latencies.fetch == 0) { stage' = ID; }
+	  	    	     else { call update_IF() ; }}
+	  (stage == ID)  : { if (opcode != nop) { stage' = EX; }
+	  	    	     else { stage' = post; }}
+	  (stage == EX)  : { stage' = MEM; }
+	  (stage == MEM) : { if (latencies.mem == 0) {
+	  	    	     	if (opcode == store_op) { stage' = ST; }
+	  		     	else { stage' = WB; } }
+			     else { call update_MEM(); }
+	  		   }
+	  (stage == ST)  : { if (latencies.st == 0) { stage' = post; }
+			     else { call update_ST(); }
+			   }
+	  (stage == WB ) : { stage' = post; }
+      esac
+    } 
+  }
+}
+
+module sic {
+
+  input previous_opcode, current_opcode: isa.opcode_t;
+  input previous_latencies, current_latencies: isa.latency_t;
+
+  var progress: boolean;
+  
+  // As much as instance as previous instruction can have an impact of the current one
+  // By definition, this number is limited by the number of stages of a pipeline, no?
+  instance previous : instruction(opcode: (previous_opcode),
+  	   	      		  init_latencies: (previous_latencies),
+				  execute: (progress));    
+
+  instance current : instruction(opcode: (current_opcode),
+  	   	     		 init_latencies: (current_latencies),
+				 execute: (progress));
 
   procedure ready (instruction:isa.inst_t) returns (b:boolean)
   {
@@ -68,10 +130,10 @@ module pipeline {
     
     if (instruction.stage == EX && ((opc != load_op) && (opc != store_op)))
     {
-	var store : boolean;
+  	var store : boolean;
 
-	call (store) = store_pending(instruction);
-	ex_ready = !store;
+  	call (store) = store_pending(instruction);
+  	ex_ready = !store;
     }
 
     /* if (instruction.stage == ID) */
@@ -84,11 +146,11 @@ module pipeline {
 
     if (instruction.stage == pre)
     {
-	var next_ins, branch, mem : boolean;
-	call (branch) = branch_pending(instruction);
-	call (next_ins) = next_instruction(instruction);
-	call (mem) = mem_pending(instruction);
-	pre_ready = !branch && next_ins && !mem;
+  	var next_ins, branch, mem : boolean;
+  	call (branch) = branch_pending(instruction);
+  	call (next_ins) = next_instruction(instruction);
+  	call (mem) = mem_pending(instruction);
+  	pre_ready = !branch && next_ins && !mem;
     }
 
     b = mem_ready || ex_ready /* || id_ready */ || pre_ready;
@@ -104,24 +166,18 @@ module pipeline {
 
     if (instruction.stage == post) { executed = true; } 
 
-    for (i : integer) in range (0, param.trace_length)
+    if (instruction.stage == previous.stage)
     {
-	var other_ins : isa.inst_t;
-
-	other_ins = instructions[i];
-	if (instruction.stage == other_ins.stage)
-	{
-	  var ready_ins : boolean;	
+	var ready_ins : boolean;	
 	
-	  stage_occupied = true;
+  	stage_occupied = true;
 	  
-	  call (ready_ins) = ready(other_ins);
+  	call (ready_ins) = ready(previous);
 	  
-	  if (ready_ins)
-	  {
-	    call (stage_next_free) = will_be_free(other_ins);
-	  }
-	}
+  	if (ready_ins)
+  	{
+	   call (stage_next_free) = will_be_free(previous);
+  	}
     }
 
     b = executed || !stage_occupied || stage_next_free;
@@ -137,17 +193,9 @@ module pipeline {
       var in_pre : boolean;
       in_pre = false;      
 
-      // TODO: the upper bound should be set to instruction.position.
-      // but was currently unable to express it like this ...
-      for (j : integer) in range (0, param.trace_length)
+      if (previous.stage == pre)
       {
-	var other_ins : isa.inst_t;
-
-	other_ins = instructions[j];
-	if (other_ins.position < instruction.position && other_ins.stage == pre)
-	{
-	  in_pre = true;
-	}
+  	  in_pre = true;
       }
       
       if (!in_pre) { b = true; }
@@ -158,21 +206,12 @@ module pipeline {
   {
     b = false;
 
-    // TODO: the upper bound should be set to instruction.position.
-    // but was currently unable to express it like this ...
-    for (j : integer) in range (0, param.trace_length)
-    {
-      var other_ins : isa.inst_t;
-
-      other_ins = instructions[j];    
-      if (other_ins.opcode == branch_op &&
-      	  (other_ins.stage == IF ||
-	   other_ins.stage == ID ||
-	   other_ins.stage == EX))
-      {
-	b = true;
-      }
-    }   
+    if (previous.opcode == branch_op &&
+        (previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 previous.stage == EX)) {
+  	b = true;
+    }
   }
 
   procedure mem_pending (instruction: isa.inst_t) returns (b:boolean)
@@ -183,21 +222,12 @@ module pipeline {
     load = false;
     b = false;
     
-    // TODO: the upper bound should be set to instruction.position.
-    // but was currently unable to express it like this ...
-    for (j : integer) in range (0, param.trace_length)
-    {
-      var other_ins : isa.inst_t;
-
-      other_ins = instructions[j];    
-      if (other_ins.opcode == load_op &&
-      	  (other_ins.stage == IF ||
-	   other_ins.stage == ID ||
-	   other_ins.stage == EX ||
-	   other_ins.stage == MEM))
-      {
-	load = true;
-      }
+    if (previous.opcode == load_op &&
+      	(previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 previous.stage == EX ||
+  	 previous.stage == MEM))  {
+  	load = true;
     }
 
     call (store) = store_pending(instruction);
@@ -209,22 +239,13 @@ module pipeline {
   {
     b = false;
 
-    // TODO: the upper bound should be set to instruction.position.
-    // but was currently unable to express it like this ...
-    for (j : integer) in range (0, param.trace_length)
-    {
-      var other_ins : isa.inst_t;
-
-      other_ins = instructions[j];    
-      if (other_ins.opcode == store_op &&
-      	  (other_ins.stage == IF ||
-	   other_ins.stage == ID ||
-	   other_ins.stage == EX ||
-	   other_ins.stage == MEM ||
-	   other_ins.stage == ST))
-      {
-	b = true;
-      }
+    if (previous.opcode == store_op &&
+        (previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 previous.stage == EX ||
+  	 previous.stage == MEM ||
+  	 previous.stage == ST)) {
+  	b = true;
     }   
   }
 
@@ -254,100 +275,67 @@ module pipeline {
   /*   }    */
   /* } */
 
-  // Specify the new stage of each instruction
-  procedure stage (current_instructions:[integer] isa.inst_t)
-    returns (next_instructions:[integer] isa.inst_t)
-  {
-    for (i : integer) in range (1, param.trace_length)
-    {
-	var current_instruction:isa.inst_t;
-	var current_stage:isa.stage_t;
-	var next_stage:isa.stage_t;
+  init {
+       progress = false;
+  }
 
-	current_instruction = current_instructions[i];
-	current_stage = current_instruction.stage;
+// Updating the state of the instruction
+  next  {
+    if (!initialized) {
+        assume(latencies == init_latencies);
+    	initialized' = true;
+    } else {
+        var is_ready : boolean;
+    	var is_free : boolean;
 
-	case
-	  (current_stage == pre) : { next_stage = IF; }
-	  (current_stage == IF)  : { next_stage = ID; }
-	  (current_stage == ID)  : { if (current_instruction.opcode != nop)
-	  		    	     { next_stage = EX; }
-				     else
-				     { next_stage = post; }
-				   }
-	   (current_stage == EX) : { next_stage = MEM; }
-	   (current_stage == MEM): { if (current_instruction.opcode == store_op)
-	   		     	     { next_stage = ST; }
-				     else
-				     { next_stage = WB; }
-				   }
-	    (current_stage == ST): { next_stage = post; }
-	    (current_stage == WB): { next_stage = post; }
-	    (current_stage == post) : { next_stage = current_stage;}
-	 esac
-	 
-	 current_instruction.stage = next_stage;
-	 next_instructions[i] = current_instruction;
+	call (is_ready) = ready(current);
+	call (is_free) = will_be_free(current);
+
+	progress = is_ready && is_free;
+	next(current);
     }
   }
-
-  // Updating the state of the pipeline,
-  // i.e. the stage of each instruction
-  next
-  {
-    call (instructions') = stage(instructions);
-  }
-
 }
 
 module main {
   var step : integer;
-  var instructions: [integer]isa.inst_t;
 
-  var current_ins: isa.inst_t;	
+  var op0, op1: isa.opcode_t;
+  var latencies_0, latencies_1: isa.latency_t;
 
-  instance sic : pipeline(instructions: (instructions));
+  instance pipeline : sic(previous_opcode: (op1), current_opcode : (op0),
+  	   	       	  previous_latencies: (latencies_1), current_latencies : (latencies_0))
 
-  // Here we basically init each instruction
   init {
     step = 0;
-    for (i : integer) in range (1, param.trace_length)
-    {
-      var current_ins: isa.inst_t;	    
-      current_ins.position = i;
-      current_ins.stage = pre;
-
-      // Example of the SIC paper
-      case
-	(i == 0) : {
-	  current_ins.opcode = store_op;
-	}
-      	(i == 1) : {
-	  current_ins.opcode = other_op;	
-      	}
-      	(i == 2) : {
-	  current_ins.opcode = load_op;
-      	}
-   	esac;    
-
-      instructions[i] = current_ins;
-    }
+    op0 = store_op;
+    op1 = other_op;
+    latencies_0.fetch = 2;
+    latencies_0.mem = 2;
+    latencies_0.st = 2;    
+    latencies_1.fetch = 1;
+    latencies_1.mem = 0;
+    latencies_1.st = 0;        
   }
 
   next {
-    step' = step + 1;  
-
+    step' = step + 1;
+    next(pipeline);
   }
 
   // The property we are looking at (our paper at WCET 2018?)
-  property[LTL] no_timing_anomalies: G();
+  invariant no_timing_anomalies: step < 10;
+//  property no_tming_anomalies: G();
   
   // Bounded model checking limit
   control {
-    vobj = bmc[no_timing_anomalies](3);
+//    vobj = bmc[no_timing_anomalies](4);
+    vobj = unroll(10);
     check;
     print_results;
-    vobj.print_cex(step, sic.instructions);
+    vobj.print_cex(step, ins0.position, ins0.initialized, ins0.stage, ins0.latencies,
+    			 ins1.position, ins1.stage, ins1.latencies,
+			 ins2.position, ins2.stage, ins2.latencies);
   }
 }
 	
