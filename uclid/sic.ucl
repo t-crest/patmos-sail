@@ -35,15 +35,27 @@ module isa {
   // Opcode 
   type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
 
+  // Registers. 5 bits to allow 32 registers
+  type reg_t = bv5;
+
+  // Source registers
+  type src_regs_t = record { src1: reg_t, src2: reg_t };
+
+  // Variable latencies for each instruction
+  type var_latency_t = record { fetch: integer, mem: integer, st: integer };
+
   // Latencies information for each instruction
-  type latency_t = record { fetch: integer, mem: integer, st: integer };
+  type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
 
   // Delay suffered by each instruction
   type delay_t = record { previous: integer, subsequent: integer };
 
   // Instruction 
   type inst_t = record { opcode: opcode_t,
-			 latencies: latency_t,
+			 var_latencies: var_latency_t,
+			 src_regs: src_regs_t,
+			 dst_reg: reg_t,
+			 fixed_latencies: fixed_latency_t,			 
 			 stage: stage_t };
 }
 
@@ -51,7 +63,7 @@ module instruction {
 
   // To set the values for the latencies, we need both an input and a var
   // as input are readonly variables ...
-  input in_latencies: isa.latency_t;
+  input in_latencies: isa.var_latency_t;
   // The opcode which is set
   input in_opcode: isa.opcode_t;
   // Used in this module as read only values 
@@ -65,43 +77,68 @@ module instruction {
 
   init {
     instruction.stage = pre;
+    instruction.fixed_latencies.id = 1;
+    instruction.fixed_latencies.ex = 1;
+    instruction.fixed_latencies.wb = 1;    
     delays.previous = 0;
     delays.subsequent = 0;
   }
   
-  procedure update_IF() modifies instruction; {
-    instruction.latencies.fetch = instruction.latencies.fetch - 1;
+  procedure latency_IF() modifies instruction; {
+    instruction.var_latencies.fetch = instruction.var_latencies.fetch - 1;
   }
 
-  procedure update_MEM() modifies instruction; {
-    instruction.latencies.mem = instruction.latencies.mem - 1;
+  procedure latency_MEM() modifies instruction; {
+    instruction.var_latencies.mem = instruction.var_latencies.mem - 1;
   }
 
-  procedure update_ST() modifies instruction; {
-    instruction.latencies.st = instruction.latencies.st - 1;
+  procedure latency_ST() modifies instruction; {
+    instruction.var_latencies.st = instruction.var_latencies.st - 1;
+  }
+
+  procedure latency_ID() modifies instruction; {
+    instruction.fixed_latencies.id = instruction.fixed_latencies.id - 1;
+  }
+
+  procedure latency_EX() modifies instruction; {
+    instruction.fixed_latencies.ex = instruction.fixed_latencies.ex - 1;
+  }
+
+  procedure latency_WB() modifies instruction; {
+    instruction.fixed_latencies.wb = instruction.fixed_latencies.wb - 1;
   }
 
   procedure update_stage() modifies instruction; {
        case
 	  (instruction.stage == pre) : { instruction.stage = IF; }
-	  (instruction.stage == IF)  : { if (instruction.latencies.fetch == 0)
+	  (instruction.stage == IF)  : { if (instruction.var_latencies.fetch == 0)
 	  		     	       	   { instruction.stage = ID; }
-	  	    	     		 else { call update_IF() ; }}
-	  (instruction.stage == ID)  : { if (instruction.opcode != nop)
-	  		     	       	   { instruction.stage = EX; }
-	  	    	     		 else { instruction.stage = post; }}
-	  (instruction.stage == EX)  : { instruction.stage = MEM; }
-	  (instruction.stage == MEM) : { if (instruction.latencies.mem == 0) {
+	  	    	     		 else { call latency_IF(); }
+				       }
+	  (instruction.stage == ID)  : { if (instruction.fixed_latencies.id == 0) {
+	  		     	       	   if (instruction.opcode != nop)
+					      { instruction.stage = EX; }
+	  	    	     		   else { instruction.stage = post; }
+					 } else { call latency_ID(); }
+				       }
+	  (instruction.stage == EX)  : { if (instruction.fixed_latencies.ex == 0) {
+	  		     	       	    instruction.stage = MEM;
+					 } else { call latency_EX(); }
+				       }
+	  (instruction.stage == MEM) : { if (instruction.var_latencies.mem == 0) {
 	  	    	     	       	   if (instruction.opcode == store_op)
 					   { instruction.stage = ST; }
-	  		     		   else { instruction.stage = WB; } }
-			     		 else { call update_MEM(); }
+	  		     		   else { instruction.stage = WB; }
+			     		 } else { call latency_MEM(); }
 	  		   	       }
-	  (instruction.stage == ST)  : { if (instruction.latencies.st == 0)
+	  (instruction.stage == ST)  : { if (instruction.var_latencies.st == 0)
 	  		     	       	   { instruction.stage = post; }
-			     		 else { call update_ST(); }
-			   		 }
-	  (instruction.stage == WB ) : { instruction.stage = post; }
+			     		 else { call latency_ST(); }
+			   	       }
+	  (instruction.stage == WB ) : { if (instruction.fixed_latencies.wb == 0) {
+	  		     	       	    instruction.stage = post;
+					  } else  { call latency_WB(); }
+				       }
       esac
   }
 
@@ -115,206 +152,212 @@ module instruction {
 module sic {
 
   input current_op, subsequent_op: isa.opcode_t;
-  input current_latencies, subsequent_latencies: isa.latency_t;
+  input current_latencies, subsequent_latencies: isa.var_latency_t;
+  input current_src, subsequent_src: isa.src_regs_t;
+  input current_dst, subsequent_dst: isa.reg_t;  
 
+  // Even if this is ugly, this allows to print the value of each
+  // variable in the counter-example ...
   var progress: boolean;
+  var is_ready : boolean;
+  var is_free : boolean;
+  
+  var is_branch_pending : boolean;
+  var is_next_ready: boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+  var is_data_dependant: boolean;
 
-  instance current_ins : instruction(in_opcode: (current_op),
-  	   	     		     in_latencies: (current_latencies),
-				     execute: (progress));
-  instance subsequent_ins : instruction(in_opcode: (subsequent_op),
-  	   	      		  	in_latencies: (subsequent_latencies),
-					execute: (true));
+  instance current : instruction(in_opcode: (current_op),
+  	   	     		 in_latencies: (current_latencies),
+				 execute: (progress));
+  instance subsequent : instruction(in_opcode: (subsequent_op),
+  	   	      		    in_latencies: (subsequent_latencies),
+			            execute: (true));
 
   var initialized: boolean;
   
-  procedure ready (instruction:isa.inst_t) returns (b:boolean)
+  procedure ready (instruction:isa.inst_t) 
+  modifies is_ready, is_branch_pending, is_next_ready,
+  	   is_store_pending, is_mem_pending, is_data_dependant;
   {
-    var mem_ready, ex_ready, /* id_ready,  */pre_ready : boolean;
+    is_ready = false;
 
-    var opc:isa.opcode_t;
-
-    mem_ready = false;
-    ex_ready = false;
-    
-    opc = instruction.opcode;
-
-    if (instruction.stage == MEM && opc == store_op) { mem_ready = true; }
-    
-    if (instruction.stage == EX && ((opc != load_op) && (opc != store_op)))
-    {
-  	var store : boolean;
-
-  	call (store) = store_pending(instruction);
-  	ex_ready = !store;
-    }
-
-    /* if (instruction.stage == ID) */
-    /* { */
-    /* 	var stall : boolean; */
-
-    /* 	call (stall) = data_dependant(instruction); */
-    /* 	id_ready = !stall; */
-    /* } */
-
-    if (instruction.stage == pre)
-    {
-  	var next_ins, branch, mem : boolean;
-  	call (branch) = branch_pending(instruction);
-  	call (next_ins) = next_instruction(instruction);
-  	call (mem) = mem_pending(instruction);
-  	pre_ready = !branch && next_ins && !mem;
-    }
-
-    b = mem_ready || ex_ready /* || id_ready */ || pre_ready;
+    case
+      (instruction.stage == pre) : { call branch_pending();
+  			    	     call next_ready();
+  				     call mem_pending();
+  				     is_ready  = !is_branch_pending &&
+				     	       	 is_next_ready &&
+						 !is_mem_pending;
+    				   }
+      (instruction.stage == ID)  : { call data_dependant();
+				     is_ready = !is_data_dependant;
+				   }
+      (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
+      			    	         (instruction.opcode != store_op)) {
+					   call store_pending();
+					   is_ready = !is_store_pending;
+				     }
+    				   }
+      (instruction.stage == MEM) : { if (instruction.opcode == store_op)
+      			    	       { is_ready = true; }
+				   }
+      (instruction.stage == IF || instruction.stage == ST || instruction.stage == WB) : {
+      			       	     is_ready = true;
+				   }
+    esac
   }
-
-  procedure will_be_free (instruction:isa.inst_t) returns (b:boolean)
-  {
-    var executed, stage_occupied, stage_next_free: boolean;
+				   
+  // procedure will_be_free (instruction:isa.inst_t) returns (b:boolean) modifies is_branch_pending;
+  // {
+  //   var executed, stage_occupied, stage_next_free: boolean;
     
-    executed = false;
-    stage_occupied = false;
-    stage_next_free = false;
+  //   executed = false;
+  //   stage_occupied = false;
+  //   stage_next_free = false;
 
-    if (instruction.stage == post) { executed = true; } 
+  //   if (instruction.stage == post) { executed = true; } 
 
-    if (instruction.stage == subsequent_ins.instruction.stage)
-    {
-	var ready_ins : boolean;	
+  //   if (instruction.stage == subsequent.instruction.stage)
+  //   {
+  // 	var ready_ins : boolean;	
 	
-  	stage_occupied = true;
+  // 	stage_occupied = true;
 	  
-  	call (ready_ins) = ready(subsequent_ins.instruction);
+  // 	call ready(subsequent.instruction);
 	  
-  	// if (ready_ins)
-  	// {
-	//    call (stage_next_free) = will_be_free(subsequent_ins.instruction);
-  	//}
-    }
+  // 	// if (ready_ins)
+  // 	// {
+  // 	//    call (stage_next_free) = will_be_free(subsequent.instruction);
+  // 	//}
+  //   }
 
-    b = executed || !stage_occupied || stage_next_free;
-  }
+  //   b = executed || !stage_occupied || stage_next_free;
+  // }
 
   // next is a keyword in uclid!
-  procedure next_instruction (instruction:isa.inst_t) returns (b:boolean)
+  procedure next_ready () modifies is_next_ready;
   {
-    b = false;
+    is_next_ready = false;
     
-    if (instruction.stage == pre)
+    if (current.instruction.stage == pre)
     {
       var in_pre : boolean;
       in_pre = false;      
 
-      if (subsequent_ins.instruction.stage == pre)
+      if (subsequent.instruction.stage != pre)
       {
   	  in_pre = true;
       }
       
-      if (!in_pre) { b = true; }
+      if (in_pre) { is_next_ready = true; }
     }  
   }
 
-  procedure branch_pending (instruction: isa.inst_t) returns (b:boolean)
+  procedure branch_pending () modifies is_branch_pending;
   {
-    b = false;
+    is_branch_pending = false;
 
-    if (subsequent_ins.instruction.opcode == branch_op &&
-        (subsequent_ins.instruction.stage == IF ||
-  	 subsequent_ins.instruction.stage == ID ||
-  	 subsequent_ins.instruction.stage == EX)) {
-  	b = true;
+    if (subsequent.instruction.opcode == branch_op &&
+        (subsequent.instruction.stage == IF ||
+  	 subsequent.instruction.stage == ID
+	 /* Hardware delays ...
+  	 /* || subsequent.instruction.stage == EX*/)) {
+  	is_branch_pending = true;
     }
   }
 
-  procedure mem_pending (instruction: isa.inst_t) returns (b:boolean)
+  procedure mem_pending () modifies is_mem_pending, is_store_pending;
   {
-    var store, load : boolean;
+    var load : boolean;
 
-    store = false;
+    is_store_pending = false;
+    is_mem_pending = false;
+
     load = false;
-    b = false;
     
-    if (subsequent_ins.instruction.opcode == load_op &&
-      	(subsequent_ins.instruction.stage == IF ||
-  	 subsequent_ins.instruction.stage == ID ||
-  	 subsequent_ins.instruction.stage == EX ||
-  	 subsequent_ins.instruction.stage == MEM))  {
+    if (subsequent.instruction.opcode == load_op &&
+      	(subsequent.instruction.stage == IF ||
+  	 subsequent.instruction.stage == ID ||
+  	 subsequent.instruction.stage == EX
+	 /* Hardware delays ...
+  	 /* || subsequent.instruction.stage == MEM*/))  {
   	load = true;
     }
 
-    call (store) = store_pending(instruction);
+    call store_pending();
 
-    b = store || load;
+    is_mem_pending = is_store_pending || load;
   }
 
-  procedure store_pending (instruction: isa.inst_t) returns (b:boolean)
+  procedure store_pending () modifies is_store_pending;
   {
-    b = false;
+    is_store_pending = false;
 
-    if (subsequent_ins.instruction.opcode == store_op &&
-        (subsequent_ins.instruction.stage == IF ||
-  	 subsequent_ins.instruction.stage == ID ||
-  	 subsequent_ins.instruction.stage == EX ||
-  	 subsequent_ins.instruction.stage == MEM ||
-  	 subsequent_ins.instruction.stage == ST)) {
-  	b = true;
+    if (subsequent.instruction.opcode == store_op &&
+        (subsequent.instruction.stage == IF ||
+  	 subsequent.instruction.stage == ID ||
+  	 subsequent.instruction.stage == EX ||
+  	 subsequent.instruction.stage == MEM
+	 /* Hardware delays ...
+  	 /* || subsequent.instruction.stage == ST*/)) {
+  	is_store_pending = true;
     }   
   }
 
-  /* procedure data_dependant (instruction: isa.inst_t) returns (b:boolean) */
-  /* { */
-  /*   b = false; */
+  // Seems that this rule is useless in fact, as mem_pending ensures this!
+  // Conclusion: SIC is a PRET architecture where the slot between instructions
+  // is computed dynamically ... However SIC does not allow other thread to go in
+  // => Mixing PRET and SIC should be great!
+  procedure data_dependant () modifies is_data_dependant;
+  {
+    is_data_dependant = false;
 
-  /*   // TODO: the upper bound should be set to instruction.position. */
-  /*   // but was currently unable to express it like this ... */
-  /*   for (j : integer) in range (0, param.trace_length) */
-  /*   { */
-  /*     var other_ins : isa.inst_t; */
-
-  /*     other_ins = instructions[j];     */
-  /*     if (other_ins.opcode == load_op && */
-  /*     	  (other_ins.stage == IF || */
-  /* 	   other_ins.stage == ID || */
-  /* 	   other_ins.stage == EX || */
-  /* 	   other_ins.stage == MEM)) */
-  /*     { */
-  /* 	if (instruction.srcs.src1 == other_ins.dst || */
-  /* 	    instruction.srcs.src2 == other_ins.dst) */
-  /* 	{ */
-  /* 	  b = true; */
-  /* 	} */
-  /*     } */
-  /*   }    */
-  /* } */
+    if (subsequent.instruction.opcode == load_op &&
+      	(subsequent.instruction.stage == IF ||
+  	 subsequent.instruction.stage == ID ||
+  	 subsequent.instruction.stage == EX
+	 /* Hardware delays */
+  	 /* || subsequent.instruction.stage == MEM*/)) {
+       if (current.instruction.src_regs.src1 == subsequent.instruction.dst_reg ||
+  	   current.instruction.src_regs.src2 == subsequent.instruction.dst_reg) {
+  	  is_data_dependant = true;
+       }
+    }
+  }
 
   init {
     progress = false;
     initialized = false;
   }
 
-  procedure update_progress() modifies progress; {
-    var is_ready : boolean;
-    var is_free : boolean;
+  procedure update_progress()
+  modifies progress, is_ready, is_free, is_mem_pending, is_next_ready,
+  	   is_store_pending, is_branch_pending, is_data_dependant; {
+    call ready(current.instruction);
+//    call (is_free) = will_be_free(current.instruction);
 
-    call (is_ready) = ready(current_ins.instruction);
-    call (is_free) = will_be_free(current_ins.instruction);
-
-    //progress = is_ready && is_free;
-    progress = true;    
-}
+    progress = is_ready; //&& is_free;
+  }
 
   // Updating the state of the instruction
   next  {
     if (!initialized) {
-	assume(current_ins.instruction.opcode == current_op);
-	assume(subsequent_ins.instruction.opcode == subsequent_op);	
-        assume(current_ins.instruction.latencies == current_latencies);
-        assume(subsequent_ins.instruction.latencies == subsequent_latencies);	
+	assume(current.instruction.opcode == current_op);
+	assume(subsequent.instruction.opcode == subsequent_op);	
+        assume(current.instruction.var_latencies == current_latencies);
+        assume(subsequent.instruction.var_latencies == subsequent_latencies);
+        assume(current.instruction.src_regs == current_src);
+        assume(current.instruction.dst_reg == current_dst);
+        assume(subsequent.instruction.src_regs == subsequent_src);
+        assume(subsequent.instruction.dst_reg == subsequent_dst);		
     	initialized' = true;
-	} else {
-    call update_progress();
-    if (progress) { next(subsequent_ins); next(current_ins);}
+      	next(subsequent);	
+    } else {
+      	call update_progress();
+	next(subsequent); 	
+    	if (progress) { next(current);}
     }
   }
 }
@@ -323,24 +366,42 @@ module main {
   var step : integer;
 
   var op0, op1: isa.opcode_t;
-  var latencies0, latencies1: isa.latency_t;
+  var latencies0, latencies1: isa.var_latency_t;
+  var src0, src1: isa.src_regs_t;
+  var dst0, dst1: isa.reg_t;    
 
   // As much as instance as subsequent instruction can have an impact of the current one
   // By definition, this number is limited by the number of stages of a pipeline, no?
 
   instance pipeline : sic(current_op: (op0), subsequent_op: (op1),
-  	   	          current_latencies: (latencies0), subsequent_latencies: (latencies1));
+  	   	          current_latencies: (latencies0), subsequent_latencies: (latencies1),
+			  current_src: (src0), current_dst: (dst0),
+			  subsequent_src: (src1), subsequent_dst: (dst1));
   
   init {
     step = 0;
-    op0 = store_op;
-    op1 = other_op;
-    latencies0.fetch = 2;
-    latencies0.mem = 2;
-    latencies0.st = 2;    
+    // Test the stalling logic due to branch op
+    // op0 = other_op;
+    // op1 = branch_op;
+    // Test the stalling logic due to mem op
+    // op0 = other_op;
+    // op1 = store_op;//load_op
+    // Test the stalling logic due to data dependencies
+    op0 = other_op;
+    op1 = load_op;
+    latencies0.fetch = 1;
+    latencies0.mem = 1;
+    latencies0.st = 1;    
     latencies1.fetch = 1;
-    latencies1.mem = 0;
-    latencies1.st = 0;        
+    latencies1.mem = 1;
+    latencies1.st = 1;
+    // Values for a data dependency to occur
+    src0.src1 = 3bv5;
+    src0.src2 = 4bv5;
+    dst0 = 5bv5;    
+    src1.src1 = 1bv5;
+    src1.src2 = 2bv5;
+    dst1 = 3bv5;
   }
 
   next {
@@ -349,18 +410,22 @@ module main {
   }
 
   // The property we are looking at (our paper at WCET 2018?)
-  invariant no_timing_anomalies: step < 10;
+  invariant no_timing_anomalies: step < 15;
 //  property no_tming_anomalies: G();
   
   // Bounded model checking limit
   control {
 //    vobj = bmc[no_timing_anomalies](4);
-    vobj = unroll(10);
+    vobj = unroll(15);
     check;
     print_results;
-    vobj.print_cex(step, pipeline.progress, 
-		   pipeline.current_ins.instruction, pipeline.subsequent_ins.instruction,
-		   pipeline.current_ins.delays, pipeline.subsequent_ins.delays);		   
+    vobj.print_cex(step, pipeline.progress, pipeline.is_ready, pipeline.is_free,
+    		   pipeline.is_branch_pending, pipeline.is_next_ready, pipeline.is_mem_pending,
+		   pipeline.is_store_pending, pipeline.is_data_dependant,
+		   pipeline.current.instruction, pipeline.subsequent.instruction,
+		   pipeline.current.delays, pipeline.subsequent.delays);
+    // Dump a VCD file seems to work only for boolean values, not useful ...
+    vobj.dump_cex_vcds;
   }
 }
 	
