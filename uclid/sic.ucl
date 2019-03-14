@@ -9,8 +9,11 @@
 //   is going to suffer from due to previous and subsequent instructions   
 // - Specify the invariant property: basically checking that delays due
 //   subsequent instructions is always 0
-// - Use latency to setup the example of the paper
-// - Remove rules to get a classical in-order pipeline
+// - Develop a version with several subsequent instructions
+// - Develop a version that use prime variable more often than sequential assignment
+// - Separate into multiple files to have different version of the pipeline
+// - Remove rules to get a classical in-order pipeline and Patmos
+// - Design PRET rules
 
 // We were unable to model using an array of record using UCLID
 // Arrays of values works well, but we want to update a subset of an element
@@ -159,11 +162,11 @@ module sic {
   // Even if this is ugly, this allows to print the value of each
   // variable in the counter-example ...
   var progress: boolean;
-  var is_ready : boolean;
-  var is_free : boolean;
+  var is_inst_ready : boolean;
+  var is_nstage_wbe_free: boolean;  
   
   var is_branch_pending : boolean;
-  var is_next_ready: boolean;
+  var is_ninst_ready: boolean;
   var is_mem_pending: boolean;
   var is_store_pending: boolean;
   var is_data_dependant: boolean;
@@ -177,69 +180,91 @@ module sic {
 
   var initialized: boolean;
   
-  procedure ready (instruction:isa.inst_t) 
-  modifies is_ready, is_branch_pending, is_next_ready,
+  procedure inst_ready (instruction:isa.inst_t) 
+  modifies is_inst_ready, is_branch_pending, is_ninst_ready,
   	   is_store_pending, is_mem_pending, is_data_dependant;
   {
-    is_ready = false;
+    is_inst_ready = false;
 
     case
       (instruction.stage == pre) : { call branch_pending();
-  			    	     call next_ready();
+  			    	     call next_inst_ready();
   				     call mem_pending();
-  				     is_ready  = !is_branch_pending &&
-				     	       	 is_next_ready &&
-						 !is_mem_pending;
+  				     is_inst_ready  = !is_branch_pending &&
+				     	     	      is_ninst_ready &&
+						      !is_mem_pending;
     				   }
       (instruction.stage == ID)  : { call data_dependant();
-				     is_ready = !is_data_dependant;
+				     is_inst_ready = !is_data_dependant;
 				   }
       (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
       			    	         (instruction.opcode != store_op)) {
 					   call store_pending();
-					   is_ready = !is_store_pending;
+					   is_inst_ready = !is_store_pending;
 				     }
     				   }
       (instruction.stage == MEM) : { if (instruction.opcode == store_op)
-      			    	       { is_ready = true; }
+      			    	       { is_inst_ready = true; }
 				   }
       (instruction.stage == IF || instruction.stage == ST || instruction.stage == WB) : {
-      			       	     is_ready = true;
+      			       	     is_inst_ready = true;
 				   }
     esac
   }
-				   
-  // procedure will_be_free (instruction:isa.inst_t) returns (b:boolean) modifies is_branch_pending;
-  // {
-  //   var executed, stage_occupied, stage_next_free: boolean;
-    
-  //   executed = false;
-  //   stage_occupied = false;
-  //   stage_next_free = false;
 
-  //   if (instruction.stage == post) { executed = true; } 
-
-  //   if (instruction.stage == subsequent.instruction.stage)
-  //   {
-  // 	var ready_ins : boolean;	
-	
-  // 	stage_occupied = true;
-	  
-  // 	call ready(subsequent.instruction);
-	  
-  // 	// if (ready_ins)
-  // 	// {
-  // 	//    call (stage_next_free) = will_be_free(subsequent.instruction);
-  // 	//}
-  //   }
-
-  //   b = executed || !stage_occupied || stage_next_free;
-  // }
-
-  // next is a keyword in uclid!
-  procedure next_ready () modifies is_next_ready;
+  // Should try with an array of subsequent instructions
+  procedure nstage_wbe_free ()
+  modifies is_nstage_wbe_free;
   {
-    is_next_ready = false;
+    is_nstage_wbe_free = true;
+    
+    case
+      (current.instruction.stage == MEM)  : { if (subsequent.instruction.stage == ST &&
+      				    	      	  subsequent.instruction.var_latencies.st > 1 &&
+      				    	      	  current.instruction.opcode == store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					       if (subsequent.instruction.stage == WB &&
+      				    	      	  subsequent.instruction.fixed_latencies.wb > 1 &&
+      				    	      	  current.instruction.opcode != store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					    }
+      (current.instruction.stage == EX)   : { if (subsequent.instruction.stage == MEM &&
+      				    	      	  subsequent.instruction.var_latencies.mem > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+	// We probably do not need to check that current.instruction.opcode is a nop
+      (current.instruction.stage == ID)   : { if (subsequent.instruction.stage == EX &&
+      				    	      	  subsequent.instruction.fixed_latencies.ex > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instruction.stage == IF)   : { if (subsequent.instruction.stage == ID &&
+      				    	      	  subsequent.instruction.fixed_latencies.id > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instruction.stage == pre)  : { if (subsequent.instruction.stage == IF &&
+      				    	      	  subsequent.instruction.var_latencies.fetch > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+   					    }
+   esac
+
+   // This is useless for now as long as we only have 2 instructions
+   // For more instructions, we need to implement another procedure 
+   //call ready(subsequent.instruction);
+   // if (ready_ins)
+   // {
+   //    call (stage_next_free) = will_be_free(subsequent.instruction);
+   //}
+  }
+
+  procedure next_inst_ready () modifies is_ninst_ready;
+  {
+    is_ninst_ready = false;
     
     if (current.instruction.stage == pre)
     {
@@ -251,7 +276,7 @@ module sic {
   	  in_pre = true;
       }
       
-      if (in_pre) { is_next_ready = true; }
+      if (in_pre) { is_ninst_ready = true; }
     }  
   }
 
@@ -261,9 +286,9 @@ module sic {
 
     if (subsequent.instruction.opcode == branch_op &&
         (subsequent.instruction.stage == IF ||
-  	 subsequent.instruction.stage == ID
-	 /* Hardware delays ...
-  	 /* || subsequent.instruction.stage == EX*/)) {
+  	 subsequent.instruction.stage == ID ||
+  	 (subsequent.instruction.stage == EX &&
+	  subsequent.instruction.fixed_latencies.ex > 1))) {
   	is_branch_pending = true;
     }
   }
@@ -280,9 +305,9 @@ module sic {
     if (subsequent.instruction.opcode == load_op &&
       	(subsequent.instruction.stage == IF ||
   	 subsequent.instruction.stage == ID ||
-  	 subsequent.instruction.stage == EX
-	 /* Hardware delays ...
-  	 /* || subsequent.instruction.stage == MEM*/))  {
+  	 subsequent.instruction.stage == EX || 
+  	 (subsequent.instruction.stage == MEM &&
+	  subsequent.instruction.var_latencies.mem > 1)))  {
   	load = true;
     }
 
@@ -299,9 +324,9 @@ module sic {
         (subsequent.instruction.stage == IF ||
   	 subsequent.instruction.stage == ID ||
   	 subsequent.instruction.stage == EX ||
-  	 subsequent.instruction.stage == MEM
-	 /* Hardware delays ...
-  	 /* || subsequent.instruction.stage == ST*/)) {
+  	 subsequent.instruction.stage == MEM ||
+	 (subsequent.instruction.stage == ST && 	 
+          subsequent.instruction.var_latencies.st > 1))) {
   	is_store_pending = true;
     }   
   }
@@ -317,9 +342,9 @@ module sic {
     if (subsequent.instruction.opcode == load_op &&
       	(subsequent.instruction.stage == IF ||
   	 subsequent.instruction.stage == ID ||
-  	 subsequent.instruction.stage == EX
-	 /* Hardware delays */
-  	 /* || subsequent.instruction.stage == MEM*/)) {
+  	 subsequent.instruction.stage == EX ||
+  	 (subsequent.instruction.stage == MEM &&
+	  subsequent.instruction.var_latencies.mem > 1))) {
        if (current.instruction.src_regs.src1 == subsequent.instruction.dst_reg ||
   	   current.instruction.src_regs.src2 == subsequent.instruction.dst_reg) {
   	  is_data_dependant = true;
@@ -333,12 +358,13 @@ module sic {
   }
 
   procedure update_progress()
-  modifies progress, is_ready, is_free, is_mem_pending, is_next_ready,
-  	   is_store_pending, is_branch_pending, is_data_dependant; {
-    call ready(current.instruction);
-//    call (is_free) = will_be_free(current.instruction);
+  modifies progress, is_inst_ready, is_mem_pending, is_ninst_ready,
+  	   is_store_pending, is_branch_pending, is_data_dependant, is_nstage_wbe_free;
+  {
+    call inst_ready(current.instruction);
+    call nstage_wbe_free();
 
-    progress = is_ready; //&& is_free;
+    progress = is_inst_ready && is_nstage_wbe_free;
   }
 
   // Updating the state of the instruction
@@ -381,27 +407,44 @@ module main {
   init {
     step = 0;
     // Test the stalling logic due to branch op
-    // op0 = other_op;
-    // op1 = branch_op;
+    op0 = other_op;
+    op1 = branch_op;
     // Test the stalling logic due to mem op
     // op0 = other_op;
     // op1 = store_op;//load_op
     // Test the stalling logic due to data dependencies
-    op0 = other_op;
-    op1 = load_op;
+    // op0 = other_op;
+    // op1 = load_op;
+    // Test the next stage ready logic (in stage pre for current)
+    // op0 = other_op;
+    // op1 = other_op;
+    // Test the next stage ready logic (in stage store for current)
+    // op0 = other_op;
+    // op1 = store_op;        
     latencies0.fetch = 1;
     latencies0.mem = 1;
-    latencies0.st = 1;    
+    latencies0.st = 1;
+    // Test the next stage ready logic (in stage pre for current)    
+    //latencies1.fetch = 3;
     latencies1.fetch = 1;
     latencies1.mem = 1;
     latencies1.st = 1;
+    // Test the next stage ready logic (in stage post for current)        
+    //latencies1.st = 3;    
     // Values for a data dependency to occur
-    src0.src1 = 3bv5;
-    src0.src2 = 4bv5;
-    dst0 = 5bv5;    
+    // src0.src1 = 3bv5;
+    // src0.src2 = 4bv5;
+    // dst0 = 5bv5;    
+    // src1.src1 = 1bv5;
+    // src1.src2 = 2bv5;
+    // dst1 = 3bv5;
+    // No data dependency
+    src0.src1 = 4bv5;
+    src0.src2 = 5bv5;
+    dst0 = 6bv5;    
     src1.src1 = 1bv5;
     src1.src2 = 2bv5;
-    dst1 = 3bv5;
+    dst1 = 3bv5;    
   }
 
   next {
@@ -419,8 +462,8 @@ module main {
     vobj = unroll(15);
     check;
     print_results;
-    vobj.print_cex(step, pipeline.progress, pipeline.is_ready, pipeline.is_free,
-    		   pipeline.is_branch_pending, pipeline.is_next_ready, pipeline.is_mem_pending,
+    vobj.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
 		   pipeline.is_store_pending, pipeline.is_data_dependant,
 		   pipeline.current.instruction, pipeline.subsequent.instruction,
 		   pipeline.current.delays, pipeline.subsequent.delays);
