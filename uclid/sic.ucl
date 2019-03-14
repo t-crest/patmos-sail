@@ -1,29 +1,31 @@
 // Model of SIC (strictly in-order pipeline)
-// We remove any latency information in the model which add nothing
-
 // check the pipeline: uclid -m pipeline sic.ucl
 // run with some instructions: uclid sic.ucl
 
 // TODO
-// - Enhance ready it to monitor delays an instruction
-//   is going to suffer from due to previous and subsequent instructions   
-// - Specify the invariant property: basically checking that delays due
-//   subsequent instructions is always 0
-// - Develop a version with several subsequent instructions
-// - Develop a version that use prime variable more often than sequential assignment.
-//   Test is via sequential equivalence with the current implementation
-//   (stage value of current and subsequent instructions)
+// - Develop a version using prime variables
+// - Do we need to duplicate opcode? It is a readonly variable in the instruction module
+//   ==> yes it is useless, should be removed ...
+// - Develop a version with several subsequent instructions -> useful?
 // - Separate into multiple files to have different version of the pipeline
-// - Remove rules to get a classical in-order pipeline and Patmos
+// - Remove rules to get a classical in-order pipeline (done in fact) and Patmos (tbd)
 // - Design PRET rules
+// - Compute delays to due to timing anomalies?
 
 // We were unable to model using an array of record using UCLID
 // Arrays of values works well, but we want to update a subset of an element
-// of an array -> TLA+ seems better here.
+// of an array -> TLA+ seems better here. Similary we are unable to use prime value
+// easily in a next block as we need to update a full variable. It is not allowed to update
+// a field of a record for instance ==> one solution would be to model an instruction as a flat
+// structure. This means that we have a lot of parameters to set when creating an instance
+// of an instruction but that does not hurt ...
 
 // In an in-order pipeline, instruction i can be blocked by a
-// subsequent instruction j (j>i) while j is in fetch stage. In SIC,
-// this is avoided as 
+// subsequent instruction j (j>i) while j is in fetch stage performing
+// a memory access. In SIC, this is avoided as instruction j will not be
+// authorized to get in until instruction i has finished dealing with its
+// memory access. Seems that the property is then: if subsequent enters the MEM
+// stage then current instruction must not be in the IF stage.
 
 module param {
   const bmc_depth: integer = 17;
@@ -34,6 +36,13 @@ module isa {
   type word_t = bv32;
 
   // Pipeline stages
+  // Note: a ST stage ensures that store accesses are performed in a asynchronous way.
+  // SIC paper models a write-allocate policy on write miss. No-write allocate policy
+  // would mean that MEM delays are ignored
+  // Note: If you think about the K1 processor => writes are never blocked ==>
+  // An infinite number of instructions can be in the ST stage => be careful for the sanity check
+  // For load, K1 as x loads in parallel possible, meaning that a timing anomay occurs
+  // if the number of instruction in MEM and IF stages is higher than x
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
 
   // Opcode 
@@ -51,9 +60,6 @@ module isa {
   // Latencies information for each instruction
   type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
 
-  // Delay suffered by each instruction
-  type delay_t = record { previous: integer, subsequent: integer };
-
   // Instruction 
   type inst_t = record { opcode: opcode_t,
 			 var_latencies: var_latency_t,
@@ -68,7 +74,7 @@ module instruction {
   // To set the values for the latencies, we need both an input and a var
   // as input are readonly variables ...
   input in_latencies: isa.var_latency_t;
-  // The opcode which is set
+  // The opcode which is set 
   input in_opcode: isa.opcode_t;
   // Used in this module as read only values 
   input execute: boolean;
@@ -76,16 +82,11 @@ module instruction {
   // The instruction
   var instruction: isa.inst_t;
 
-  // To allow the main module to retrieve values and check delays
-  output delays: isa.delay_t;
-
   init {
     instruction.stage = pre;
     instruction.fixed_latencies.id = 1;
     instruction.fixed_latencies.ex = 1;
     instruction.fixed_latencies.wb = 1;    
-    delays.previous = 0;
-    delays.subsequent = 0;
   }
   
   procedure latency_IF() modifies instruction; {
@@ -153,6 +154,20 @@ module instruction {
   }
 }
 
+module instruction_prime_version {
+  // To set the values for the latencies, we need both an input and a var
+  // as input are readonly variables ...
+  input in_latencies: isa.var_latency_t;
+  // The opcode which is set
+  input in_opcode: isa.opcode_t;
+  // Used in this module as read only values 
+  input execute: boolean;
+
+  // The instruction
+  var opcode: isa.opcode_t;
+
+}
+
 module sic {
 
   input current_op, subsequent_op: isa.opcode_t;
@@ -188,9 +203,9 @@ module sic {
     is_inst_ready = false;
 
     case
-      (instruction.stage == pre) : { call branch_pending();
+      (instruction.stage == pre) : { call branch_pending(); /* Comment this call to switch from SIC to an in-order pipeline */
   			    	     call next_inst_ready();
-  				     call mem_pending();
+  				     call mem_pending(); /* Comment this call to switch from SIC to an in-order pipeline */
   				     is_inst_ready  = !is_branch_pending &&
 				     	     	      is_ninst_ready &&
 						      !is_mem_pending;
@@ -315,6 +330,8 @@ module sic {
     is_mem_pending = is_store_pending || load;
   }
 
+  // Note: in fact this is useless as ST stage models a asynchronous
+  // writing which are unlimited in their number ...
   procedure store_pending () modifies is_store_pending;
   {
     is_store_pending = false;
@@ -354,6 +371,11 @@ module sic {
   init {
     progress = false;
     initialized = false;
+
+    // This is just to more easily change from SIC to an in-order pipeline
+    is_branch_pending = false;
+    is_mem_pending = false;
+    is_data_dependant = false;
   }
 
   procedure update_progress()
@@ -366,7 +388,7 @@ module sic {
     progress = is_inst_ready && is_nstage_wbe_free;
   }
 
-  // Updating the state of the instruction
+  // Updating the state of the instructions
   next  {
     if (!initialized) {
 	assume(current.instruction.opcode == current_op);
@@ -378,6 +400,7 @@ module sic {
         assume(subsequent.instruction.src_regs == subsequent_src);
         assume(subsequent.instruction.dst_reg == subsequent_dst);		
     	initialized' = true;
+	// subsequent instruction can go ahead freely ...
       	next(subsequent);	
     } else {
       	call update_progress();
@@ -422,15 +445,15 @@ module main {
     // Count the next stage ready logic (in stage store for current)    
     // op0 = other_op;
     // op1 = store_op;
-    // Count the next stage ready logic (in stage store for current)
+    // Cecking the anomaly
     op0 = other_op;
-    op1 = other_op;    
-    latencies0.fetch = 1;
+    op1 = store_op;    
+    latencies0.fetch = 4;
     latencies0.mem = 1;
     latencies0.st = 1;
     // Count the next stage ready logic (in stage pre for current)    
     //latencies1.fetch = 3;
-    latencies1.fetch = 3;
+    latencies1.fetch = 1;
     latencies1.mem = 1;
     latencies1.st = 1;
     // Count the next stage ready logic (in stage post for current)        
@@ -458,7 +481,6 @@ module main {
     next(pipeline);
   }
 
-  invariant generate_counter_example: step < param.bmc_depth;
   property[LTL] several_inst_stage: G((pipeline.current.instruction.stage == IF ||
   				       pipeline.current.instruction.stage == ID ||
   				       pipeline.current.instruction.stage == EX ||
@@ -484,6 +506,11 @@ module main {
   			              	 		    pipeline.subsequent.instruction.var_latencies.st == 0) ||
   			         			   (pipeline.subsequent.instruction.opcode != store_op &&
   			         			    pipeline.subsequent.instruction.fixed_latencies.wb == 0))));
+  invariant generate_counter_example: step < param.bmc_depth;							    
+
+  // Property to check the scheduling timing anomaly when accessing a shared resource (the bus here)
+  // Note: in the ST stage no use of the shared resource in fact ...
+  property[LTL] no_timing_anomaly: G((pipeline.subsequent.instruction.stage == MEM) ==> (pipeline.current.instruction.stage != IF));
 
   control {
     vbmc = bmc(param.bmc_depth);
@@ -494,7 +521,6 @@ module main {
     		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
     		   pipeline.is_store_pending, pipeline.is_data_dependant,
     		   pipeline.current.instruction, pipeline.subsequent.instruction,
-    		   pipeline.current.delays, pipeline.subsequent.delays,
     		   end_stage);
     // Dump a VCD file seems to work only for boolean values, not useful ...
     vunroll.dump_cex_vcds;
