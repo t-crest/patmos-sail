@@ -26,9 +26,6 @@
 // this is avoided as 
 
 module param {
-  // The length of the tace
-  const trace_length: integer = 8;
-
   const bmc_depth: integer = 17;
 }
 
@@ -411,8 +408,8 @@ module main {
   init {
     step = 0;
     // Count the stalling logic due to branch op
-    op0 = other_op;
-    op1 = branch_op;
+    // op0 = other_op;
+    // op1 = branch_op;
     // Count the stalling logic due to mem op
     // op0 = other_op;
     // op1 = store_op;//load_op
@@ -422,15 +419,18 @@ module main {
     // Count the next stage ready logic (in stage pre for current)
     // op0 = other_op;
     // op1 = other_op;
-    // Count the next stage ready logic (in stage store for current)
+    // Count the next stage ready logic (in stage store for current)    
     // op0 = other_op;
-    // op1 = store_op;        
+    // op1 = store_op;
+    // Count the next stage ready logic (in stage store for current)
+    op0 = other_op;
+    op1 = other_op;    
     latencies0.fetch = 1;
     latencies0.mem = 1;
     latencies0.st = 1;
     // Count the next stage ready logic (in stage pre for current)    
     //latencies1.fetch = 3;
-    latencies1.fetch = 1;
+    latencies1.fetch = 3;
     latencies1.mem = 1;
     latencies1.st = 1;
     // Count the next stage ready logic (in stage post for current)        
@@ -459,6 +459,13 @@ module main {
   }
 
   invariant generate_counter_example: step < param.bmc_depth;
+  property[LTL] several_inst_stage: G((pipeline.current.instruction.stage == IF ||
+  				       pipeline.current.instruction.stage == ID ||
+  				       pipeline.current.instruction.stage == EX ||
+  				       pipeline.current.instruction.stage == MEM ||
+  				       pipeline.current.instruction.stage == ST ||
+  				       pipeline.current.instruction.stage == WB)
+				      ==> pipeline.current.instruction.stage != pipeline.subsequent.instruction.stage);
   property[LTL] bmc_enough: G(step == param.bmc_depth ==> (pipeline.current.instruction.stage == post &&
   	   			      	   	      	  pipeline.subsequent.instruction.stage == post));
   property[LTL] sanety_latencies: G(step == param.bmc_depth ==> (pipeline.current.instruction.var_latencies.fetch == 0 &&
