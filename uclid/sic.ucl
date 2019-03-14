@@ -10,7 +10,9 @@
 // - Specify the invariant property: basically checking that delays due
 //   subsequent instructions is always 0
 // - Develop a version with several subsequent instructions
-// - Develop a version that use prime variable more often than sequential assignment
+// - Develop a version that use prime variable more often than sequential assignment.
+//   Test is via sequential equivalence with the current implementation
+//   (stage value of current and subsequent instructions)
 // - Separate into multiple files to have different version of the pipeline
 // - Remove rules to get a classical in-order pipeline and Patmos
 // - Design PRET rules
@@ -26,6 +28,8 @@
 module param {
   // The length of the tace
   const trace_length: integer = 8;
+
+  const bmc_depth: integer = 17;
 }
 
 module isa {
@@ -203,10 +207,8 @@ module sic {
 					   is_inst_ready = !is_store_pending;
 				     }
     				   }
-      (instruction.stage == MEM) : { if (instruction.opcode == store_op)
-      			    	       { is_inst_ready = true; }
-				   }
-      (instruction.stage == IF || instruction.stage == ST || instruction.stage == WB) : {
+      (instruction.stage == MEM || instruction.stage == IF ||
+       instruction.stage == ST || instruction.stage == WB) : {
       			       	     is_inst_ready = true;
 				   }
     esac
@@ -394,7 +396,9 @@ module main {
   var op0, op1: isa.opcode_t;
   var latencies0, latencies1: isa.var_latency_t;
   var src0, src1: isa.src_regs_t;
-  var dst0, dst1: isa.reg_t;    
+  var dst0, dst1: isa.reg_t;
+
+  var end_stage: isa.stage_t;
 
   // As much as instance as subsequent instruction can have an impact of the current one
   // By definition, this number is limited by the number of stages of a pipeline, no?
@@ -406,30 +410,30 @@ module main {
   
   init {
     step = 0;
-    // Test the stalling logic due to branch op
+    // Count the stalling logic due to branch op
     op0 = other_op;
     op1 = branch_op;
-    // Test the stalling logic due to mem op
+    // Count the stalling logic due to mem op
     // op0 = other_op;
     // op1 = store_op;//load_op
-    // Test the stalling logic due to data dependencies
+    // Count the stalling logic due to data dependencies
     // op0 = other_op;
     // op1 = load_op;
-    // Test the next stage ready logic (in stage pre for current)
+    // Count the next stage ready logic (in stage pre for current)
     // op0 = other_op;
     // op1 = other_op;
-    // Test the next stage ready logic (in stage store for current)
+    // Count the next stage ready logic (in stage store for current)
     // op0 = other_op;
     // op1 = store_op;        
     latencies0.fetch = 1;
     latencies0.mem = 1;
     latencies0.st = 1;
-    // Test the next stage ready logic (in stage pre for current)    
+    // Count the next stage ready logic (in stage pre for current)    
     //latencies1.fetch = 3;
     latencies1.fetch = 1;
     latencies1.mem = 1;
     latencies1.st = 1;
-    // Test the next stage ready logic (in stage post for current)        
+    // Count the next stage ready logic (in stage post for current)        
     //latencies1.st = 3;    
     // Values for a data dependency to occur
     // src0.src1 = 3bv5;
@@ -444,7 +448,9 @@ module main {
     dst0 = 6bv5;    
     src1.src1 = 1bv5;
     src1.src2 = 2bv5;
-    dst1 = 3bv5;    
+    dst1 = 3bv5;
+
+    end_stage = post;
   }
 
   next {
@@ -452,23 +458,39 @@ module main {
     next(pipeline);
   }
 
-  // The property we are looking at (our paper at WCET 2018?)
-  invariant no_timing_anomalies: step < 15;
-//  property no_tming_anomalies: G();
-  
-  // Bounded model checking limit
+  invariant generate_counter_example: step < param.bmc_depth;
+  property[LTL] bmc_enough: G(step == param.bmc_depth ==> (pipeline.current.instruction.stage == post &&
+  	   			      	   	      	  pipeline.subsequent.instruction.stage == post));
+  property[LTL] sanety_latencies: G(step == param.bmc_depth ==> (pipeline.current.instruction.var_latencies.fetch == 0 &&
+  			              	 		      	pipeline.current.instruction.var_latencies.mem == 0 &&
+  			         			      	pipeline.current.instruction.fixed_latencies.id == 0 &&
+  			         			      	pipeline.current.instruction.fixed_latencies.ex == 0 &&
+							      	pipeline.subsequent.instruction.var_latencies.fetch == 0 &&
+  			         			      	pipeline.subsequent.instruction.var_latencies.mem == 0 &&
+  			         			      	pipeline.subsequent.instruction.fixed_latencies.id == 0 &&
+  			         			      	pipeline.subsequent.instruction.fixed_latencies.ex == 0));
+  property[LTL] sanety_op: G(step == param.bmc_depth ==> (((pipeline.current.instruction.opcode == store_op &&
+  			              	 		    pipeline.current.instruction.var_latencies.st == 0) ||
+  			         			   (pipeline.current.instruction.opcode != store_op &&
+  			         			    pipeline.current.instruction.fixed_latencies.wb == 0)) &&
+							  ((pipeline.subsequent.instruction.opcode == store_op &&
+  			              	 		    pipeline.subsequent.instruction.var_latencies.st == 0) ||
+  			         			   (pipeline.subsequent.instruction.opcode != store_op &&
+  			         			    pipeline.subsequent.instruction.fixed_latencies.wb == 0))));
+
   control {
-//    vobj = bmc[no_timing_anomalies](4);
-    vobj = unroll(15);
+    vbmc = bmc(param.bmc_depth);
+    vunroll = unroll(param.bmc_depth);
     check;
-    print_results;
-    vobj.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    print_results;        
+    vunroll.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
     		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
-		   pipeline.is_store_pending, pipeline.is_data_dependant,
-		   pipeline.current.instruction, pipeline.subsequent.instruction,
-		   pipeline.current.delays, pipeline.subsequent.delays);
+    		   pipeline.is_store_pending, pipeline.is_data_dependant,
+    		   pipeline.current.instruction, pipeline.subsequent.instruction,
+    		   pipeline.current.delays, pipeline.subsequent.delays,
+    		   end_stage);
     // Dump a VCD file seems to work only for boolean values, not useful ...
-    vobj.dump_cex_vcds;
+    vunroll.dump_cex_vcds;
   }
 }
 	
