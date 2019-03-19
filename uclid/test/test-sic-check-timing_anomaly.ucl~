@@ -1,0 +1,117 @@
+module main {
+  var step : integer;
+
+  var op0, op1: isa.opcode_t;
+  var latencies0, latencies1: isa.var_latency_t;
+  var src0, src1: isa.src_regs_t;
+  var dst0, dst1: isa.reg_t;
+
+  // No variable of type stage_t, must import it ...
+  type stage_t = isa.stage_t;
+
+  // As much as instance as previous instruction can have an impact of the current one
+  // By definition, this number is limited by the number of stages of a pipeline, no?
+
+  instance pipeline : sic(current_op: (op0), previous_op: (op1),
+  	   	          current_latencies: (latencies0), previous_latencies: (latencies1),
+			  current_src: (src0), current_dst: (dst0),
+			  previous_src: (src1), previous_dst: (dst1));
+  
+  init {
+    step = 0;
+    // Count the stalling logic due to branch op
+    // op0 = other_op;
+    // op1 = branch_op;
+    // Count the stalling logic due to mem op
+    // op0 = other_op;
+    // op1 = store_op;//load_op
+    // Count the stalling logic due to data dependencies
+    // op0 = other_op;
+    // op1 = load_op;
+    // Count the next stage ready logic (in stage pre for current)
+    // op0 = other_op;
+    // op1 = other_op;
+    // Count the next stage ready logic (in stage store for current)    
+    // op0 = other_op;
+    // op1 = store_op;
+    // Cecking the anomaly
+    op0 = other_op;
+    op1 = store_op;    
+    latencies0.fetch = 4;
+    latencies0.mem = 1;
+    latencies0.st = 1;
+    // Count the next stage ready logic (in stage pre for current)    
+    //latencies1.fetch = 3;
+    latencies1.fetch = 1;
+    latencies1.mem = 1;
+    latencies1.st = 1;
+    // Count the next stage ready logic (in stage post for current)        
+    //latencies1.st = 3;    
+    // Values for a data dependency to occur
+    // src0.src1 = 3bv5;
+    // src0.src2 = 4bv5;
+    // dst0 = 5bv5;    
+    // src1.src1 = 1bv5;
+    // src1.src2 = 2bv5;
+    // dst1 = 3bv5;
+    // No data dependency
+    src0.src1 = 4bv5;
+    src0.src2 = 5bv5;
+    dst0 = 6bv5;    
+    src1.src1 = 1bv5;
+    src1.src2 = 2bv5;
+    dst1 = 3bv5;
+  }
+
+  next {
+    step' = step + 1;
+    next(pipeline);
+  }
+
+  property[LTL] several_inst_stage: G((pipeline.current.instruction.stage == IF ||
+  				       pipeline.current.instruction.stage == ID ||
+  				       pipeline.current.instruction.stage == EX ||
+  				       pipeline.current.instruction.stage == MEM ||
+  				       pipeline.current.instruction.stage == ST ||
+  				       pipeline.current.instruction.stage == WB)
+				      ==> pipeline.current.instruction.stage != pipeline.previous.instruction.stage);
+  property[LTL] bmc_enough: G(step == param.bmc_depth ==> (pipeline.current.instruction.stage == post &&
+  	   			      	   	      	  pipeline.previous.instruction.stage == post));
+  property[LTL] sanety_latencies: G(step == param.bmc_depth ==> (pipeline.current.instruction.var_latencies.fetch == 0 &&
+  			              	 		      	pipeline.current.instruction.var_latencies.mem == 0 &&
+  			         			      	pipeline.current.instruction.fixed_latencies.id == 0 &&
+  			         			      	pipeline.current.instruction.fixed_latencies.ex == 0 &&
+							      	pipeline.previous.instruction.var_latencies.fetch == 0 &&
+  			         			      	pipeline.previous.instruction.var_latencies.mem == 0 &&
+  			         			      	pipeline.previous.instruction.fixed_latencies.id == 0 &&
+  			         			      	pipeline.previous.instruction.fixed_latencies.ex == 0));
+  property[LTL] sanety_op: G(step == param.bmc_depth ==> (((pipeline.current.instruction.opcode == store_op &&
+  			              	 		    pipeline.current.instruction.var_latencies.st == 0) ||
+  			         			   (pipeline.current.instruction.opcode != store_op &&
+  			         			    pipeline.current.instruction.fixed_latencies.wb == 0)) &&
+							  ((pipeline.previous.instruction.opcode == store_op &&
+  			              	 		    pipeline.previous.instruction.var_latencies.st == 0) ||
+  			         			   (pipeline.previous.instruction.opcode != store_op &&
+  			         			    pipeline.previous.instruction.fixed_latencies.wb == 0))));
+  invariant generate_counter_example: step < param.bmc_depth;							    
+
+  // Property to check the scheduling timing anomaly when accessing a shared resource (the bus here)
+  // Note: in the ST stage no use of the shared resource in fact ...
+  property[LTL] no_timing_anomaly: G((pipeline.previous.instruction.stage == MEM) ==> (pipeline.current.instruction.stage != IF));
+
+  control {
+    vbmc = bmc(param.bmc_depth);
+    vunroll = unroll(param.bmc_depth);
+    check;
+    print_results;
+    vbmc.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_store_pending, pipeline.is_data_dependant,
+    		   pipeline.current.instruction, pipeline.previous.instruction);
+    vunroll.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_store_pending, pipeline.is_data_dependant,
+    		   pipeline.current.instruction, pipeline.previous.instruction);
+  }
+}
+	

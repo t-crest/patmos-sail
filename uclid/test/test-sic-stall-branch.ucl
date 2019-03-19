@@ -1,0 +1,115 @@
+// Run: uclid isa.ucl instruction.ucl sic.ucl test-sic-stall-branch.ucl
+
+module param {
+ const bmc_depth: integer = 17;
+}
+
+module main {
+  // No variable of type stage_t, must import it ...
+  type stage_t = isa.stage_t;
+
+  var step : integer;
+
+  var op0, op1: isa.opcode_t;
+  var latencies0, latencies1: isa.var_latency_t;
+  var src0, src1: isa.src_regs_t;
+  var dst0, dst1: isa.reg_t;
+
+  instance pipeline : sic(current_op: (op0), previous_op: (op1),
+  	   	          current_latencies: (latencies0), previous_latencies: (latencies1),
+			  current_src: (src0), current_dst: (dst0),
+			  previous_src: (src1), previous_dst: (dst1));
+  
+  init {
+    step = 0;
+    // Check the stalling logic due to branch op
+    op0 = other_op;
+    op1 = branch_op;
+    // assume(latencies1.fetch > 0 &&
+    // 	   latencies1.fetch <= 10);
+    // assume(latencies1.mem > 0 &&
+    // 	   latencies1.mem <= 10);
+    // assume(latencies1.st > 0 &&
+    // 	   latencies1.st <= 10);
+    // assume(latencies0.fetch > 0 &&
+    // 	   latencies0.fetch <= 10);
+    // assume(latencies0.mem > 0 &&
+    // 	   latencies0.mem <= 10);
+    // assume(latencies0.st > 0 &&
+    // 	   latencies0.st <= 10);	       	       	           
+    latencies0.fetch = 1;
+    latencies0.mem = 1;
+    latencies0.st = 1;
+    latencies1.fetch = 1;
+    latencies1.mem = 1;
+    latencies1.st = 1;
+    // No data dependency
+    src0.src1 = 4bv5;
+    src0.src2 = 5bv5;
+    dst0 = 6bv5;    
+    src1.src1 = 1bv5;
+    src1.src2 = 2bv5;
+    dst1 = 3bv5;
+  }
+
+  next {
+    step' = step + 1;
+    next(pipeline);
+  }
+
+  // To check that there is not several instructions per stage
+  invariant no_several_ins_per_stage: ((pipeline.current.instruction.stage == IF ||
+  				        pipeline.current.instruction.stage == ID ||
+  				        pipeline.current.instruction.stage == EX ||
+  				        pipeline.current.instruction.stage == MEM ||
+  				        pipeline.current.instruction.stage == ST ||
+  				        pipeline.current.instruction.stage == WB)
+				      	==> pipeline.current.instruction.stage != pipeline.previous.instruction.stage);
+  // To check that no negative latency could happen (only fails in step 0)
+  invariant no_negative_latency: (pipeline.current.instruction.var_latencies.fetch >= 0 &&
+  	    			  pipeline.current.instruction.var_latencies.mem >= 0 &&
+				  pipeline.current.instruction.var_latencies.st >= 0 &&
+				  pipeline.current.instruction.fixed_latencies.id >= 0 &&
+				  pipeline.current.instruction.fixed_latencies.ex >= 0 &&
+				  pipeline.current.instruction.fixed_latencies.wb >= 0);  
+
+  // To check that all instructions have been retired from the pipeline ...
+  property[LTL] bmc_enough: G(step == param.bmc_depth ==> (pipeline.current.instruction.stage == post &&
+  	   			      	   	      	   pipeline.previous.instruction.stage == post));
+  // ... and that all latency values have been used
+  property[LTL] sanety_latencies: G(step == param.bmc_depth ==> (pipeline.current.instruction.var_latencies.fetch == 0 &&
+  			              	 		      	 pipeline.current.instruction.var_latencies.mem == 0 &&
+  			         			      	 pipeline.current.instruction.fixed_latencies.id == 0 &&
+  			         			      	 pipeline.current.instruction.fixed_latencies.ex == 0 &&
+							      	 pipeline.previous.instruction.var_latencies.fetch == 0 &&
+  			         			      	 pipeline.previous.instruction.var_latencies.mem == 0 &&
+  			         			      	 pipeline.previous.instruction.fixed_latencies.id == 0 &&
+  			         			      	 pipeline.previous.instruction.fixed_latencies.ex == 0 &&
+								 ((pipeline.current.instruction.opcode == store_op &&
+  			              	 		    	  pipeline.current.instruction.var_latencies.st == 0) ||
+  			         			   	  (pipeline.current.instruction.opcode != store_op &&
+  			         			    	  pipeline.current.instruction.fixed_latencies.wb == 0)) &&
+							  	 ((pipeline.previous.instruction.opcode == store_op &&
+  			              	 		    	  pipeline.previous.instruction.var_latencies.st == 0) ||
+  			         			   	  (pipeline.previous.instruction.opcode != store_op &&
+  			         			    	  pipeline.previous.instruction.fixed_latencies.wb == 0))));
+
+  // A simple invariant to generate a counter-example for later trace comparison
+  invariant generate_counter_example: step < param.bmc_depth;
+
+  control {
+    vbmc = bmc(param.bmc_depth);
+    vunroll = unroll(param.bmc_depth);
+    check;
+    print_results;
+    vbmc.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_store_pending, pipeline.is_data_dependant,
+    		   pipeline.current.instruction, pipeline.previous.instruction);
+    vunroll.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
+    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_store_pending, pipeline.is_data_dependant,
+    		   pipeline.current.instruction, pipeline.previous.instruction);
+  }
+}
+	
