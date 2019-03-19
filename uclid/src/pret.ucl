@@ -1,0 +1,74 @@
+// Model of PRET
+
+// TODO: add for each instruction a number representing a hardware thread identifier,
+// modify the rules in order to fill the pipeline with instructions in the correct order and
+// remove any specific rules. Note that PRET assumes everything in the scratchpad => so no
+// problem. This is equivalent to set latencies to 1.
+// But then if you replace the sratchpad -> the pipeline is no longer free from timing anomalies.
+
+module pret {
+
+  input current_op, previous_op: isa.opcode_t;
+  input current_latencies, previous_latencies: isa.var_latency_t;
+  input current_src, previous_src: isa.src_regs_t;
+  input current_dst, previous_dst: isa.reg_t;  
+
+  // Even if this is ugly, this allows to print the value of each
+  // variable in the counter-example ...
+  var progress: boolean;
+
+  instance current : instruction(in_opcode: (current_op),
+  	   	     		 in_latencies: (current_latencies),
+				 execute: (progress));
+  instance previous : instruction(in_opcode: (previous_op),
+  	   	      		    in_latencies: (previous_latencies),
+			            execute: (true));
+
+  var initialized: boolean;
+
+  init {
+    progress = true;
+    initialized = false;
+  }
+
+  procedure update_progress()
+  modifies progress;
+  {
+    progress = true;
+  }
+
+  // Updating the state of the instructions
+  next  {
+    if (!initialized) {
+	assume(current.instruction.opcode == current_op);
+	assume(previous.instruction.opcode == previous_op);
+//	assume(current.instruction.opcode == nop || current.instruction.);
+//	assume(previous.instruction.opcode == previous_op);		
+        //assume(current.instruction.var_latencies == current_latencies);
+        //assume(previous.instruction.var_latencies == previous_latencies);
+	assume(previous.instruction.var_latencies.fetch > 0 &&
+	       previous.instruction.var_latencies.fetch <= 10);
+	assume(previous.instruction.var_latencies.mem > 0 &&
+	       previous.instruction.var_latencies.mem <= 10);
+	assume(previous.instruction.var_latencies.st > 0 &&
+	       previous.instruction.var_latencies.st <= 10);
+	assume(current.instruction.var_latencies.fetch > 0 &&
+	       current.instruction.var_latencies.fetch <= 10);
+	assume(current.instruction.var_latencies.mem > 0 &&
+	       current.instruction.var_latencies.mem <= 10);
+	assume(current.instruction.var_latencies.st > 0 &&
+	       current.instruction.var_latencies.st <= 10);	       	       	       
+        assume(current.instruction.src_regs == current_src);
+        assume(current.instruction.dst_reg == current_dst);
+        assume(previous.instruction.src_regs == previous_src);
+        assume(previous.instruction.dst_reg == previous_dst);		
+    	initialized' = true;
+	// previous instruction can go ahead freely ...
+      	next(previous);	
+    } else {
+	next(previous); 	
+    	next(current);
+    }
+  }
+}
+

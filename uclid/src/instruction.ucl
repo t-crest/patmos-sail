@@ -1,0 +1,95 @@
+// NOTE: it would have been great to put generic rules to any pipeline in this
+// module (procedure nstage_wbe_free mainly). However this requires to put the
+// previous instruction in the flow of program as input and to distinguish using a
+// boolean input, the special case of the 1st instruction of a flow (no previous
+// instruction) from the others ...
+
+module instruction {
+
+  // Latencies and opcode are input values from another and thus readonly data.
+  // Even if in_opcode could be used directly instead of instruction.op_code
+  // This would goes against a modular description of the model
+  input in_latencies: isa.var_latency_t;
+  // The opcode which is set 
+  input in_opcode: isa.opcode_t;
+  // Can we make some progress
+  input execute: boolean;
+
+  // The instruction
+  var instruction: isa.inst_t;
+  
+  procedure latency_IF() modifies instruction; {
+    instruction.var_latencies.fetch = instruction.var_latencies.fetch - 1;
+  }
+
+  procedure latency_MEM() modifies instruction; {
+    instruction.var_latencies.mem = instruction.var_latencies.mem - 1;
+  }
+
+  procedure latency_ST() modifies instruction; {
+    instruction.var_latencies.st = instruction.var_latencies.st - 1;
+  }
+
+  procedure latency_ID() modifies instruction; {
+    instruction.fixed_latencies.id = instruction.fixed_latencies.id - 1;
+  }
+
+  procedure latency_EX() modifies instruction; {
+    instruction.fixed_latencies.ex = instruction.fixed_latencies.ex - 1;
+  }
+
+  procedure latency_WB() modifies instruction; {
+    instruction.fixed_latencies.wb = instruction.fixed_latencies.wb - 1;
+  }
+
+  procedure update_stage() modifies instruction; {
+       case
+	  (instruction.stage == pre) : { instruction.stage = IF; }
+	  (instruction.stage == IF)  : { if (instruction.var_latencies.fetch == 0)
+	  		     	       	   { instruction.stage = ID; }
+	  	    	     		 else { call latency_IF(); }
+				       }
+	  (instruction.stage == ID)  : { if (instruction.fixed_latencies.id == 0) {
+	  		     	       	   if (instruction.opcode != nop)
+					      { instruction.stage = EX; }
+	  	    	     		   else { instruction.stage = post; }
+					 } else { call latency_ID(); }
+				       }
+	  (instruction.stage == EX)  : { if (instruction.fixed_latencies.ex == 0) {
+	  		     	       	    instruction.stage = MEM;
+					 } else { call latency_EX(); }
+				       }
+	  (instruction.stage == MEM) : { if (instruction.var_latencies.mem == 0) {
+	  	    	     	       	   if (instruction.opcode == store_op)
+					   { instruction.stage = ST; }
+	  		     		   else { instruction.stage = WB; }
+			     		 } else { call latency_MEM(); }
+	  		   	       }
+	  (instruction.stage == ST)  : { if (instruction.var_latencies.st == 0)
+	  		     	       	   { instruction.stage = post; }
+			     		 else { call latency_ST(); }
+			   	       }
+	  (instruction.stage == WB ) : { if (instruction.fixed_latencies.wb == 0) {
+	  		     	       	    instruction.stage = post;
+					  } else  { call latency_WB(); }
+				       }
+      esac
+  }
+
+
+  init {
+    instruction.stage = pre;
+    instruction.fixed_latencies.id = 1;
+    instruction.fixed_latencies.ex = 1;
+    instruction.fixed_latencies.wb = 1;
+  }
+
+  next {
+    if (execute) {
+      call update_stage();
+    } 
+  }
+}
+	
+
+
