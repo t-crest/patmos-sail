@@ -1,3 +1,5 @@
+- Fix timing issue using test-sic-check-nready_mem.ucl
+
 - Develop a version using prime variables
 
 - Develop a version with several subsequent instructions => should be
