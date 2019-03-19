@@ -91,11 +91,11 @@ module main {
     check;
     print_results;
     vbmc.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
-    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_branch_pending, /*pipeline.is_pinst_ready,*/ pipeline.is_mem_pending,
     		   pipeline.is_store_pending, pipeline.is_data_dependant,
     		   pipeline.current.instruction, pipeline.previous.instruction);
     vunroll.print_cex(step, pipeline.progress, pipeline.is_inst_ready, pipeline.is_nstage_wbe_free,
-    		   pipeline.is_branch_pending, pipeline.is_ninst_ready, pipeline.is_mem_pending,
+    		   pipeline.is_branch_pending, /*pipeline.is_pinst_ready,*/ pipeline.is_mem_pending,
     		   pipeline.is_store_pending, pipeline.is_data_dependant,
     		   pipeline.current.instruction, pipeline.previous.instruction);
   }
