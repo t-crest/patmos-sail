@@ -15,13 +15,10 @@ module sic {
   // variable in the counter-example ...
   var progress: boolean;
   var is_inst_ready : boolean;
-  var is_nstage_wbe_free: boolean;  
+  var is_nstage_wbe_free: boolean;
   
-  var is_branch_pending : boolean;
-  var is_ninst_ready: boolean;
-  var is_mem_pending: boolean;
-  var is_store_pending: boolean;
-  var is_data_dependant: boolean;
+  // Useless for us as previous is always ready
+  // var is_pinst_ready: boolean;
 
   instance current : instruction(in_opcode: (current_op),
   	   	     		 in_latencies: (current_latencies),
@@ -34,17 +31,16 @@ module sic {
 
   /* This ensures Lemma IV.1 (progress dependence) */ 
   procedure inst_ready (instruction:isa.inst_t) 
-  modifies is_inst_ready, is_branch_pending, is_ninst_ready,
+  modifies is_inst_ready, is_branch_pending, /*is_pinst_ready,*/
   	   is_store_pending, is_mem_pending, is_data_dependant;
   {
     is_inst_ready = false;
 
     case
-      (instruction.stage == pre) : { call branch_pending(); /* Comment this call to switch from SIC to an in-order pipeline */
-  			    	     call next_inst_ready();
-  				     call mem_pending(); /* Comment this call to switch from SIC to an in-order pipeline */
+      (instruction.stage == pre) : { /* call previous_inst_ready(); */
+  				     call mem_pending(); 
   				     is_inst_ready  = !is_branch_pending &&
-				     	     	      is_ninst_ready &&
+				     	     	      /*is_ninst_ready &&*/
 						      !is_mem_pending;
     				   }
       (instruction.stage == ID)  : { call data_dependant();
@@ -66,33 +62,29 @@ module sic {
     esac
   }
 
-  procedure next_inst_ready () modifies is_ninst_ready;
-  {
-    is_ninst_ready = false;
+  // As we only have two instructions, the previous instruction is always ready
+  // procedure previous_inst_ready () modifies is_pinst_ready;
+  // {
+  //   is_pinst_ready = false;
     
-    if (current.instruction.stage == pre)
-    {
-      var in_pre : boolean;
-      in_pre = false;      
+  //   if (current.instruction.stage == pre)
+  //   {
+  //     var in_pre : boolean;
+  //     in_pre = false;      
 
-      if (previous.instruction.stage != pre)
-      {
-  	  in_pre = true;
-      }
+  //     if (previous.instruction.stage != pre)
+  //     {
+  // 	  in_pre = true;
+  //     }
       
-      if (in_pre) { is_ninst_ready = true; }
-    }  
-  }
+  //     if (in_pre) { is_pinst_ready = true; }
+  //   }  
+  // }
 
 
   init {
     progress = false;
     initialized = false;
-
-    // This is just to more easily change from SIC to an in-order pipeline
-    is_branch_pending = false;
-    is_mem_pending = false;
-    is_data_dependant = false;
   }
 
   procedure update_progress()
@@ -110,22 +102,8 @@ module sic {
     if (!initialized) {
 	assume(current.instruction.opcode == current_op);
 	assume(previous.instruction.opcode == previous_op);
-//	assume(current.instruction.opcode == nop || current.instruction.);
-//	assume(previous.instruction.opcode == previous_op);		
-        //assume(current.instruction.var_latencies == current_latencies);
-        //assume(previous.instruction.var_latencies == previous_latencies);
-	assume(previous.instruction.var_latencies.fetch > 0 &&
-	       previous.instruction.var_latencies.fetch <= 10);
-	assume(previous.instruction.var_latencies.mem > 0 &&
-	       previous.instruction.var_latencies.mem <= 10);
-	assume(previous.instruction.var_latencies.st > 0 &&
-	       previous.instruction.var_latencies.st <= 10);
-	assume(current.instruction.var_latencies.fetch > 0 &&
-	       current.instruction.var_latencies.fetch <= 10);
-	assume(current.instruction.var_latencies.mem > 0 &&
-	       current.instruction.var_latencies.mem <= 10);
-	assume(current.instruction.var_latencies.st > 0 &&
-	       current.instruction.var_latencies.st <= 10);	       	       	       
+        assume(current.instruction.var_latencies == current_latencies);
+        assume(previous.instruction.var_latencies == previous_latencies);
         assume(current.instruction.src_regs == current_src);
         assume(current.instruction.dst_reg == current_dst);
         assume(previous.instruction.src_regs == previous_src);
@@ -134,8 +112,9 @@ module sic {
 	// previous instruction can go ahead freely ...
       	next(previous);	
     } else {
-      	call update_progress();
-	next(previous); 	
+	// previous instruction can go ahead freely ...	
+	next(previous);
+      	call update_progress();	
     	if (progress) { next(current);}
     }
   }

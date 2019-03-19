@@ -42,22 +42,8 @@ module pret {
     if (!initialized) {
 	assume(current.instruction.opcode == current_op);
 	assume(previous.instruction.opcode == previous_op);
-//	assume(current.instruction.opcode == nop || current.instruction.);
-//	assume(previous.instruction.opcode == previous_op);		
-        //assume(current.instruction.var_latencies == current_latencies);
-        //assume(previous.instruction.var_latencies == previous_latencies);
-	assume(previous.instruction.var_latencies.fetch > 0 &&
-	       previous.instruction.var_latencies.fetch <= 10);
-	assume(previous.instruction.var_latencies.mem > 0 &&
-	       previous.instruction.var_latencies.mem <= 10);
-	assume(previous.instruction.var_latencies.st > 0 &&
-	       previous.instruction.var_latencies.st <= 10);
-	assume(current.instruction.var_latencies.fetch > 0 &&
-	       current.instruction.var_latencies.fetch <= 10);
-	assume(current.instruction.var_latencies.mem > 0 &&
-	       current.instruction.var_latencies.mem <= 10);
-	assume(current.instruction.var_latencies.st > 0 &&
-	       current.instruction.var_latencies.st <= 10);	       	       	       
+        assume(current.instruction.var_latencies == current_latencies);
+        assume(previous.instruction.var_latencies == previous_latencies);
         assume(current.instruction.src_regs == current_src);
         assume(current.instruction.dst_reg == current_dst);
         assume(previous.instruction.src_regs == previous_src);
@@ -66,7 +52,8 @@ module pret {
 	// previous instruction can go ahead freely ...
       	next(previous);	
     } else {
-	next(previous); 	
+    	// previous instruction can go ahead freely ...
+	next(previous);
     	next(current);
     }
   }
