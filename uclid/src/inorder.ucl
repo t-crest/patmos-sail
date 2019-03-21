@@ -13,9 +13,11 @@ module inorder {
   var is_inst_ready : boolean;
   var is_nstage_wbe_free: boolean;  
 
+  var is_branch_pending : boolean;
   // Useless for us as previous is always ready
   // var is_pinst_ready: boolean;
-  var is_store_pending: boolean;  
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
   var is_data_dependant: boolean;
 
   instance current : instruction(in_opcode: (current_op),
@@ -159,6 +161,11 @@ module inorder {
     progress = false;
     initialized = false;
 
+    // This is to ensure that test-properties stays generic
+    assume(is_branch_pending == false);
+    assume(is_mem_pending == false);
+
+    is_store_pending = false;
     is_data_dependant = false;
   }
 

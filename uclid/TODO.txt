@@ -1,6 +1,4 @@
-- Change names of test => remove sic. Generate instance of each pipeline
-  by changing in the source code sic by inorder, etc. and put all this in a makefile
-  to collect trace for each pipeline
+- Fix timing issue in stall-branch test => IF and EX as the same time ...
 
 - Fix timing issue using test-sic-check-nready_mem.ucl
 

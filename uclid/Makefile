@@ -8,6 +8,14 @@ APP ?= test-main
 parse:
 	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/$(APP).ucl
 
+old_test: 
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-branch.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-mem.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-data_dependency.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-nready_pre.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-nready_mem.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-timin_anomaly.ucl
+
 test:
 	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/test-$(RULES).ucl test/conditions-$(APP).ucl test/param-$(RULES)-$(APP).ucl test/test-properties.ucl > output/$(RULES)-$(APP).log
 
