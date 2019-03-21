@@ -1,0 +1,66 @@
+module main {
+
+  type stage_t = isa.stage_t;
+  type opcode_t = isa.opcode_t;
+
+  instance run : conditions();
+
+  next {
+    next(run);
+  }
+
+  // To check that there is not several instructions per stage
+  invariant no_several_ins_per_stage: ((run.cond.pipeline.current.instr.stage == IF ||
+  				        run.cond.pipeline.current.instr.stage == ID ||
+  				        run.cond.pipeline.current.instr.stage == EX ||
+  				        run.cond.pipeline.current.instr.stage == MEM ||
+  				        run.cond.pipeline.current.instr.stage == ST ||
+  				        run.cond.pipeline.current.instr.stage == WB)
+				      	==> run.cond.pipeline.current.instr.stage != run.cond.pipeline.previous.instr.stage);
+  // To check that no negative latency could happen (only fails in step 0)
+  invariant no_negative_latency: (run.cond.pipeline.current.instr.var_latencies.fetch >= 0 &&
+  	    			  run.cond.pipeline.current.instr.var_latencies.mem >= 0 &&
+				  run.cond.pipeline.current.instr.var_latencies.st >= 0 &&
+				  run.cond.pipeline.current.instr.fixed_latencies.id >= 0 &&
+				  run.cond.pipeline.current.instr.fixed_latencies.ex >= 0 &&
+				  run.cond.pipeline.current.instr.fixed_latencies.wb >= 0);  
+
+  // To check that all instructions have been retired from the run.cond.pipeline ...
+  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.current.instr.stage == post &&
+  	   			      	   	      	   run.cond.pipeline.previous.instr.stage == post));
+  // ... and that all latency values have been used
+  property[LTL] sanety_latencies: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.current.instr.var_latencies.fetch == 0 &&
+  			              	 		      	 run.cond.pipeline.current.instr.var_latencies.mem == 0 &&
+  			         			      	 run.cond.pipeline.current.instr.fixed_latencies.id == 0 &&
+  			         			      	 run.cond.pipeline.current.instr.fixed_latencies.ex == 0 &&
+							      	 run.cond.pipeline.previous.instr.var_latencies.fetch == 0 &&
+  			         			      	 run.cond.pipeline.previous.instr.var_latencies.mem == 0 &&
+  			         			      	 run.cond.pipeline.previous.instr.fixed_latencies.id == 0 &&
+  			         			      	 run.cond.pipeline.previous.instr.fixed_latencies.ex == 0 &&
+								 ((run.cond.pipeline.current.instr.opcode == store_op &&
+  			              	 		    	  run.cond.pipeline.current.instr.var_latencies.st == 0) ||
+  			         			   	  (run.cond.pipeline.current.instr.opcode != store_op &&
+  			         			    	  run.cond.pipeline.current.instr.fixed_latencies.wb == 0)) &&
+							  	 ((run.cond.pipeline.previous.instr.opcode == store_op &&
+  			              	 		    	  run.cond.pipeline.previous.instr.var_latencies.st == 0) ||
+  			         			   	  (run.cond.pipeline.previous.instr.opcode != store_op &&
+  			         			    	  run.cond.pipeline.previous.instr.fixed_latencies.wb == 0))));
+
+  // A simple invariant to generate a counter-example for later trace comparison
+  invariant generate_counter_example: run.cond.step < param.bmc_depth;
+
+  control {
+    vbmc = bmc(param.bmc_depth);
+    vunroll = unroll(param.bmc_depth);
+    check;
+    print_results;
+    vbmc.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
+    		   run.cond.pipeline.is_branch_pending, /*run.cond.pipeline.is_pinst_ready,*/ run.cond.pipeline.is_mem_pending,
+    		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
+    		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr);
+    vunroll.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
+    		   run.cond.pipeline.is_branch_pending, /*run.cond.pipeline.is_pinst_ready,*/ run.cond.pipeline.is_mem_pending,
+    		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
+    		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr);
+  }
+}

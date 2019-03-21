@@ -1,0 +1,4 @@
+module param {
+  const bmc_depth: integer = 15;
+}
+

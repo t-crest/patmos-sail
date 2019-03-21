@@ -1,0 +1,25 @@
+module test {
+
+  var step : integer;
+
+  input cond_op_i, cond_op_j: isa.opcode_t;
+  input cond_latencies_i, cond_latencies_j: isa.var_latency_t;
+  input cond_src_i, cond_src_j: isa.src_regs_t;
+  input cond_dst_i, cond_dst_j: isa.reg_t;
+
+  instance pipeline : inorder(current_op: (cond_op_i), previous_op: (cond_op_j),
+  	   	             current_latencies: (cond_latencies_i),
+			     previous_latencies: (cond_latencies_j),
+			     current_src: (cond_src_i), current_dst: (cond_dst_i),
+			     previous_src: (cond_src_j), previous_dst: (cond_dst_j));
+
+  init {
+    step = 0;
+  }
+
+  next {
+    step' = step + 1;  
+    next(pipeline);
+  }
+}
+  
