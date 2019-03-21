@@ -1,20 +1,30 @@
 UCLID = uclid
 
-PIPELINE_RULES ?= sic
-TEST_APP ?= test-main
+RULES ?= sic
+APP ?= test-main
 
 .PHONY: test parse
 
 parse:
-	$(UCLID) src/isa.ucl src/instruction.ucl src/$(PIPELINE_RULES).ucl test/$(TEST_APP).ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/$(APP).ucl
 
 test:
-	$(UCLID) src/isa.ucl src/instruction.ucl src/$(PIPELINE_RULES).ucl test/$(TEST_APP).ucl > output/$(TEST_APP).log
+	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/test-$(RULES).ucl test/conditions-$(APP).ucl test/param-$(RULES)-$(APP).ucl test/test-properties.ucl > output/$(RULES)-$(APP).log
+
+tests:
+	make test APP=check-branching 
+	make test APP=check-mem 
+	make test APP=check-data_dependency 
+	make test APP=check-nready_pre 
+	make test APP=check-nready_mem 
+	make test APP=check-timing_anomaly 
 
 test-sic-all:
-	make test TEST_APP=test-sic-stall-branch
-	make test TEST_APP=test-sic-stall-mem
-	make test TEST_APP=test-sic-stall-data_dependency
-	make test TEST_APP=test-sic-check-nready_pre
-	make test TEST_APP=test-sic-check-nready_mem
-	make test TEST_APP=test-sic-check-timing_anomaly
+	make tests RULES=sic
+
+test-inorder-all:
+	make tests RULES=inorder
+
+test-all:
+	make test-sic-all
+	make test-inorder-all
