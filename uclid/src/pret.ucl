@@ -40,14 +40,14 @@ module pret {
   // Updating the state of the instructions
   next  {
     if (!initialized) {
-	assume(current.instruction.opcode == current_op);
-	assume(previous.instruction.opcode == previous_op);
-        assume(current.instruction.var_latencies == current_latencies);
-        assume(previous.instruction.var_latencies == previous_latencies);
-        assume(current.instruction.src_regs == current_src);
-        assume(current.instruction.dst_reg == current_dst);
-        assume(previous.instruction.src_regs == previous_src);
-        assume(previous.instruction.dst_reg == previous_dst);		
+	assume(current.instr.opcode == current_op);
+	assume(previous.instr.opcode == previous_op);
+        assume(current.instr.var_latencies == current_latencies);
+        assume(previous.instr.var_latencies == previous_latencies);
+        assume(current.instr.src_regs == current_src);
+        assume(current.instr.dst_reg == current_dst);
+        assume(previous.instr.src_regs == previous_src);
+        assume(previous.instr.dst_reg == previous_dst);		
     	initialized' = true;
 	// previous instruction can go ahead freely ...
       	next(previous);	

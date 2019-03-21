@@ -101,34 +101,34 @@ module sic {
     is_nstage_wbe_free = true;
     
     case
-      (current.instruction.stage == MEM)  : { if (previous.instruction.stage == ST &&
-      				    	      	  previous.instruction.var_latencies.st > 1 &&
-      				    	      	  current.instruction.opcode == store_op) {
+      (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
+      				    	      	  previous.instr.var_latencies.st > 1 &&
+      				    	      	  current.instr.opcode == store_op) {
 						  is_nstage_wbe_free = false;
 					       }
-					       if (previous.instruction.stage == WB &&
-      				    	      	  previous.instruction.fixed_latencies.wb > 1 &&
-      				    	      	  current.instruction.opcode != store_op) {
+					       if (previous.instr.stage == WB &&
+      				    	      	  previous.instr.fixed_latencies.wb > 1 &&
+      				    	      	  current.instr.opcode != store_op) {
 						  is_nstage_wbe_free = false;
 					       }
 					    }
-      (current.instruction.stage == EX)   : { if (previous.instruction.stage == MEM &&
-      				    	      	  previous.instruction.var_latencies.mem > 1) {
+      (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
+      				    	      	  previous.instr.var_latencies.mem > 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
-      (current.instruction.stage == ID)   : { if (previous.instruction.stage == EX &&
-      				    	      	  previous.instruction.fixed_latencies.ex > 1) {
+      (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
+      				    	      	  previous.instr.fixed_latencies.ex > 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
-      (current.instruction.stage == IF)   : { if (previous.instruction.stage == ID &&
-      				    	      	  previous.instruction.fixed_latencies.id > 1) {
+      (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
+      				    	      	  previous.instr.fixed_latencies.id > 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
-      (current.instruction.stage == pre)  : { if (previous.instruction.stage == IF &&
-      				    	      	  previous.instruction.var_latencies.fetch > 1) {
+      (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
+      				    	      	  previous.instr.var_latencies.fetch > 1) {
 						  is_nstage_wbe_free = false;
 					      }
    					    }
@@ -140,12 +140,12 @@ module sic {
   // {
   //   is_pinst_ready = false;
     
-  //   if (current.instruction.stage == pre)
+  //   if (current.instr.stage == pre)
   //   {
   //     var in_pre : boolean;
   //     in_pre = false;      
 
-  //     if (previous.instruction.stage != pre)
+  //     if (previous.instr.stage != pre)
   //     {
   // 	  in_pre = true;
   //     }
@@ -158,11 +158,11 @@ module sic {
   {
     is_branch_pending = false;
 
-    if (previous.instruction.opcode == branch_op &&
-        (previous.instruction.stage == IF ||
-  	 previous.instruction.stage == ID ||
-  	 (previous.instruction.stage == EX &&
-	  previous.instruction.fixed_latencies.ex > 1))) {
+    if (previous.instr.opcode == branch_op &&
+        (previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 (previous.instr.stage == EX &&
+	  previous.instr.fixed_latencies.ex > 1))) {
   	is_branch_pending = true;
     }
   }
@@ -176,12 +176,12 @@ module sic {
 
     load = false;
     
-    if (previous.instruction.opcode == load_op &&
-      	(previous.instruction.stage == IF ||
-  	 previous.instruction.stage == ID ||
-  	 previous.instruction.stage == EX || 
-  	 (previous.instruction.stage == MEM &&
-	  previous.instruction.var_latencies.mem > 1)))  {
+    if (previous.instr.opcode == load_op &&
+      	(previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX || 
+  	 (previous.instr.stage == MEM &&
+	  previous.instr.var_latencies.mem > 1)))  {
   	load = true;
     }
 
@@ -196,13 +196,13 @@ module sic {
   {
     is_store_pending = false;
 
-    if (previous.instruction.opcode == store_op &&
-        (previous.instruction.stage == IF ||
-  	 previous.instruction.stage == ID ||
-  	 previous.instruction.stage == EX ||
-  	 previous.instruction.stage == MEM ||
-	 (previous.instruction.stage == ST && 	 
-          previous.instruction.var_latencies.st > 1))) {
+    if (previous.instr.opcode == store_op &&
+        (previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX ||
+  	 previous.instr.stage == MEM ||
+	 (previous.instr.stage == ST && 	 
+          previous.instr.var_latencies.st > 1))) {
   	is_store_pending = true;
     }   
   }
@@ -215,14 +215,14 @@ module sic {
   {
     is_data_dependant = false;
 
-    if (previous.instruction.opcode == load_op &&
-      	(previous.instruction.stage == IF ||
-  	 previous.instruction.stage == ID ||
-  	 previous.instruction.stage == EX ||
-  	 (previous.instruction.stage == MEM &&
-	  previous.instruction.var_latencies.mem > 1))) {
-       if (current.instruction.src_regs.src1 == previous.instruction.dst_reg ||
-  	   current.instruction.src_regs.src2 == previous.instruction.dst_reg) {
+    if (previous.instr.opcode == load_op &&
+      	(previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX ||
+  	 (previous.instr.stage == MEM &&
+	  previous.instr.var_latencies.mem > 1))) {
+       if (current.instr.src_regs.src1 == previous.instr.dst_reg ||
+  	   current.instr.src_regs.src2 == previous.instr.dst_reg) {
   	  is_data_dependant = true;
        }
     }
@@ -238,7 +238,7 @@ module sic {
   	   is_store_pending, is_branch_pending,
 	   is_data_dependant, is_nstage_wbe_free;
   {
-    call inst_ready(current.instruction);
+    call inst_ready(current.instr);
     call nstage_wbe_free();
 
     progress = is_inst_ready && is_nstage_wbe_free;
@@ -247,14 +247,14 @@ module sic {
   // Updating the state of the instructions
   next  {
     if (!initialized) {
-	assume(current.instruction.opcode == current_op);
-	assume(previous.instruction.opcode == previous_op);
-        assume(current.instruction.var_latencies == current_latencies);
-        assume(previous.instruction.var_latencies == previous_latencies);
-        assume(current.instruction.src_regs == current_src);
-        assume(current.instruction.dst_reg == current_dst);
-        assume(previous.instruction.src_regs == previous_src);
-        assume(previous.instruction.dst_reg == previous_dst);		
+	assume(current.instr.opcode == current_op);
+	assume(previous.instr.opcode == previous_op);
+        assume(current.instr.var_latencies == current_latencies);
+        assume(previous.instr.var_latencies == previous_latencies);
+        assume(current.instr.src_regs == current_src);
+        assume(current.instr.dst_reg == current_dst);
+        assume(previous.instr.src_regs == previous_src);
+        assume(previous.instr.dst_reg == previous_dst);		
     	initialized' = true;
 	// previous instruction can go ahead freely ...
       	next(previous);	

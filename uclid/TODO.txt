@@ -1,12 +1,18 @@
+- Change names of test => remove sic. Generate instance of each pipeline
+  by changing in the source code sic by inorder, etc. and put all this in a makefile
+  to collect trace for each pipeline
+
 - Fix timing issue using test-sic-check-nready_mem.ucl
-
-- Develop a version using prime variables
-
-- Develop a version with several subsequent instructions => should be
-  generated from a description of a pipeline
 
 - Specify PRET and Patmos rules
 
 - Compute delays to due to timing anomalies
 
 - Measure the time to perfom assume and checkings
+
+- Develop a version using prime variables for instruction module
+
+- Develop a version with several subsequent instructions => should be
+  generated from a description of a pipeline
+
+
