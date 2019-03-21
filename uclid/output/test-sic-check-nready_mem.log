@@ -1,1 +1,1117 @@
 Successfully parsed 5 and instantiated 1 module(s).
+157 assertions passed.
+4 assertions failed.
+0 assertions indeterminate.
+  FAILED -> vunroll [Step #0] property no_negative_latency @ test/test-sic-check-nready_mem.ucl, line 57
+  FAILED -> vunroll [Step #10] property no_several_ins_per_stage @ test/test-sic-check-nready_mem.ucl, line 49
+  FAILED -> vunroll [Step #12] property no_several_ins_per_stage @ test/test-sic-check-nready_mem.ucl, line 49
+  FAILED -> vunroll [Step #22] property generate_counter_example @ test/test-sic-check-nready_mem.ucl, line 86
+CEX for vunroll [Step #0] property no_negative_latency @ test/test-sic-check-nready_mem.ucl, line 57
+=================================
+Step #0
+  step : 0
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 store_op
+          (_tuple_1 (- 1) (- 39) 7719)
+          (_tuple_2 #b00000 #b00000)
+          #b00000
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 store_op
+          (_tuple_1 0 0 0)
+          (_tuple_2 #b00000 #b00000)
+          #b00000
+          (_tuple_3 1 1 1)
+          pre)
+=================================
+CEX for vunroll [Step #10] property no_several_ins_per_stage @ test/test-sic-check-nready_mem.ucl, line 49
+=================================
+Step #0
+  step : 0
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          pre)
+=================================
+=================================
+Step #1
+  step : 1
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #2
+  step : 2
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #3
+  step : 3
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          ID)
+=================================
+=================================
+Step #4
+  step : 4
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          ID)
+=================================
+=================================
+Step #5
+  step : 5
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          EX)
+=================================
+=================================
+Step #6
+  step : 6
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          EX)
+=================================
+=================================
+Step #7
+  step : 7
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #8
+  step : 8
+  pipeline.progress : false
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 2 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #9
+  step : 9
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #10
+  step : 10
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          MEM)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+CEX for vunroll [Step #12] property no_several_ins_per_stage @ test/test-sic-check-nready_mem.ucl, line 49
+=================================
+Step #0
+  step : 0
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          pre)
+=================================
+=================================
+Step #1
+  step : 1
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #2
+  step : 2
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #3
+  step : 3
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          ID)
+=================================
+=================================
+Step #4
+  step : 4
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          ID)
+=================================
+=================================
+Step #5
+  step : 5
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          EX)
+=================================
+=================================
+Step #6
+  step : 6
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          EX)
+=================================
+=================================
+Step #7
+  step : 7
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #8
+  step : 8
+  pipeline.progress : false
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 2 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #9
+  step : 9
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #10
+  step : 10
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          MEM)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #11
+  step : 11
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          MEM)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          WB)
+=================================
+=================================
+Step #12
+  step : 12
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          WB)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          WB)
+=================================
+CEX for vunroll [Step #22] property generate_counter_example @ test/test-sic-check-nready_mem.ucl, line 86
+=================================
+Step #0
+  step : 0
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          pre)
+=================================
+=================================
+Step #1
+  step : 1
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 1 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #2
+  step : 2
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          pre)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          IF)
+=================================
+=================================
+Step #3
+  step : 3
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 1 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 1 1 1)
+          ID)
+=================================
+=================================
+Step #4
+  step : 4
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          IF)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          ID)
+=================================
+=================================
+Step #5
+  step : 5
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 1 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 1 1)
+          EX)
+=================================
+=================================
+Step #6
+  step : 6
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          ID)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          EX)
+=================================
+=================================
+Step #7
+  step : 7
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 1 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 3 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #8
+  step : 8
+  pipeline.progress : false
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : false
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 2 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #9
+  step : 9
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          EX)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #10
+  step : 10
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 1 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          MEM)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          MEM)
+=================================
+=================================
+Step #11
+  step : 11
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          MEM)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 1)
+          WB)
+=================================
+=================================
+Step #12
+  step : 12
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 1)
+          WB)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          WB)
+=================================
+=================================
+Step #13
+  step : 13
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          WB)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #14
+  step : 14
+  pipeline.progress : true
+  pipeline.is_inst_ready : true
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #15
+  step : 15
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #16
+  step : 16
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #17
+  step : 17
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #18
+  step : 18
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #19
+  step : 19
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #20
+  step : 20
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #21
+  step : 21
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+=================================
+Step #22
+  step : 22
+  pipeline.progress : false
+  pipeline.is_inst_ready : false
+  pipeline.is_nstage_wbe_free : true
+  pipeline.is_branch_pending : false
+  pipeline.is_mem_pending : false
+  pipeline.is_store_pending : false
+  pipeline.is_data_dependant : false
+  pipeline.current.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00100 #b00101)
+          #b00110
+          (_tuple_3 0 0 0)
+          post)
+  pipeline.previous.instr : (_tuple_0 other_op
+          (_tuple_1 0 0 1)
+          (_tuple_2 #b00001 #b00010)
+          #b00011
+          (_tuple_3 0 0 0)
+          post)
+=================================
+Finished execution for module: main.
