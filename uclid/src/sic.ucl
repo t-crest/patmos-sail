@@ -162,7 +162,7 @@ module sic {
         (previous.instr.stage == IF ||
   	 previous.instr.stage == ID ||
   	 (previous.instr.stage == EX &&
-	  previous.instr.fixed_latencies.ex > 1))) {
+	  previous.instr.fixed_latencies.ex >= 1))) {
   	is_branch_pending = true;
     }
   }
@@ -181,7 +181,7 @@ module sic {
   	 previous.instr.stage == ID ||
   	 previous.instr.stage == EX || 
   	 (previous.instr.stage == MEM &&
-	  previous.instr.var_latencies.mem > 1)))  {
+	  previous.instr.var_latencies.mem >= 1)))  {
   	load = true;
     }
 
@@ -202,7 +202,7 @@ module sic {
   	 previous.instr.stage == EX ||
   	 previous.instr.stage == MEM ||
 	 (previous.instr.stage == ST && 	 
-          previous.instr.var_latencies.st > 1))) {
+          previous.instr.var_latencies.st >= 1))) {
   	is_store_pending = true;
     }   
   }
@@ -220,7 +220,7 @@ module sic {
   	 previous.instr.stage == ID ||
   	 previous.instr.stage == EX ||
   	 (previous.instr.stage == MEM &&
-	  previous.instr.var_latencies.mem > 1))) {
+	  previous.instr.var_latencies.mem >= 1))) {
        if (current.instr.src_regs.src1 == previous.instr.dst_reg ||
   	   current.instr.src_regs.src2 == previous.instr.dst_reg) {
   	  is_data_dependant = true;

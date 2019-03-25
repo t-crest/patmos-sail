@@ -14,7 +14,7 @@ module conditions {
   init {
     // Check the stalling logic due to mem op
     op_i = other_op;
-    assume(op_j == store_op || op_j == load_op);
+    assume(op_j == load_op);
     latencies_i.fetch = 1;
     latencies_i.mem = 1;
     latencies_i.st = 1;
