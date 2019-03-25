@@ -1,5 +1,3 @@
-- Fix timing issue using test-sic-check-nready_mem.ucl
-
 - Specify PRET and Patmos rules
 
 - Compute delays to due to timing anomalies

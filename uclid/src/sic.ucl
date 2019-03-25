@@ -102,33 +102,33 @@ module sic {
     
     case
       (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
-      				    	      	  previous.instr.var_latencies.st > 1 &&
+      				    	      	  previous.instr.var_latencies.st >= 1 &&
       				    	      	  current.instr.opcode == store_op) {
 						  is_nstage_wbe_free = false;
 					       }
 					       if (previous.instr.stage == WB &&
-      				    	      	  previous.instr.fixed_latencies.wb > 1 &&
+      				    	      	  previous.instr.fixed_latencies.wb >= 1 &&
       				    	      	  current.instr.opcode != store_op) {
 						  is_nstage_wbe_free = false;
 					       }
 					    }
       (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
-      				    	      	  previous.instr.var_latencies.mem > 1) {
+      				    	      	  previous.instr.var_latencies.mem >= 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
       (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
-      				    	      	  previous.instr.fixed_latencies.ex > 1) {
+      				    	      	  previous.instr.fixed_latencies.ex >= 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
       (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
-      				    	      	  previous.instr.fixed_latencies.id > 1) {
+      				    	      	  previous.instr.fixed_latencies.id >= 1) {
 						  is_nstage_wbe_free = false;
 					      }
 					    }
       (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
-      				    	      	  previous.instr.var_latencies.fetch > 1) {
+      				    	      	  previous.instr.var_latencies.fetch >= 1) {
 						  is_nstage_wbe_free = false;
 					      }
    					    }
