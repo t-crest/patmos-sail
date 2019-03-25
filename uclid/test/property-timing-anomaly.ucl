@@ -15,8 +15,8 @@ module main {
     next(run);
   }
 
-  property[LTL] no_timing_anomaly: G((pipeline.previous.instruction.stage == MEM)
-  				     ==> (pipeline.current.instruction.stage != IF));
+  property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM)
+  				     ==> (run.cond.pipeline.current.instr.stage != IF));
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
@@ -31,4 +31,5 @@ module main {
     		   run.cond.pipeline.is_branch_pending, /*run.cond.pipeline.is_pinst_ready,*/ run.cond.pipeline.is_mem_pending,
     		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
     		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr);
+  }
 }
