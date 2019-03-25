@@ -2,6 +2,7 @@ UCLID = uclid
 
 RULES ?= sic
 APP ?= test-main
+PROPERTY ?= default
 
 .PHONY: test parse
 
@@ -14,10 +15,10 @@ old_test:
 	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-data_dependency.ucl
 	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-nready_pre.ucl
 	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-nready_mem.ucl
-	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-timin_anomaly.ucl
+	$(UCLID) src/isa.ucl src/instruction.ucl src/sic.ucl test/test-sic-stall-check-timing_anomaly.ucl
 
 test:
-	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/test-$(RULES).ucl test/conditions-$(APP).ucl test/param-$(RULES)-$(APP).ucl test/test-properties.ucl > output/$(RULES)-$(APP).log
+	$(UCLID) src/isa.ucl src/instruction.ucl src/$(RULES).ucl test/test-$(RULES).ucl test/conditions-$(APP).ucl test/param-$(RULES)-$(APP).ucl test/property-$(PROPERTY).ucl > output/$(RULES)-$(APP).log
 
 tests:
 	make test APP=check-branching 
@@ -25,7 +26,7 @@ tests:
 	make test APP=check-data_dependency 
 	make test APP=check-nready_pre 
 	make test APP=check-nready_mem 
-	make test APP=check-timing_anomaly 
+	make test APP=check-timing_anomaly PROPERTY=timing-anomaly 
 
 test-sic-all:
 	make tests RULES=sic

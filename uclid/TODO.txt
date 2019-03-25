@@ -10,3 +10,8 @@
   generated from a description of a pipeline
 
 
+NOTES
+
+- Model branch behavior for the in-order pipeline? Do we model only a
+  path of a program?
+
