@@ -50,7 +50,7 @@ module instruction {
 	  	    	     		 else { call latency_IF(); }
 				       }
 	  (instr.stage == ID)  : { if (instr.fixed_latencies.id == 0) {
-	  		     	     if (instr.opcode != nop || instr.opcode != branch_op)
+	  		     	     if (instr.opcode != nop && instr.opcode != branch_op)
 				       { instr.stage = EX; }
 	  	    	     	     else { instr.stage = post; }
 			 	   } else { call latency_ID(); }
