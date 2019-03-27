@@ -1,0 +1,194 @@
+// Model of SIC (strictly in-order pipeline)
+
+// This is a simplified version, without regs and thus
+// data dependencies which are useless in fact (covered by mempending rule)
+
+module sic {
+
+  input current_op, previous_op: isa.opcode_t;
+  input current_latencies, previous_latencies: isa.var_latency_t;
+
+  // Even if this is ugly, this allows to print the value of each
+  // variable in the counter-example ...
+  var progress: boolean;
+  var is_inst_ready : boolean;
+  var is_nstage_wbe_free: boolean;  
+  
+  var is_branch_pending : boolean;
+  // Useless for us as previous is always ready
+  //var is_pinst_ready: boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+
+  instance previous : instruction(in_opcode: (previous_op),
+  	   	      		  in_latencies: (previous_latencies),
+			          execute: (true));
+  instance current : instruction(in_opcode: (current_op),
+  	   	     		 in_latencies: (current_latencies),
+				 execute: (progress));				    
+
+  var initialized: boolean;
+
+  /* This ensures Lemma IV.1 (progress dependence) */ 
+  procedure inst_ready (instruction:isa.inst_t) 
+  modifies is_inst_ready, is_branch_pending, /*is_pinst_ready,*/
+  	   is_store_pending, is_mem_pending;
+  {
+    is_inst_ready = false;
+
+    case
+      (instruction.stage == pre) : { call branch_pending();
+  			    	     //call previous_inst_ready();
+  				     call mem_pending(); 
+  				     is_inst_ready  = !is_branch_pending &&
+				     	     	      /*is_pinst_ready &&*/
+						      !is_mem_pending;
+    				   }
+      (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
+      			    	         (instruction.opcode != store_op)) {
+					   call store_pending();
+					   is_inst_ready = !is_store_pending;
+				     }
+    				   }
+  /* Lemma IV.2 requires that the latencies of each instruction is decremented */
+      (instruction.stage == MEM || instruction.stage == IF ||
+       instruction.stage == ST || instruction.stage == WB ||
+       instruction.stage == ID) : {
+      			       	     is_inst_ready = true;
+				   }
+    esac
+  }
+
+  // This version of willbefree from the SIC paper is much simpler
+  // We assume the next stage to be free except when it is occupied by the previous instruction
+  // and its latency is higher than 1. However, this only works as we have a single previous
+  // instruction => here we assume that previous cannot be block by another previous instruction
+  procedure nstage_wbe_free ()
+  modifies is_nstage_wbe_free;
+  {
+    is_nstage_wbe_free = true;
+    
+    case
+      (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
+      				    	      	  previous.instr.var_latencies.st >= 1 &&
+      				    	      	  current.instr.opcode == store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					       if (previous.instr.stage == WB &&
+      				    	      	  previous.instr.fixed_latencies.wb >= 1 &&
+      				    	      	  current.instr.opcode != store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					    }
+      (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
+      				    	      	  previous.instr.var_latencies.mem >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
+      				    	      	  previous.instr.fixed_latencies.ex >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
+      				    	      	  previous.instr.fixed_latencies.id >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
+      				    	      	  previous.instr.var_latencies.fetch >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+   					    }
+   esac
+  }
+
+
+  procedure branch_pending () modifies is_branch_pending;
+  {
+    is_branch_pending = false;
+
+    if (previous.instr.opcode == branch_op &&
+        (previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 (previous.instr.stage == EX &&
+	  previous.instr.fixed_latencies.ex >= 1))) {
+  	is_branch_pending = true;
+    }
+  }
+
+  procedure mem_pending () modifies is_mem_pending, is_store_pending;
+  {
+    var load : boolean;
+
+    is_store_pending = false;
+    is_mem_pending = false;
+
+    load = false;
+    
+    if (previous.instr.opcode == load_op &&
+      	(previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX || 
+  	 (previous.instr.stage == MEM &&
+	  previous.instr.var_latencies.mem >= 1)))  {
+  	load = true;
+    }
+
+    call store_pending();
+
+    is_mem_pending = is_store_pending || load;
+  }
+
+  // Note: in fact this is useless as ST stage models a asynchronous
+  // writing which are unlimited in their number ...
+  procedure store_pending () modifies is_store_pending;
+  {
+    is_store_pending = false;
+
+    if (previous.instr.opcode == store_op &&
+        (previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX ||
+  	 previous.instr.stage == MEM ||
+	 (previous.instr.stage == ST && 	 
+          previous.instr.var_latencies.st >= 1))) {
+  	is_store_pending = true;
+    }   
+  }
+
+  init {
+    progress = false;
+    initialized = false;
+  }
+
+  procedure update_progress()
+  modifies progress, is_inst_ready, is_mem_pending, /*is_pinst_ready,*/
+  	   is_store_pending, is_branch_pending,
+	   is_nstage_wbe_free;
+  {
+    call inst_ready(current.instr);
+    call nstage_wbe_free();
+
+    progress = is_inst_ready && is_nstage_wbe_free;
+  }
+
+  // Updating the state of the instructions
+  next  {
+    if (!initialized) {
+	assume(current.instr.opcode == current_op);
+	assume(previous.instr.opcode == previous_op);
+        assume(current.instr.var_latencies == current_latencies);
+        assume(previous.instr.var_latencies == previous_latencies);
+    	initialized' = true;
+	// previous instruction can go ahead freely ...
+      	next(previous);	
+    } else {
+	// previous instruction can go ahead freely ...	
+	next(previous);
+      	call update_progress();	
+    	if (progress) { next(current);}
+    }
+  }
+}
+

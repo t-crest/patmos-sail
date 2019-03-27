@@ -1,8 +1,7 @@
+- Compute delays to due to timing anomalies and specify the timing anomaly property
+  using these delays only (not using stage or opcode)
+
 - Specify PRET and Patmos rules
-
-- Compute delays to due to timing anomalies
-
-- Measure the time to perfom assume and checkings
 
 - Develop a version using prime variables for instruction module
 

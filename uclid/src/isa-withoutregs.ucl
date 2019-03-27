@@ -1,0 +1,37 @@
+module isa {
+  // Words -- Addresses, Data, etc.
+  type word_t = bv32;
+
+  // Pipeline stages
+  // Note: a ST stage ensures that store accesses are performed in a asynchronous way.
+  // SIC paper models a write-allocate policy on write miss. No-write allocate policy
+  // would mean that MEM delays are ignored
+  // Note: If you think about the K1 processor => writes are never blocked ==>
+  // An infinite number of instructions can be in the ST stage => be careful for the sanity check
+  // For load, K1 as x loads in parallel possible, meaning that a timing anomay occurs
+  // if the number of instruction in MEM and IF stages is higher than x
+  type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
+
+  // Opcode 
+  type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
+
+  // Variable latencies for each instruction
+  type var_latency_t = record { fetch: integer, mem: integer, st: integer };
+
+  // Latencies information for each instruction
+  type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
+
+// We were unable to model using an array of record using UCLID
+// Arrays of values works well, but we want to update a subset of an element
+// of an array -> TLA+ seems better here. Similary we are unable to use prime value
+// easily in a next block as we need to update a full variable. It is not allowed to update
+// a field of a record for instance ==> one solution would be to model an instruction as a flat
+// structure. This means that we have a lot of parameters to set when creating an instance
+// of an instruction but that does not hurt ...
+
+  // Instruction 
+  type inst_t = record { opcode: opcode_t,
+			 var_latencies: var_latency_t,
+			 fixed_latencies: fixed_latency_t,			 
+			 stage: stage_t };
+}
