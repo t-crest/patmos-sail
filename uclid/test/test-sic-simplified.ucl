@@ -1,0 +1,21 @@
+module test {
+
+  var step : integer;
+
+  input cond_op_i, cond_op_j: isa.opcode_t;
+  input cond_latencies_i, cond_latencies_j: isa.var_latency_t;
+
+  instance pipeline : sic(current_op: (cond_op_i), previous_op: (cond_op_j),
+  	   	          current_latencies: (cond_latencies_i),
+			  previous_latencies: (cond_latencies_j));
+
+  init {
+    step = 0;
+  }
+
+  next {
+    step' = step + 1;  
+    next(pipeline);
+  }
+}
+  

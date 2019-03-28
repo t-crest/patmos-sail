@@ -19,6 +19,9 @@ module sic {
   //var is_pinst_ready: boolean;
   var is_mem_pending: boolean;
   var is_store_pending: boolean;
+  var is_mem_blocking: boolean;
+
+  var delays: integer;
 
   instance previous : instruction(in_opcode: (previous_op),
   	   	      		  in_latencies: (previous_latencies),
@@ -57,6 +60,23 @@ module sic {
       			       	     is_inst_ready = true;
 				   }
     esac
+  }
+
+  procedure mem_blocking ()
+  modifies is_mem_blocking, delays;
+  {
+     is_mem_blocking = false;
+
+     // We only block in the MEM stage, in the ST stage, we assume an unlimited of write
+     // can be supported ...
+     if (((previous.instr.stage == EX && previous.instr.fixed_latencies.ex == 0) ||
+     	  (previous.instr.stage == MEM && previous.instr.var_latencies.mem >= 1)) &&
+     	 (previous.instr.opcode == load_op ||
+	  previous.instr.opcode == store_op) &&
+	  (current.instr.stage == IF && current.instr.var_latencies.fetch >= 1)) {
+	    is_mem_blocking = true;
+	    delays = delays + 1;
+     }
   }
 
   // This version of willbefree from the SIC paper is much simpler
@@ -181,11 +201,16 @@ module sic {
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
     	initialized' = true;
+	delays' = 0;	
 	// previous instruction can go ahead freely ...
       	next(previous);	
     } else {
-	// previous instruction can go ahead freely ...	
-	next(previous);
+      	// Previous instruction cannot go ahead freely
+	// If the current instruction is performing
+	// a memory access in IF, then previous
+	// must be stalled if reached MEM
+      	call mem_blocking();
+	if (!is_mem_blocking) { next(previous); }    
       	call update_progress();	
     	if (progress) { next(current);}
     }

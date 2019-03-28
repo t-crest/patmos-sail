@@ -82,7 +82,6 @@ module instruction {
     instr.fixed_latencies.id = 1;
     instr.fixed_latencies.ex = 1;
     instr.fixed_latencies.wb = 1;
-    assume(instr.delays == 0);
   }
 
   next {

@@ -41,6 +41,6 @@ module isa {
 			 src_regs: src_regs_t,
 			 dst_reg: reg_t,			 
 			 fixed_latencies: fixed_latency_t,
-			 delays: integer,
+//			 delays: integer,
 			 stage: stage_t };
 }
