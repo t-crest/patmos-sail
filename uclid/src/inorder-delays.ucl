@@ -1,0 +1,228 @@
+// Model of a classical in-order pipeline
+
+module inorder {
+
+  input current_op, previous_op: isa.opcode_t;
+  input current_latencies, previous_latencies: isa.var_latency_t;
+  input current_src, previous_src: isa.src_regs_t;
+  input current_dst, previous_dst: isa.reg_t;  
+
+  // Even if this is ugly, this allows to print the value of each
+  // variable in the counter-example ...
+  var progress: boolean;
+  var is_inst_ready : boolean;
+  var is_nstage_wbe_free: boolean;  
+
+  var is_branch_pending : boolean;
+  // Useless for us as previous is always ready
+  // var is_pinst_ready: boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+  var is_data_dependant: boolean;
+  var is_mem_blocking: boolean;
+
+  var delays: integer;
+
+  instance current : instruction(in_opcode: (current_op),
+  	   	     		 in_latencies: (current_latencies),
+				 execute: (progress));
+  instance previous : instruction(in_opcode: (previous_op),
+  	   	      		    in_latencies: (previous_latencies),
+			            execute: (true));
+
+  var initialized: boolean;
+
+  /* This ensures Lemma IV.1 (progress dependence) */ 
+  procedure inst_ready (instruction:isa.inst_t) 
+  modifies is_inst_ready, /*is_pinst_ready,*/
+  	   is_store_pending, is_data_dependant;
+  {
+    is_inst_ready = false;
+
+    case
+      (instruction.stage == pre) : { //call previous_inst_ready();
+  				     is_inst_ready = true;/*is_pinst_ready;*/
+    				   }
+      (instruction.stage == ID)  : { call data_dependant();
+				     is_inst_ready = !is_data_dependant;
+				   }
+      (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
+      			    	         (instruction.opcode != store_op)) {
+					   call store_pending();
+					   is_inst_ready = !is_store_pending;
+				     }
+    				   }
+  /* Lemma IV.2 requires that the latencies of each instruction is decremented */
+  /* These cases ensure this for these stages => could be implemented within the pipeline model directly */
+  /* Together with the function nstage_wbe_free -> not specific to SIC actually */
+      (instruction.stage == MEM || instruction.stage == IF ||
+       instruction.stage == ST || instruction.stage == WB) : {
+      			       	     is_inst_ready = true;
+				   }
+    esac
+  }
+
+  procedure mem_blocking ()
+  modifies is_mem_blocking, delays;
+  {
+     is_mem_blocking = false;
+
+     // We only block in the MEM stage, in the ST stage, we assume an unlimited of write
+     // can be supported ...
+     if (((previous.instr.stage == EX && previous.instr.fixed_latencies.ex == 0) ||
+     	  (previous.instr.stage == MEM && previous.instr.var_latencies.mem >= 1)) &&
+     	 (previous.instr.opcode == load_op ||
+	  previous.instr.opcode == store_op) &&
+	  (current.instr.stage == IF && current.instr.var_latencies.fetch >= 1)) {
+	    is_mem_blocking = true;
+	    delays = delays + 1;
+     }
+  }
+
+  // We assume the next stage to be free except when it is occupied by the previous instruction
+  // and its latency is higher than 1. However, this only works as we have a single previous
+  // instruction => here we assume that previous cannot be block by another previous instruction
+  procedure nstage_wbe_free ()
+  modifies is_nstage_wbe_free;
+  {
+    is_nstage_wbe_free = true;
+    
+    case
+      (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
+      				    	      	  previous.instr.var_latencies.st >= 1 &&
+      				    	      	  current.instr.opcode == store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					       if (previous.instr.stage == WB &&
+      				    	      	  previous.instr.fixed_latencies.wb >= 1 &&
+      				    	      	  current.instr.opcode != store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					    }
+      (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
+      				    	      	  previous.instr.var_latencies.mem >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+	// We probably do not need to check that current.instr.opcode is a nop
+      (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
+      				    	      	  previous.instr.fixed_latencies.ex >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
+      				    	      	  previous.instr.fixed_latencies.id >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
+      				    	      	  previous.instr.var_latencies.fetch >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+   					    }
+   esac
+  }
+
+  // As we only have two instructions, the previous instruction is always ready
+  // procedure previous_inst_ready () modifies is_pinst_ready;
+  // {
+  //   is_pinst_ready = false;
+    
+  //   if (current.instr.stage == pre)
+  //   {
+  //     var in_pre : boolean;
+  //     in_pre = false;      
+
+  //     if (previous.instr.stage != pre)
+  //     {
+  // 	  in_pre = true;
+  //     }
+      
+  //     if (in_pre) { is_pinst_ready = true; }
+  //   }  
+  // }
+
+  // Note: in fact this is useless as ST stage models a asynchronous
+  // writing which are unlimited in their number ...
+  procedure store_pending () modifies is_store_pending;
+  {
+    is_store_pending = false;
+
+    if (previous.instr.opcode == store_op &&
+        (previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX ||
+  	 previous.instr.stage == MEM ||
+	 (previous.instr.stage == ST && 	 
+          previous.instr.var_latencies.st >= 1))) {
+  	is_store_pending = true;
+    }   
+  }
+
+
+  procedure data_dependant () modifies is_data_dependant;
+  {
+    is_data_dependant = false;
+
+    if (previous.instr.opcode == load_op &&
+      	(previous.instr.stage == IF ||
+  	 previous.instr.stage == ID ||
+  	 previous.instr.stage == EX ||
+  	 (previous.instr.stage == MEM &&
+	  previous.instr.var_latencies.mem >= 1))) {
+       if (current.instr.src_regs.src1 == previous.instr.dst_reg ||
+  	   current.instr.src_regs.src2 == previous.instr.dst_reg) {
+  	  is_data_dependant = true;
+       }
+    }
+  }
+
+  init {
+    progress = false;
+    initialized = false;
+
+    // This is to ensure that test-properties stays generic
+    assume(is_branch_pending == false);
+    assume(is_mem_pending == false);
+
+    is_store_pending = false;
+    is_data_dependant = false;
+  }
+
+  procedure update_progress()
+  modifies progress, is_inst_ready, /*is_pinst_ready,*/
+  	   is_store_pending, is_data_dependant, is_nstage_wbe_free;
+  {
+    call inst_ready(current.instr);
+    call nstage_wbe_free();
+
+    progress = is_inst_ready && is_nstage_wbe_free;
+  }
+
+  // Updating the state of the instructions
+  next  {
+    if (!initialized) {
+	assume(current.instr.opcode == current_op);
+	assume(previous.instr.opcode == previous_op);
+        assume(current.instr.var_latencies == current_latencies);
+        assume(previous.instr.var_latencies == previous_latencies);
+	assume(current.instr.src_regs == current_src);
+        assume(current.instr.dst_reg == current_dst);
+        assume(previous.instr.src_regs == previous_src);
+        assume(previous.instr.dst_reg == previous_dst);
+	delays' = 0;
+    	initialized' = true;
+	// previous instruction can go ahead freely ...
+      	next(previous);	
+    } else {
+      	// Previous instruction cannot go ahead freely
+	// If the current instruction is performing
+	// a memory access in IF, then previous
+	// must be stalled if reached MEM
+      	call mem_blocking();
+	if (!is_mem_blocking) { next(previous); }
+      	call update_progress();	
+    	if (progress) { next(current);}
+    }
+  }
+}

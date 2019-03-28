@@ -12,12 +12,20 @@ module main {
 
   var op_i, op_j: isa.opcode_t;
   var latencies_i, latencies_j: isa.var_latency_t;
+  var src_i, src_j: isa.src_regs_t;
+  var dst_i, dst_j: isa.reg_t;
 
   var step : integer;
 
-  instance pipeline : sic(current_op: (op_i), previous_op: (op_j),
+  // instance pipeline : sic(current_op: (op_i), previous_op: (op_j),
+  // 	   	          current_latencies: (latencies_i),
+  // 			  previous_latencies: (latencies_j));
+
+  instance pipeline : inorder(current_op: (op_i), previous_op: (op_j),
   	   	          current_latencies: (latencies_i),
-			  previous_latencies: (latencies_j));
+			  previous_latencies: (latencies_j),
+			  current_src: (src_i), current_dst: (dst_i),
+		       	  previous_src: (src_j), previous_dst: (dst_j));
 
   init {
     step = 0;

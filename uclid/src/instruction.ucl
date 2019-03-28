@@ -63,8 +63,8 @@ module instruction {
 	  	    	     	       	   if (instr.opcode == store_op)
 					   { instr.stage = ST; }
 	  		     		   else { instr.stage = WB; }
-			     		 } else { call latency_MEM(); }
-	  		   	       }
+			     	   } else { call latency_MEM(); }
+	  		   	 }
 	  (instr.stage == ST)  : { if (instr.var_latencies.st == 0)
 	  		     	       	   { instr.stage = post; }
 			     		 else { call latency_ST(); }

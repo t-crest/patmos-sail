@@ -1,5 +1,8 @@
+- Check that inorder pipeline show a timing anomaly ...
+
 - Compute delays to due to timing anomalies and specify the timing anomaly property
   using these delays only (not using stage or opcode)
+  => WiP : computing delays is done but requires refactoring code between rules and instruction
 
 - Specify PRET and Patmos rules
 
@@ -14,3 +17,8 @@ NOTES
 - Model branch behavior for the in-order pipeline? Do we model only a
   path of a program?
 
+- In fact in the rules for a specific pipeline, we only look at instructions
+  => they are not modified in those modules, only in the instruction modules
+
+  So it migth be better to have instances of instruction in the module
+  instruction in order to define generic rules in this module
