@@ -1,0 +1,74 @@
+module instruction {
+
+  // Can we make some progress
+  input execute: boolean;
+
+  // The instruction
+  var instr: isa.inst_t;
+  
+  procedure latency_IF() modifies instr; {
+    instr.var_latencies.fetch = instr.var_latencies.fetch - 1;
+  }
+
+  procedure latency_MEM() modifies instr; {
+    instr.var_latencies.mem = instr.var_latencies.mem - 1;
+  }
+
+  procedure latency_ID() modifies instr; {
+    instr.fixed_latencies.id = instr.fixed_latencies.id - 1;
+  }
+
+  procedure latency_EX() modifies instr; {
+    instr.fixed_latencies.ex = instr.fixed_latencies.ex - 1;
+  }
+
+  procedure latency_WB() modifies instr; {
+    instr.fixed_latencies.wb = instr.fixed_latencies.wb - 1;
+  }
+
+  procedure update_stage() modifies instr; {
+       case
+	  (instr.stage == pre) : { instr.stage = IF; }
+	  (instr.stage == IF)  : { if (instr.var_latencies.fetch == 0)
+	  		     	       	   { instr.stage = ID; }
+	  	    	     		 else { call latency_IF(); }
+				       }
+	  (instr.stage == ID)  : { if (instr.fixed_latencies.id == 0) {
+	  		     	     if (instr.opcode != nop && instr.opcode != branch_op)
+				       { instr.stage = EX; }
+	  	    	     	     else { instr.stage = post; }
+			 	   } else { call latency_ID(); }
+				 }
+	  (instr.stage == EX)  : { if (instr.fixed_latencies.ex == 0) {
+	  		     	       	    instr.stage = MEM;
+					 } else { call latency_EX(); }
+				       }
+	  (instr.stage == MEM) : { if (instr.var_latencies.mem == 0) {
+	  		     	     instr.stage = WB;
+				   }
+			         } else { call latency_MEM(); }
+	  (instr.stage == WB ) : { if (instr.fixed_latencies.wb == 0) {
+	  		     	       	    instr.stage = post;
+					  } else  { call latency_WB(); }
+				       }
+      esac
+  }
+
+
+  init {
+    instr.stage = pre;
+    instr.fixed_latencies.id = 1;
+    instr.fixed_latencies.ex = 1;
+    instr.fixed_latencies.wb = 1;
+    instr.delay = 0;        
+  }
+
+  next {
+    if (execute) {
+      call update_stage();
+    } 
+  }
+}
+	
+
+
