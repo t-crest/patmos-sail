@@ -24,11 +24,11 @@ module sic {
   var delays: integer;
 
   instance previous : instruction(in_opcode: (previous_op),
-  	   	      		  in_latencies: (previous_latencies),
-			          execute: (true));
+                                  in_latencies: (previous_latencies),
+                                  execute: (true));
   instance current : instruction(in_opcode: (current_op),
-  	   	     		 in_latencies: (current_latencies),
-				 execute: (progress));				    
+                                 in_latencies: (current_latencies),
+                                 execute: (progress));
 
   var initialized: boolean;
 

@@ -1,0 +1,164 @@
+// Model of SIC (strictly in-order pipeline)
+
+// This is a simplified version, without regs and thus
+// data dependencies which are useless in fact (covered by mempending rule)
+
+module sic {
+
+  input current_op, previous_op: isa.opcode_t;
+  input current_latencies, previous_latencies: isa.var_latency_t;
+
+  var current_progress: boolean;
+  var previous_progress: boolean;
+  
+  var is_ready : boolean;
+  var is_branch_pending : boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+
+  instance plain : pipeline(in_previous_opcode: (previous_op),
+  	   	       	    in_previous_latencies: (previous_latencies),
+			    in_current_opcode: (current_op),
+  	   	     	    in_current_latencies: (current_latencies),
+			    current_progress: (current_progress),
+			    previous_progress: (previous_progress));
+
+  procedure ready (current: isa.inst_t) 
+  modifies is_ready, is_branch_pending, 
+  	   is_store_pending, is_mem_pending;
+  {
+    is_inst_ready = false;
+
+    case
+      (current.stage == pre) : { call branch_pending();
+  			       call mem_pending(); 
+  			       is_inst_ready  = !is_branch_pending &&
+						!is_mem_pending;
+    		             }
+      (current.stage == EX)  : { if ((current.opcode != load_op) &&
+      			    	   (current.opcode != store_op)) {
+			         call store_pending();
+			         is_inst_ready = !is_store_pending;
+			       }
+    			     }
+      (current.stage == MEM || current.stage == IF ||
+       current.stage == ST || current.stage == WB ||
+       current.stage == ID) : {
+      			        is_inst_ready = true;
+			      }
+    esac
+  }
+
+  procedure branch_pending (previous: isa.inst_t) modifies is_branch_pending;
+  {
+    is_branch_pending = false;
+
+    if (previous.opcode == branch_op &&
+        (previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 (previous.stage == EX &&
+	  previous.fixed_latencies.ex >= 1))) {
+  	is_branch_pending = true;
+    }
+  }
+
+  procedure mem_pending (previous: isa.inst_t) modifies is_mem_pending, is_store_pending;
+  {
+    var load : boolean;
+
+    is_store_pending = false;
+    is_mem_pending = false;
+
+    load = false;
+    
+    if (previous.opcode == load_op &&
+      	(previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 previous.stage == EX || 
+  	 (previous.stage == MEM &&
+	  previous.var_latencies.mem >= 1)))  {
+  	load = true;
+    }
+
+    call store_pending(previous);
+
+    is_mem_pending = is_store_pending || load;
+  }
+
+  // Note: in fact this is useless as ST stage models a asynchronous
+  // writing which are unlimited in their number ...
+  procedure store_pending (previous: isa.inst_t) modifies is_store_pending;
+  {
+    is_store_pending = false;
+
+    if (previous.opcode == store_op &&
+        (previous.stage == IF ||
+  	 previous.stage == ID ||
+  	 previous.stage == EX ||
+  	 previous.stage == MEM ||
+	 (previous.stage == ST && 	 
+          previous.var_latencies.st >= 1))) {
+  	is_store_pending = true;
+    }   
+  }
+
+  init {
+    current_progress = false;
+    previous_progress = true;
+  }
+
+  // Updating the state of the instructions
+  next  {
+    call (current_progress') = ready(plain.current_instr);
+  }
+}
+
+module main {
+
+  var op_i, op_j: isa.opcode_t;
+  var latencies_i, latencies_j: isa.var_latency_t;
+  var step: integer;
+
+  var progress: boolean;
+
+  instance pipeline_impl: pipeline(in_current_latencies: (latencies_i),
+  	   		  	   in_current_opcode: (op_i),
+				   in_previous_latencies: (latencies_j),
+				   in_previous_opcode: (op_j),
+				   current_progress: (true));
+
+  init {
+    // Check the stalling logic due to branch op
+    op_i = other_op;
+    op_j = branch_op;
+    latencies_i.fetch = 1;
+    latencies_i.mem = 1;
+    latencies_i.st = 1;
+    latencies_j.fetch = 1;
+    latencies_j.mem = 1;
+    latencies_j.st = 1;
+    step = 0;
+    progress = false;
+  }
+
+  next {
+    next(pipeline_impl);
+    step' = step + 1;
+  }
+
+  invariant generate_counter_example: step < param.bmc_depth;
+
+  control {
+    vunroll = unroll(param.bmc_depth);
+    check;
+    print_results;
+    vunroll.print_cex(step, pipeline_impl.is_nstage_wbe_free, pipeline_impl.initialized,
+    	              pipeline_impl.previous_progress, pipeline_impl.current_progress,
+    		      pipeline_impl.current_instr, pipeline_impl.previous_instr);
+   }  
+
+}
+	
+
+
+

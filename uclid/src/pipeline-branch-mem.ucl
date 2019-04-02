@@ -1,0 +1,239 @@
+// NOTE: it would have been great to put generic rules to any pipeline in this
+// module (procedure nstage_wbe_free mainly). However this requires to put the
+// previous instruction in the flow of program as input and to distinguish using a
+// boolean input, the special case of the 1st instruction of a flow (no previous
+// instruction) from the others ...
+
+module pipeline {
+
+  // Latencies and opcode are input values from another and thus readonly data.
+  // Even if in_opcode could be used directly instead of instruction.op_code
+  // This would goes against a modular description of the model
+  input in_current_latencies: isa.var_latency_t;
+  // The opcode which is set 
+  input in_current_opcode: isa.opcode_t;
+  // Previous instruction
+  input in_previous_latencies: isa.var_latency_t;
+  input in_previous_opcode: isa.opcode_t;
+  
+  // Can we make some progressinstr.var_latencies.fetch
+  input current_progress: boolean;
+
+  // The instruction
+  var previous_instr: isa.inst_t;  
+  var current_instr: isa.inst_t;
+
+  // The only common rules to all pipeline is to check that the next stage will be
+  // free before update the stage of the current instruction.
+  // There is no such check for the previous instruction as we consider a single previous
+  // instruction which thus cannot be blocked by other
+  var is_nstage_wbe_free: boolean;
+
+  var initialized: boolean;
+  
+  procedure decrement_latency(old_latency: integer) returns (new_latency: integer) {
+    new_latency = old_latency - 1;
+  }
+
+  // We assume the next stage to be free except when it is occupied by the previous instruction
+  // and its latency is higher than 1. However, this only works as we have a single previous
+  // instruction => here we assume that previous cannot be block by another previous instruction
+  procedure nstage_wbe_free ()
+  modifies is_nstage_wbe_free;
+  {
+    is_nstage_wbe_free = true;
+    
+    case
+      (current_instr.stage == MEM)  : { if (previous_instr.stage == ST &&
+      				    	      	  previous_instr.var_latencies.st >= 1 &&
+      				    	      	  current_instr.opcode == store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					       if (previous_instr.stage == WB &&
+      				    	      	  previous_instr.fixed_latencies.wb >= 1 &&
+      				    	      	  current_instr.opcode != store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					    }
+      (current_instr.stage == EX)   : { if (previous_instr.stage == MEM &&
+      				    	      	  previous_instr.var_latencies.mem >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+	// We probably do not need to check that current_instr.opcode is a nop
+      (current_instr.stage == ID)   : { if (previous_instr.stage == EX &&
+      				    	      	  previous_instr.fixed_latencies.ex >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current_instr.stage == IF)   : { if (previous_instr.stage == ID &&
+      				    	    previous_instr.fixed_latencies.id >= 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current_instr.stage == pre)  : { if ((previous_instr.stage == IF &&
+      				    	     previous_instr.var_latencies.fetch >= 1) ||
+					    previous_instr.stage == pre) {
+						  is_nstage_wbe_free = false;
+					      }
+   					    }
+    esac
+  }
+
+  // TODO: update this as this should be in the classical pipeline
+  // procedure mem_blocking (current: isa.inst_t, previous: isa.inst_t)
+  // modifies is_mem_blocking, delays;
+  // {
+  //    is_mem_blocking = false;
+
+  //    // We only block in the MEM stage, in the ST stage, we assume an unlimited of write
+  //    // can be supported ...
+  //    if (((previous.stage == EX && previous.fixed_latencies.ex == 0) ||
+  //    	  (previous.stage == MEM && previous.var_latencies.mem >= 1)) &&
+  //    	 (previous.opcode == load_op ||
+  // 	  previous.opcode == store_op) &&
+  // 	  (currrent.stage == IF && current.var_latencies.fetch >= 1)) {
+  // 	    is_mem_blocking = true;
+  //    }
+  // }
+
+
+  // This procedure describes the automata of the pipeline in terms of stages
+  // => TODO: we could reduce the number of steps needed by decrementing latency each time
+  // we enter a new stage as well
+  procedure update_stage(instr: isa.inst_t, free_nstage: boolean) returns (next_instr: isa.inst_t) {
+    assume(next_instr == instr);
+    case
+      (instr.stage == pre) : { if (free_nstage) { next_instr.stage = IF; }}
+      (instr.stage == IF)  : { if (instr.var_latencies.fetch == 0 && free_nstage)
+	  		         { next_instr.stage = ID; }
+	  	    	       else {
+			       	 if (next_instr.var_latencies.fetch != 0) {
+			 	 call (next_instr.var_latencies.fetch) = decrement_latency(instr.var_latencies.fetch); }}
+			      }
+      (instr.stage == ID)  : { if (instr.fixed_latencies.id == 0 && free_nstage) {
+	  		     	 if (instr.opcode != nop)
+			            { next_instr.stage = EX; }
+	  	    	         else { next_instr.stage = post; }
+			       } else {
+			          if (next_instr.fixed_latencies.id != 0) {
+			          call (next_instr.fixed_latencies.id) = decrement_latency(instr.fixed_latencies.id);}
+			       }
+			     }
+      (instr.stage == EX)  : { if (instr.fixed_latencies.ex == 0 && free_nstage) {
+	  		     	 next_instr.stage = MEM;
+			       } else {
+			       	 if (next_instr.fixed_latencies.ex != 0) {
+			       	 call (next_instr.fixed_latencies.ex) = decrement_latency(instr.fixed_latencies.ex);}
+			       }
+		             }
+      (instr.stage == MEM) : { if (instr.var_latencies.mem == 0 && free_nstage) {
+	  	    	     	 case
+				   (instr.opcode == store_op) : { next_instr.stage = ST; }
+	  		     	   (instr.opcode == branch_op) : { next_instr.stage = post; }
+				   default : { next_instr.stage = WB; }
+				 esac
+			       } else {
+			       	 if (next_instr.var_latencies.mem != 0) {			       
+			         call (next_instr.var_latencies.mem) = decrement_latency(instr.var_latencies.mem);}
+			       }
+	  		     }
+      (instr.stage == ST)  : { if (instr.var_latencies.st == 0 && free_nstage) {
+	  		     	 next_instr.stage = post; }
+			       else {
+			       	 if (next_instr.var_latencies.st != 0) {
+			         call (next_instr.var_latencies.st) = decrement_latency(instr.var_latencies.st);}
+			       }
+			     }
+      (instr.stage == WB ) : { if (instr.fixed_latencies.wb == 0 && free_nstage) {
+	  		     	 next_instr.stage = post;
+			       } else  {
+			       	 if (next_instr.fixed_latencies.wb != 0) {			       
+			       	 call (next_instr.fixed_latencies.wb) = decrement_latency(instr.fixed_latencies.wb);}
+			       }
+		             }
+      esac
+  }
+
+
+  init {
+    previous_instr.stage = pre;
+    previous_instr.fixed_latencies.id = 1;
+    previous_instr.fixed_latencies.ex = 1;
+    previous_instr.fixed_latencies.wb = 1;
+    current_instr.stage = pre;
+    current_instr.fixed_latencies.id = 1;
+    current_instr.fixed_latencies.ex = 1;
+    current_instr.fixed_latencies.wb = 1;
+    initialized = false;
+  }
+
+  next {
+    if (!initialized) {
+      assume(previous_instr.opcode == in_previous_opcode);
+      assume(previous_instr.var_latencies == in_previous_latencies);
+      assume(current_instr.opcode == in_current_opcode);
+      assume(current_instr.var_latencies == in_current_latencies);
+      initialized' = true;
+      call (previous_instr') = update_stage(previous_instr, true);      
+    } else {
+      // Progress boolean are coming from rules specific to each pipeline
+      if (previous_progress) {
+        call (previous_instr') = update_stage(previous_instr, true);
+      }
+      call nstage_wbe_free();
+      if (current_progress) {
+        call (current_instr') = update_stage(current_instr, is_nstage_wbe_free');    
+      } 
+    }
+  }
+}
+
+// module main {
+
+//   var op_i, op_j: isa.opcode_t;
+//   var latencies_i, latencies_j: isa.var_latency_t;
+//   var step: integer;
+
+//   var progress: boolean;
+
+//   instance pipeline_impl: pipeline(in_current_latencies: (latencies_i),
+//   	   		  	   in_current_opcode: (op_i),
+// 				   in_previous_latencies: (latencies_j),
+// 				   in_previous_opcode: (op_j),
+// 				   current_progress: (true));
+
+//   init {
+//     // Check the stalling logic due to branch op
+//     op_i = other_op;
+//     op_j = branch_op;
+//     latencies_i.fetch = 1;
+//     latencies_i.mem = 1;
+//     latencies_i.st = 1;
+//     latencies_j.fetch = 1;
+//     latencies_j.mem = 1;
+//     latencies_j.st = 1;
+//     step = 0;
+//     progress = false;
+//   }
+
+//   next {
+//     next(pipeline_impl);
+//     step' = step + 1;
+//   }
+
+//   invariant generate_counter_example: step < param.bmc_depth;
+
+//   control {
+//     vunroll = unroll(param.bmc_depth);
+//     check;
+//     print_results;
+//     vunroll.print_cex(step, pipeline_impl.is_nstage_wbe_free, pipeline_impl.initialized,
+//     	              pipeline_impl.previous_progress, pipeline_impl.current_progress,
+//     		      pipeline_impl.current_instr, pipeline_impl.previous_instr);
+//    }  
+
+// }
+	
+
+
