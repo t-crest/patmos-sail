@@ -1,9 +1,3 @@
-// NOTE: it would have been great to put generic rules to any pipeline in this
-// module (procedure nstage_wbe_free mainly). However this requires to put the
-// previous instruction in the flow of program as input and to distinguish using a
-// boolean input, the special case of the 1st instruction of a flow (no previous
-// instruction) from the others ...
-
 module instruction {
 
   // Latencies and opcode are input values from another and thus readonly data.
