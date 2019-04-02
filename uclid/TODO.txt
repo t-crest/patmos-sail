@@ -1,12 +1,13 @@
+- Specify the timing anomaly using delays only (for SIC)
+
 - Check that inorder pipeline show a timing anomaly ...
 
-- Compute delays to due to timing anomalies and specify the timing anomaly property
-  using these delays only (not using stage or opcode)
-  => WiP : computing delays is done but requires refactoring code between rules and instruction
+- Refactoring code between rules and instruction/pipeline (WiP)
 
 - Specify PRET and Patmos rules
 
 - Develop a version using prime variables for instruction module
+  => should test before how to update a part of a record 
 
 - Develop a version with several subsequent instructions => should be
   generated from a description of a pipeline
