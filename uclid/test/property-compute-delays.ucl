@@ -1,8 +1,5 @@
-// This module only contains really useful properties to identify a timing anomaly
-// Sanety LTL properties have been removed => tests are here to ensure that the model is correct
-// We remove those extra properties to reduce computation times
-// We only check that the depth of the BMC is enough using a weaker condition than for tests:
-// we only check that previous instructions have been executed 
+// Here we compute delays an instruction suffers from a subsequent one
+// SIC: a value of 0 is expected
 
 module main {
 
@@ -15,11 +12,6 @@ module main {
     next(run);
   }
 
-  property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
-  				     (run.cond.pipeline.previous.instr.opcode == load_op ||
-				      run.cond.pipeline.previous.instr.opcode == store_op))
-  				     ==> (run.cond.pipeline.current.instr.stage != IF));
-
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth
@@ -30,8 +22,8 @@ module main {
     check;
     print_results;
     vbmc.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
-    		   run.cond.pipeline.is_branch_pending, /*run.cond.pipeline.is_pinst_ready,*/ run.cond.pipeline.is_mem_pending,
-    		   run.cond.pipeline.is_store_pending, /*run.cond.pipeline.is_data_dependant,*/
+    		   run.cond.pipeline.is_branch_pending, run.cond.pipeline.is_mem_pending,
+    		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
     		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr,
 		   run.cond.pipeline.is_mem_blocking, run.cond.pipeline.delays);
   }

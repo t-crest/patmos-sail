@@ -4,28 +4,22 @@
 // subsequent instruction k (k>i) while k is in fetch stage performing
 // a memory access. In SIC, this is avoided as instruction k will not be
 // authorized to get in in the pipeline until instruction i leaves stage MEM.
-// The property is thus: if i is in MEM, then k cannot be in fetch
-// However, this property is defined by using stages and not latencies
-// (and variation in latencies)
+// The property is thus: if i is in MEM, then k cannot be in fetch.
+// => this is the LTL property (no_timing_anomaly)
+// Progression of an instruction in SIC then only depends on the previous
+// instruction, not on subsequent instructions.
 
-// Progression of an instruction in SIC only depends on the previous instruction,
-// not on subsequent instructions. Another way of specifying the property would be:
+// However, this property is defined by using stages and not latencies
+// (and variation in latencies). Another way of specifying the property would be:
 // whenever an instruction i reaches stage MEM and an instruction k reaches stage IF,
 // then the i is blocked by a subsequent instruction => store the amount of time i is
-// blocked.  ==> previous is current and current is subsequent
-
-// Storing the amount of time allows to specify the property using LTL
-//(when BMC bound is reached) => check if blocking delay is null. An
-// invariant could be used as well ...
+// blocked. => this is the invariant property (no_positive_delays)
 
 // Specification of the property: other ways
 // Use two instances of the same pipeline, but force on to always take the worst-case behavior
 // while the other one take any value lower. Then, compare the finish time of each instruction
 // => invariant is enough (in the current version using stages, an invariant should be enough
 // as well)
-
-// Paper SIC: Lemma IV.1 would make a nice invariant to check on SIC
-// It is unclear what should we do with the previous equation
 
 module sic {
 
@@ -34,31 +28,23 @@ module sic {
   input current_src, previous_src: isa.src_regs_t;
   input current_dst, previous_dst: isa.reg_t;  
 
-  // Even if this is ugly, this allows to print the value of each
-  // variable in the counter-example ...
   var progress: boolean;
   var is_inst_ready : boolean;
   var is_nstage_wbe_free: boolean;  
   
   var is_branch_pending : boolean;
-  // Useless for us as previous is always ready
-  //var is_pinst_ready: boolean;
   var is_mem_pending: boolean;
   var is_store_pending: boolean;
   var is_data_dependant: boolean;
 
-  instance previous : instruction(in_opcode: (previous_op),
-  	   	      		  in_latencies: (previous_latencies),
-			          execute: (true));
-  instance current : instruction(in_opcode: (current_op),
-  	   	     		 in_latencies: (current_latencies),
-				 execute: (progress));				    
+  instance previous : instruction(execute: (true));
+  instance current : instruction(execute: (progress));				    
 
   var initialized: boolean;
 
   /* This ensures Lemma IV.1 (progress dependence) */ 
   procedure inst_ready (instruction:isa.inst_t) 
-  modifies is_inst_ready, is_branch_pending, /*is_pinst_ready,*/
+  modifies is_inst_ready, is_branch_pending, 
   	   is_store_pending, is_mem_pending, is_data_dependant;
   {
     is_inst_ready = false;
@@ -81,9 +67,6 @@ module sic {
 				     }
     				   }
   /* Lemma IV.2 requires that the latencies of each instruction is decremented */
-  /* These cases ensure this for these stages => could be implemented within the pipeline model directly */
-  /* Together with the function nstage_wbe_free -> not specific to SIC actually */
-  /* See comment within the instruction module for a discussion */
       (instruction.stage == MEM || instruction.stage == IF ||
        instruction.stage == ST || instruction.stage == WB) : {
       			       	     is_inst_ready = true;
@@ -234,7 +217,7 @@ module sic {
   }
 
   procedure update_progress()
-  modifies progress, is_inst_ready, is_mem_pending, /*is_pinst_ready,*/
+  modifies progress, is_inst_ready, is_mem_pending,
   	   is_store_pending, is_branch_pending,
 	   is_data_dependant, is_nstage_wbe_free;
   {

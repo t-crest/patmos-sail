@@ -1,11 +1,5 @@
 module instruction {
 
-  // Latencies and opcode are input values from another and thus readonly data.
-  // Even if in_opcode could be used directly instead of instruction.op_code
-  // This would goes against a modular description of the model
-  input in_latencies: isa.var_latency_t;
-  // The opcode which is set 
-  input in_opcode: isa.opcode_t;
   // Can we make some progress
   input execute: boolean;
 
@@ -78,6 +72,7 @@ module instruction {
     instr.fixed_latencies.id = 1;
     instr.fixed_latencies.ex = 1;
     instr.fixed_latencies.wb = 1;
+    instr.delay = 0;    
   }
 
   next {

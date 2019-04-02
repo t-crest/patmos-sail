@@ -20,26 +20,8 @@ module isa {
   // Instruction 
   type inst_t = record { opcode: opcode_t,
 			 var_latencies: var_latency_t,
-			 fixed_latencies: fixed_latency_t,			 
-			 stage: stage_t };
-
-  type inst_reg_t = record { opcode: opcode_t,
-			 var_latencies: var_latency_t,
 			 fixed_latencies: fixed_latency_t,
-			 src_regs: src_regs_t,
-			 dst_reg: reg_t,			 
-			 stage: stage_t };
-
-  type inst_delays_t = record { opcode: opcode_t,
-			 var_latencies: var_latency_t,			 
-			 fixed_latencies: fixed_latency_t,
-			 delays: integer,			 
-			 stage: stage_t };
-
-  type inst_reg_delays_t = record { opcode: opcode_t,
-			 var_latencies: var_latency_t,
-			 fixed_latencies: fixed_latency_t,
-			 delays: integer,
+			 delay: integer,
 			 src_regs: src_regs_t,
 			 dst_reg: reg_t,			 
 			 stage: stage_t };

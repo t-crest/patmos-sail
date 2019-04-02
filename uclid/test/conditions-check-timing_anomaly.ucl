@@ -2,14 +2,14 @@ module conditions {
 
   var op_i, op_j: isa.opcode_t;
   var latencies_i, latencies_j: isa.var_latency_t;
-//  var src_i, src_j: isa.src_regs_t;
-//  var dst_i, dst_j: isa.reg_t;
+  var src_i, src_j: isa.src_regs_t;
+  var dst_i, dst_j: isa.reg_t;
 
   instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
   	   	       cond_latencies_i: (latencies_i),
-		       cond_latencies_j: (latencies_j));
-//		       cond_src_i: (src_i), cond_dst_i: (dst_i),
-//		       cond_src_j: (src_j), cond_dst_j: (dst_j));
+		       cond_latencies_j: (latencies_j),
+		       cond_src_i: (src_i), cond_dst_i: (dst_i),
+		       cond_src_j: (src_j), cond_dst_j: (dst_j));
   
   init {
     // Check the timing anomaly
@@ -22,12 +22,12 @@ module conditions {
     latencies_j.mem = 1;
     latencies_j.st = 1;
     // No data dependency
-    // src_i.src1 = 4bv5;
-    // src_i.src2 = 5bv5;
-    // dst_i = 6bv5;    
-    // src_j.src1 = 1bv5;
-    // src_j.src2 = 2bv5;
-    // dst_j = 3bv5;
+    src_i.src1 = 4bv5;
+    src_i.src2 = 5bv5;
+    dst_i = 6bv5;    
+    src_j.src1 = 1bv5;
+    src_j.src2 = 2bv5;
+    dst_j = 3bv5;
   }
 
   next {

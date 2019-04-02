@@ -10,26 +10,26 @@ module main {
   }
 
   // An invariant for checking the absence of timing anomalies
-  invariant no_positive_delays: pipeline.previous.delay == 0;
+  invariant no_positive_delays: run.cond.pipeline.delays == 0;
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
-  property[LTL] bmc_enough: G(step == param.bmc_depth
-  			      ==> pipeline.previous.instr.stage == post);
+  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth
+  			      ==> run.cond.pipeline.previous.instr.stage == post);
 
   control {
     vbmc = bmc(param.bmc_depth);
     vunroll = unroll(param.bmc_depth);
     check;
     print_results;
-    vbmc.print_cex(rund.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
+    vbmc.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
     		   run.cond.pipeline.is_branch_pending, run.cond.pipeline.is_mem_pending,
-		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
+		   run.cond.pipeline.is_store_pending, 
     		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr,
 		   run.cond.pipeline.is_mem_blocking, run.cond.pipeline.delays);
     vunroll.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
     		   run.cond.pipeline.is_branch_pending, run.cond.pipeline.is_mem_pending,
-    		   run.cond.pipeline.is_store_pending, run.cond.pipeline.is_data_dependant,
+    		   run.cond.pipeline.is_store_pending, 
     		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr,
 		   run.cond.pipeline.is_mem_blocking, run.cond.pipeline.delays);
   }

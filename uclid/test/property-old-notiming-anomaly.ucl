@@ -39,6 +39,7 @@ module main {
     assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
     assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
     // Assume variable latencies for load and store opcodes in MEM stage
+    // TODO: different options could be considered here (intervals or a set of values)
     assume((op_i == load_op || op_i == store_op)
     	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
     assume((op_j == load_op || op_j == store_op)
@@ -63,11 +64,12 @@ module main {
     next(pipeline);
   }
 
-  // The property is not correct, many counter-examples can be found
-  // We must check the value of opcode I believe or assume a timing model for some opcode
-  // => i.e. other_op do not perform any memory access for instance
-  property[LTL] no_timing_anomaly: G((pipeline.previous.instr.stage == MEM && (pipeline.previous.instr.opcode == load_op || pipeline.previous.instr.opcode == store_op))
+  // The LTL property for no timing anomaly and the invariant version using delays
+  property[LTL] no_timing_anomaly: G((pipeline.previous.instr.stage == MEM &&
+  				      (pipeline.previous.instr.opcode == load_op ||
+				       pipeline.previous.instr.opcode == store_op))
   				     ==> (pipeline.current.instr.stage != IF));
+  invariant no_positive_delays: pipeline.previous.delay == 0;
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
