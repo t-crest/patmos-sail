@@ -1,6 +1,12 @@
 // Here we compute delays an instruction suffers from a subsequent one
 // SIC: a value of 0 is expected
 
+// TODO: this is incorrect, we only get a counter example. To be sure to
+// get the highest value for the delay, what should we do:
+//
+// - search with a property and a specific given value that we increase and
+//   check if a counter example can be reached?
+
 module main {
 
   type stage_t = isa.stage_t;
@@ -11,6 +17,8 @@ module main {
   next {
     next(run);
   }
+
+  property[LTL] achieved_delay: G(run.cond.pipeline.delays < 2);
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well

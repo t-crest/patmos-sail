@@ -18,11 +18,18 @@ module isa {
   type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
 
   // Instruction 
-  type inst_t = record { opcode: opcode_t,
+  type inst_regs_t = record { opcode: opcode_t,
 			 var_latencies: var_latency_t,
 			 fixed_latencies: fixed_latency_t,
 			 delay: integer,
 			 src_regs: src_regs_t,
 			 dst_reg: reg_t,			 
+			 stage: stage_t };
+
+  // Instruction 
+  type inst_t = record { opcode: opcode_t,
+			 var_latencies: var_latency_t,
+			 fixed_latencies: fixed_latency_t,
+			 delay: integer,
 			 stage: stage_t };
 }

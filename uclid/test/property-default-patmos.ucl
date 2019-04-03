@@ -14,13 +14,12 @@ module main {
   				        run.cond.pipeline.current.instr.stage == ID ||
   				        run.cond.pipeline.current.instr.stage == EX ||
   				        run.cond.pipeline.current.instr.stage == MEM ||
-  				        run.cond.pipeline.current.instr.stage == ST ||
   				        run.cond.pipeline.current.instr.stage == WB)
 				      	==> run.cond.pipeline.current.instr.stage != run.cond.pipeline.previous.instr.stage);
+					
   // To check that no negative latency could happen (only fails in step 0)
   invariant no_negative_latency: (run.cond.pipeline.current.instr.var_latencies.fetch >= 0 &&
   	    			  run.cond.pipeline.current.instr.var_latencies.mem >= 0 &&
-				  run.cond.pipeline.current.instr.var_latencies.st >= 0 &&
 				  run.cond.pipeline.current.instr.fixed_latencies.id >= 0 &&
 				  run.cond.pipeline.current.instr.fixed_latencies.ex >= 0 &&
 				  run.cond.pipeline.current.instr.fixed_latencies.wb >= 0);  
@@ -28,37 +27,38 @@ module main {
   // To check that all instructions have been retired from the run.cond.pipeline ...
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.current.instr.stage == post &&
   	   			      	   	      	   run.cond.pipeline.previous.instr.stage == post));
+		
   // ... and that all latency values have been used
   property[LTL] sanety_latencies: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.current.instr.var_latencies.fetch == 0 &&
   				  		     		 /* We have to deal with multiple exit point for the branch operation
-								    depending on the type of pipeline considered */
+  								    depending on the type of pipeline considered */
   			              	 		      	 ((run.cond.pipeline.current.instr.var_latencies.mem == 0 &&
-								   run.cond.pipeline.current.instr.opcode != branch_op) ||
-								   (run.cond.pipeline.current.instr.var_latencies.mem >= 0 &&
-								    run.cond.pipeline.current.instr.opcode == branch_op)) &&
+  								   run.cond.pipeline.current.instr.opcode != branch_op) ||
+  								   (run.cond.pipeline.current.instr.var_latencies.mem >= 0 &&
+  								    run.cond.pipeline.current.instr.opcode == branch_op)) &&
   			         			      	 run.cond.pipeline.current.instr.fixed_latencies.id == 0 &&
   			         			      	 ((run.cond.pipeline.current.instr.fixed_latencies.ex == 0 &&
-								   run.cond.pipeline.current.instr.opcode != branch_op) ||
-								   (run.cond.pipeline.current.instr.fixed_latencies.ex >= 0 &&
-								    run.cond.pipeline.current.instr.opcode == branch_op)) &&
-							      	 run.cond.pipeline.previous.instr.var_latencies.fetch == 0 &&
+  								   run.cond.pipeline.current.instr.opcode != branch_op) ||
+  								   (run.cond.pipeline.current.instr.fixed_latencies.ex >= 0 &&
+  								    run.cond.pipeline.current.instr.opcode == branch_op)) &&
+  							      	 run.cond.pipeline.previous.instr.var_latencies.fetch == 0 &&
   			         			      	 ((run.cond.pipeline.previous.instr.var_latencies.mem == 0 &&
-								   run.cond.pipeline.previous.instr.opcode != branch_op) ||
-								   (run.cond.pipeline.previous.instr.var_latencies.mem >= 0 &&
-								    run.cond.pipeline.previous.instr.opcode == branch_op)) &&								   
+  								   run.cond.pipeline.previous.instr.opcode != branch_op) ||
+  								   (run.cond.pipeline.previous.instr.var_latencies.mem >= 0 &&
+  								    run.cond.pipeline.previous.instr.opcode == branch_op)) &&								   
   			         			      	 run.cond.pipeline.previous.instr.fixed_latencies.id == 0 &&
   			         			      	 ((run.cond.pipeline.previous.instr.fixed_latencies.ex == 0 &&
+  								   run.cond.pipeline.previous.instr.opcode != branch_op) ||
+  								   (run.cond.pipeline.previous.instr.fixed_latencies.ex >= 0 &&
+  								    run.cond.pipeline.previous.instr.opcode == branch_op)) &&
+  			         			    	 ((run.cond.pipeline.current.instr.fixed_latencies.wb == 0 &&
+								   run.cond.pipeline.current.instr.opcode != branch_op) ||
+								   (run.cond.pipeline.current.instr.fixed_latencies.wb >= 0 &&
+								    run.cond.pipeline.current.instr.opcode == branch_op)) &&
+  			         			    	 ((run.cond.pipeline.previous.instr.fixed_latencies.wb == 0 &&
 								   run.cond.pipeline.previous.instr.opcode != branch_op) ||
-								   (run.cond.pipeline.previous.instr.fixed_latencies.ex >= 0 &&
-								    run.cond.pipeline.previous.instr.opcode == branch_op)) &&
-								 ((run.cond.pipeline.current.instr.opcode == store_op &&
-  			              	 		    	  run.cond.pipeline.current.instr.var_latencies.st == 0) ||
-  			         			   	  (run.cond.pipeline.current.instr.opcode != store_op &&
-  			         			    	  run.cond.pipeline.current.instr.fixed_latencies.wb == 0)) &&
-							  	 ((run.cond.pipeline.previous.instr.opcode == store_op &&
-  			              	 		    	  run.cond.pipeline.previous.instr.var_latencies.st == 0) ||
-  			         			   	  (run.cond.pipeline.previous.instr.opcode != store_op &&
-  			         			    	  run.cond.pipeline.previous.instr.fixed_latencies.wb == 0))));
+								   (run.cond.pipeline.previous.instr.fixed_latencies.wb >= 0 &&
+								    run.cond.pipeline.previous.instr.opcode == branch_op))));
 
   // A simple invariant to generate a counter-example for later trace comparison
   invariant generate_counter_example: run.cond.step < param.bmc_depth;

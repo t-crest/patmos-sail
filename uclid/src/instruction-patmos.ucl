@@ -39,6 +39,7 @@ module instruction {
 	  	    	     	     else { instr.stage = post; }
 			 	   } else { call latency_ID(); }
 				 }
+	/* In Patmos, the branch is solved in the EX stage as it can be predicated */
 	  (instr.stage == EX)  : { if (instr.fixed_latencies.ex == 0) {
 	  	       	       	     if (instr.opcode != branch_op) {
 	  		     	       instr.stage = MEM;
@@ -49,12 +50,12 @@ module instruction {
 				 }
 	  (instr.stage == MEM) : { if (instr.var_latencies.mem == 0) {
 	  		     	     instr.stage = WB;
-				   }
-			         } else { call latency_MEM(); }
+			           } else { call latency_MEM(); }
+				 }
 	  (instr.stage == WB ) : { if (instr.fixed_latencies.wb == 0) {
 	  		     	       	    instr.stage = post;
 					  } else  { call latency_WB(); }
-				       }
+				 }
       esac
   }
 

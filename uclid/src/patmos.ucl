@@ -4,14 +4,10 @@
 // instructions to implement the dual-issue and assume that only, control flow operations
 // only on pipeline 0 (assume again), load and store only from pipeline 0 (assume again),
 
-// TODO: when is known the branch decision? => in execute
-
-module sic {
+module patmos {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.var_latency_t;
-  input current_src, previous_src: isa.src_regs_t;
-  input current_dst, previous_dst: isa.reg_t;  
 
   var progress: boolean;
   var is_inst_ready : boolean;
@@ -33,14 +29,15 @@ module sic {
     is_inst_ready = false;
 
     case
+/* For me, this is not required as specific for SIC *
       (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
       			    	         (instruction.opcode != store_op)) {
 					   call mem_pending();
-					   is_inst_ready = !is_store_pending;
+					   is_inst_ready = !is_mem_pending;
 				     }
-    				   }
+    				   }*/
       (instruction.stage == MEM || instruction.stage == IF ||
-       instruction.stage == ST || instruction.stage == WB ||
+       instruction.stage == WB || instruction.stage == EX ||
        instruction.stage == ID || instruction.stage == pre) : {
       			       	     is_inst_ready = true;
 				   }
@@ -57,7 +54,7 @@ module sic {
     
     case
       (current.instr.stage == MEM)  : { if (previous.instr.stage == WB &&
-      				    	    previous.instr.fixed_latencies.wb >= 1 &&) {
+      				    	    previous.instr.fixed_latencies.wb >= 1) {
 						  is_nstage_wbe_free = false;
 					       }
 					    }
@@ -89,12 +86,13 @@ module sic {
   {
     is_mem_pending = false;
 
-    if (previous.instr.opcode == store_op &&
-        (previous.instr.stage == IF ||
-  	 previous.instr.stage == ID ||
-  	 previous.instr.stage == EX ||
-  	 previous.instr.stage == MEM && 	 
-          previous.instr.var_latencies.mem >= 1))) {
+    if ((previous.instr.opcode == store_op ||
+         previous.instr.opcode == load_op) &&
+        ((previous.instr.stage == IF ||
+  	  previous.instr.stage == ID ||
+  	  previous.instr.stage == EX ||
+  	  previous.instr.stage == MEM) && 	 
+          previous.instr.var_latencies.mem >= 1)) {
   	is_mem_pending = true;
     }   
   }
@@ -107,6 +105,8 @@ module sic {
     // This is to ensure that test-properties stays generic
     assume(is_store_pending == false);
     assume(is_branch_pending == false);
+    assume(is_data_dependant == false);    
+    
   }
 
   procedure update_progress()
@@ -125,10 +125,6 @@ module sic {
 	assume(previous.instr.opcode == previous_op);
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
-        assume(current.instr.src_regs == current_src);
-        assume(current.instr.dst_reg == current_dst);
-        assume(previous.instr.src_regs == previous_src);
-        assume(previous.instr.dst_reg == previous_dst);		
     	initialized' = true;
 	// previous instruction can go ahead freely ...
       	next(previous);	

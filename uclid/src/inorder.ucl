@@ -4,8 +4,8 @@ module inorder {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.var_latency_t;
-  input current_src, previous_src: isa.src_regs_t;
-  input current_dst, previous_dst: isa.reg_t;  
+  // input current_src, previous_src: isa.src_regs_t;
+  // input current_dst, previous_dst: isa.reg_t;  
 
   var progress: boolean;
   var is_inst_ready : boolean;
@@ -28,15 +28,15 @@ module inorder {
     is_inst_ready = false;
 
     case
-      (instruction.stage == ID)  : { call data_dependant();
-				     is_inst_ready = !is_data_dependant;
+      (instruction.stage == ID)  : { /*call data_dependant();*/
+				     is_inst_ready = true;/*!is_data_dependant;*/
 				   }
        // TODO: what is this for?
-      (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
+      (instruction.stage == EX)  : { /*if ((instruction.opcode != load_op) &&
       			    	         (instruction.opcode != store_op)) {
 					   call store_pending();
 					   is_inst_ready = !is_store_pending;
-				     }
+				     }*/ is_inst_ready = true;
     				   }
       (instruction.stage == MEM || instruction.stage == IF ||
        instruction.stage == ST || instruction.stage == WB ||
@@ -127,22 +127,22 @@ module inorder {
   }
 
 
-  procedure data_dependant () modifies is_data_dependant;
-  {
-    is_data_dependant = false;
+  // procedure data_dependant () modifies is_data_dependant;
+  // {
+  //   is_data_dependant = false;
 
-    if (previous.instr.opcode == load_op &&
-      	(previous.instr.stage == IF ||
-  	 previous.instr.stage == ID ||
-  	 previous.instr.stage == EX ||
-  	 (previous.instr.stage == MEM &&
-	  previous.instr.var_latencies.mem >= 1))) {
-       if (current.instr.src_regs.src1 == previous.instr.dst_reg ||
-  	   current.instr.src_regs.src2 == previous.instr.dst_reg) {
-  	  is_data_dependant = true;
-       }
-    }
-  }
+  //   if (previous.instr.opcode == load_op &&
+  //     	(previous.instr.stage == IF ||
+  // 	 previous.instr.stage == ID ||
+  // 	 previous.instr.stage == EX ||
+  // 	 (previous.instr.stage == MEM &&
+  // 	  previous.instr.var_latencies.mem >= 1))) {
+  //      if (current.instr.src_regs.src1 == previous.instr.dst_reg ||
+  // 	   current.instr.src_regs.src2 == previous.instr.dst_reg) {
+  // 	  is_data_dependant = true;
+  //      }
+  //   }
+  // }
 
   init {
     progress = false;
@@ -151,6 +151,8 @@ module inorder {
     // This is to ensure that test-properties stays generic
     assume(is_branch_pending == false);
     assume(is_mem_pending == false);
+    assume(is_data_dependant == false);    
+    
 
     is_store_pending = false;
     is_data_dependant = false;
@@ -173,10 +175,10 @@ module inorder {
 	assume(previous.instr.opcode == previous_op);
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
-	assume(current.instr.src_regs == current_src);
-        assume(current.instr.dst_reg == current_dst);
-        assume(previous.instr.src_regs == previous_src);
-        assume(previous.instr.dst_reg == previous_dst);		
+	// assume(current.instr.src_regs == current_src);
+        // assume(current.instr.dst_reg == current_dst);
+        // assume(previous.instr.src_regs == previous_src);
+        // assume(previous.instr.dst_reg == previous_dst);		
     	initialized' = true;
 	// previous instruction can go ahead freely ...
       	next(previous);	

@@ -18,27 +18,19 @@ module conditions {
     assume(op_j == nop || op_j == load_op || op_j == store_op ||
     	   op_j == branch_op || op_j == other_op);
     // Assume variable latencies for all instructions in IF stage
-    assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
-    assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
+    assume(latencies_i.fetch == 1);
+    assume(latencies_j.fetch == 1);
     // Assume variable latencies for load and store opcodes in MEM stage
-    // TODO: different options could be considered here (intervals or a set of values)
     assume((op_i == load_op || op_i == store_op)
     	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
     assume((op_j == load_op || op_j == store_op)
     	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
-    // Assume that branch operations takes 1 cycle in MEM stage (no memory operation)
-    // Only updating the PC with the new value in this MEM stage
-    // See figure 6.4 of "computer architecture a quantitative approach"
-    assume(op_i == branch_op ==> latencies_i.mem == 1);
-    assume(op_j == branch_op ==> latencies_j.mem == 1);
+    // Branch are discarded at the EX stage ... 
+    assume(op_i == branch_op ==> latencies_i.mem == 0);
+    assume(op_j == branch_op ==> latencies_j.mem == 0);
     // Assume that other operations also take 1 cycle (again see figure 6.4)
     assume(op_i == other_op ==> latencies_i.mem == 1);
     assume(op_j == other_op ==> latencies_j.mem == 1);
-    // Assume latency values in the ST stage
-    assume(op_i == store_op ==> 0 < latencies_i.st && latencies_i.st <= param.max_latency);
-    assume(op_i != store_op ==> latencies_i.st == 0);
-    assume(op_j == store_op ==> 0 < latencies_j.st && latencies_j.st <= param.max_latency);
-    assume(op_j != store_op ==> latencies_j.st == 0);
   }
 
   next {

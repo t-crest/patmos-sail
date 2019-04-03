@@ -10,15 +10,35 @@ module main {
   }
 
   // The LTL property for no timing anomaly and the invariant version using delays
-  property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
+  // property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
+  // 				      (run.cond.pipeline.previous.instr.opcode == load_op ||
+  // 				       run.cond.pipeline.previous.instr.opcode == store_op))
+  // 				     ==> (run.cond.pipeline.current.instr.stage != IF));
+
+
+  // property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == EX &&
+  // 				      run.cond.pipeline.previous.instr.fixed_latencies.ex == 0 &&
+  // 				      (run.cond.pipeline.previous.instr.opcode == load_op ||
+  // 				       run.cond.pipeline.previous.instr.opcode == store_op))
+  // 				     ==> (run.cond.pipeline.current.instr.stage != IF ||
+  // 				     	  (run.cond.pipeline.current.instr.stage == IF &&
+  // 					   run.cond.pipeline.current.instr.var_latencies.fetch == 1)));
+
+  property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == EX &&
+  				      run.cond.pipeline.previous.instr.fixed_latencies.ex == 0 &&
   				      (run.cond.pipeline.previous.instr.opcode == load_op ||
 				       run.cond.pipeline.previous.instr.opcode == store_op))
-  				     ==> (run.cond.pipeline.current.instr.stage != IF));
+  				     ==> (run.cond.pipeline.current.instr.stage != IF ||
+				     	  (run.cond.pipeline.current.instr.stage == IF &&
+					   run.cond.pipeline.current.instr.var_latencies.fetch == 0) ||
+					  (run.cond.pipeline.current.instr.stage == pre &&
+					   run.cond.pipeline.progress &&
+					   run.cond.pipeline.current.instr.var_latencies.fetch == 1)));
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth
-  			      ==> run.cond.pipeline.previous.instr.stage == post);
+  			      ==> (run.cond.pipeline.previous.instr.stage == post));
 
   control {
     vbmc = bmc(param.bmc_depth);

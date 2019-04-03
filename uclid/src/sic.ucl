@@ -42,7 +42,7 @@ module sic {
 
   var initialized: boolean;
 
-  /* This ensures Lemma IV.1 (progress dependence) */ 
+  /* This ensures Lemma IV.1 (progress dependence) */
   procedure inst_ready (instruction:isa.inst_t) 
   modifies is_inst_ready, is_branch_pending, 
   	   is_store_pending, is_mem_pending, is_data_dependant;
@@ -60,6 +60,8 @@ module sic {
       (instruction.stage == ID)  : { call data_dependant();
 				     is_inst_ready = !is_data_dependant;
 				   }
+	/* Seems to me that this is specific to SIC and why store_pending ?
+	   It is should be mem_pending, no ? */
       (instruction.stage == EX)  : { if ((instruction.opcode != load_op) &&
       			    	         (instruction.opcode != store_op)) {
 					   call store_pending();

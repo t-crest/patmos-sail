@@ -1,8 +1,60 @@
-- Changer fixed and var latencies into latencies (more generic)
+- Design specific test to check that the no timing anomaly is correct
+  => when fetch is already in progress (timing anomaly)
+  => when transition on fetch and latency is 1 (no timing anomaly)
+  => when transition on fetch and latency is > 1 (timing anomaly)
+
+- Redesign the use of regs or not -> duplicate instruction module or
+  check that putting assume does not introduce an overhead
+
+- In instruction, put assume to specify the latency of instruction
+  (nop, branch_op may not have fixed_latencies = 1)
+
+- Discuss the ready procedure when in the EX stage: specific to SIC no?
+
+- The no timing anomaly property LTL version is incorrect (well
+  pessimistic, i.e. can lead to say that a processos is not free from
+  timing anomalies, while it can be free from timing anomalies) ! =>
+  1) the current instruction can be in the fetch stage. However, its
+  latency should not be higher than 1. If it is equal to 1, than this
+  is equivalent to a a cache hit => so no memory acces. If it is
+  higher than 1, than this means that, a cache miss will occur. 2) we
+  do not capture the fact that the instruction current must be in the
+  IF stage before instruction previous reaches the MEM stage.
+  
+  NOTE: the property using the delay is correct. But be careful, this
+  is due to the fact that the previous instruction is never
+  blocked. If it is possible to block it, then we must add in the
+  property cheking if it can progress in the next stage. => Does this
+  means that we do not model this case? Do we need to put additional
+  delays for the previous instruction?
+  
+  NOTE: the simplified LTL property is correct for SIC as we do not
+  handle caches ...
+
+- Need to check the simultaneous transition for current and previous
+  to repsectively MEM and IF stages to ensure that we detect this case ...
+  
+- The sanety_latencies property is becoming too big in
+  property-default => split it per opcode for better readability
+
+- To compute delays => find an example that should lead to a delay higher than 1
+  and see if we can reproduce and capture it
+
+- Change fixed and var latencies into latencies (more generic)
+
+- Mismatch with SIC model: inst_ready is performed in the SIC paper
+  only when latency == 0. In addition, check how is handle the latency
+  value between the MEM and ST stage in the SIC paper (store op stays
+  1 cycle in MEM and the other cycles in the ST stage?)
+
+  => check that the bmc bound is sufficient => interested in stage after mem for previous?
 
 - Only 2 values for latencies in order to model cache hit et miss (no
   need to have an interval) => there could be more values depending on
   whether a line a cache should be evicted before loading a new one in fact ...
+  ==> NO WAIT, an interval is needed to abstract the distance between current and previous
+      instructions and to ensure that our abstract model using 2 instructions is
+      sufficient to cover all cases ? Then, what should be the values?
 
 - Model branch behavior for the in-order pipeline? Do we model only a
   path of a program? ==> model an assume on the current instruction

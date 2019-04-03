@@ -7,8 +7,6 @@ module sic {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.var_latency_t;
-  input current_src, previous_src: isa.src_regs_t;
-  input current_dst, previous_dst: isa.reg_t;    
 
   var progress: boolean;
   var is_inst_ready : boolean;
@@ -172,12 +170,6 @@ module sic {
 	assume(previous.instr.opcode == previous_op);
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
-        assume(current.instr.src_regs.src1 == 0bv5);
-        assume(current.instr.src_regs.src2 == 0bv5);	
-        assume(current.instr.dst_reg == 0bv5);
-        assume(previous.instr.src_regs.src1 == 0bv5);
-        assume(previous.instr.src_regs.src2 == 0bv5);	
-        assume(previous.instr.dst_reg == 0bv5);		
     	initialized' = true;
 	// previous instruction can go ahead freely ...
       	next(previous);	
