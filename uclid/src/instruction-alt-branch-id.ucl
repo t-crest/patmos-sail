@@ -1,0 +1,77 @@
+module instruction {
+
+  // Can we make some progress
+  input execute: boolean;
+
+  // The instruction
+  var instr: isa.inst_t;
+
+  procedure decrement_latency(old_latency: integer) returns (new_latency: integer) {
+    new_latency = old_latency - 1;
+  }
+
+  procedure update_stage() modifies instr; {
+       // So, this only works for previous as update_stage is not called each time for current
+       // And since we cannot update a part of a record, it is impossible to put this in next ...
+       // This requires a flat model
+       instr.new_stage = false;
+       case
+	  (instr.stage == pre) : { instr.stage = IF; instr.new_stage = true; }
+	  (instr.stage == IF)  : { call (instr.var_latencies.fetch) = decrement_latency(instr.var_latencies.fetch);
+	  		     	   if (instr.var_latencies.fetch == 0) {
+				      instr.stage = ID; instr.new_stage = true;
+				   }
+				 }
+	  (instr.stage == ID)  : { call (instr.fixed_latencies.id) = decrement_latency(instr.fixed_latencies.id);
+	  	       	       	   if (instr.fixed_latencies.id == 0) {
+	  		     	      if (instr.opcode != nop && instr.opcode != branch_op)
+				      	 { instr.stage = EX; }
+				      else { instr.stage = post; }
+				      instr.new_stage = true;
+				   }
+				 }
+	  (instr.stage == EX)  : { call (instr.fixed_latencies.ex) = decrement_latency(instr.fixed_latencies.ex);
+	  		     	   if (instr.fixed_latencies.ex == 0) {
+				      instr.stage = MEM; instr.new_stage = true;
+				   }
+				 }
+	  (instr.stage == MEM) : { call (instr.var_latencies.mem) = decrement_latency(instr.var_latencies.mem);
+	  	       	       	   if (instr.var_latencies.mem == 0) {
+	  	    	     	      if (instr.opcode == store_op)
+					 { instr.stage = ST; }
+	  		     	      else { instr.stage = WB; }
+				      instr.new_stage = true;
+	  		   	   }
+				 }
+	  (instr.stage == ST)  : { call (instr.var_latencies.st) = decrement_latency(instr.var_latencies.st);
+	  	       	       	   if (instr.var_latencies.st == 0) {
+	  		     	      instr.stage = post; instr.new_stage = true;
+				   }
+				 }
+	  (instr.stage == WB ) : { call (instr.fixed_latencies.wb) = decrement_latency(instr.fixed_latencies.wb);
+				   if (instr.fixed_latencies.wb == 0) {
+	  		     	      instr.stage = post; instr.new_stage = true;
+				   }
+				 }
+      esac
+  }
+
+
+  init {
+    instr.stage = pre;
+    instr.new_stage = false;
+    instr.fixed_latencies.id = 1;
+    instr.fixed_latencies.ex = 1;
+    instr.fixed_latencies.wb = 1;
+    instr.delay = 0;        
+  }
+
+  next {
+    if (execute) {
+      call update_stage();
+    } 
+  }
+}
+	
+
+

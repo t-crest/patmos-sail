@@ -10,7 +10,7 @@ module main {
   }
 
   // An invariant for checking the absence of timing anomalies
-  // NOTE: it seems that computing an invariant is very slow ...
+  // NOTE: it seems that checking an invariant is very slow ...
   invariant no_positive_delays: run.cond.pipeline.delays == 0;
 
   invariant generate_counter_example: run.cond.step < param.bmc_depth;

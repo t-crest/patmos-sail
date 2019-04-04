@@ -1,41 +1,95 @@
 // Model of PRET
 
-// TODO: add for each instruction a number representing a hardware thread identifier,
-// modify the rules in order to fill the pipeline with instructions in the correct order and
-// remove any specific rules. Note that PRET assumes everything in the scratchpad => so no
-// problem. This is equivalent to set latencies to 1.
-// But then if you replace the sratchpad -> the pipeline is no longer free from timing anomalies.
+// Note that PRET assumes everything in the scratchpad => so no
+// problem. This is equivalent to set latencies to 1.  But then if you
+// replace the sratchpad -> the pipeline is no longer free from timing
+// anomalies.
 
 module pret {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.var_latency_t;
-  input current_src, previous_src: isa.src_regs_t;
-  input current_dst, previous_dst: isa.reg_t;  
 
-  // Even if this is ugly, this allows to print the value of each
-  // variable in the counter-example ...
   var progress: boolean;
 
   instance current : instruction(in_opcode: (current_op),
   	   	     		 in_latencies: (current_latencies),
 				 execute: (progress));
-  instance previous : instruction(in_opcode: (previous_op),
+  instance previous_i : instruction(in_opcode: (previous_op),
   	   	      		    in_latencies: (previous_latencies),
-			            execute: (true));
+			            execute: (progress_i));
+  instance previous_j : instruction(in_opcode: (previous_op),
+  	   	      		    in_latencies: (previous_latencies),
+			            execute: (progress_j));
+  instance previous_k : instruction(in_opcode: (previous_op),
+  	   	      		    in_latencies: (previous_latencies),
+			            execute: (true));				    
 
   var initialized: boolean;
 
+  procedure nstage_wbe_free ()
+  modifies is_nstage_wbe_free;
+  {
+    is_nstage_wbe_free = true;
+    
+    case
+      (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
+      				    	      	  previous.instr.var_latencies.st > 1 &&
+      				    	      	  current.instr.opcode == store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					       if (previous.instr.stage == WB &&
+      				    	      	  previous.instr.fixed_latencies.wb > 1 &&
+      				    	      	  current.instr.opcode != store_op) {
+						  is_nstage_wbe_free = false;
+					       }
+					    }
+      (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
+      				    	      	  previous.instr.var_latencies.mem > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+	// We probably do not need to check that current.instr.opcode is a nop
+      (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
+      				    	      	  previous.instr.fixed_latencies.ex > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
+      				    	      	  previous.instr.fixed_latencies.id > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+					    }
+      (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
+      				    	      	  previous.instr.var_latencies.fetch > 1) {
+						  is_nstage_wbe_free = false;
+					      }
+   					    }
+   esac
+  }
+
+
   init {
-    progress = true;
+    progress = false;
     initialized = false;
+
+    // This is to ensure that test-properties stays generic
+    assume(is_inst_ready == true);
+    assume(is_branch_pending == false);
+    assume(is_mem_pending == false);
+    assume(is_store_pending == false);
+    assume(is_data_dependant == false);    
   }
 
   procedure update_progress()
-  modifies progress;
+  modifies progress, is_nstage_wbe_free;
   {
-    progress = true;
+    call nstage_wbe_free();
+
+    progress = is_nstage_wbe_free;
   }
+
+
 
   // Updating the state of the instructions
   next  {
@@ -44,16 +98,13 @@ module pret {
 	assume(previous.instr.opcode == previous_op);
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
-        assume(current.instr.src_regs == current_src);
-        assume(current.instr.dst_reg == current_dst);
-        assume(previous.instr.src_regs == previous_src);
-        assume(previous.instr.dst_reg == previous_dst);		
     	initialized' = true;
-	// previous instruction can go ahead freely ...
-      	next(previous);	
+	// To start filling the pipeline ...
+      	next(previous_i);	
     } else {
-    	// previous instruction can go ahead freely ...
-	next(previous);
+	next(previous_i);
+	next(previous_j);
+    	next(previous_k);	
     	next(current);
     }
   }
