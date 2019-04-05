@@ -11,7 +11,13 @@ module main {
 
   property[LTL] no_blocked: G(run.cond.pipeline.blocked == 0);
 
-  // TODO: I want to 
+  // conditions-pret only states assumption on the initial state
+  // => relation between tid of various instructions to have the semantic of PRET
+  // TODO: need to put a property to check that at run-time that nop and branch
+  // instructions that are removed from the pipeline do not violate these assumptions
+  // I need to do that by reload an instruction when in post => havoc
+  // If no constraints are put => this would violate the model ...
+  // Check this ... and look in the paper.
 
   property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
   				      run.cond.pipeline.previous.instr.new_stage &&
