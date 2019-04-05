@@ -7,78 +7,78 @@
 
 module pret {
 
+  type inst_t = isa.inst_pret_t;       
+
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.var_latency_t;
+  input current_tid, previous_tid: bv2;
+  input previous_stage: isa.stage_t;
+
+  var blocked: integer;
 
   var progress: boolean;
+  var is_inst_ready : boolean;
+  var is_branch_pending : boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+  var is_data_dependant: boolean;
 
-  instance current : instruction(in_opcode: (current_op),
-  	   	     		 in_latencies: (current_latencies),
-				 execute: (progress));
-  instance previous_i : instruction(in_opcode: (previous_op),
-  	   	      		    in_latencies: (previous_latencies),
-			            execute: (progress_i));
-  instance previous_j : instruction(in_opcode: (previous_op),
-  	   	      		    in_latencies: (previous_latencies),
-			            execute: (progress_j));
-  instance previous_k : instruction(in_opcode: (previous_op),
-  	   	      		    in_latencies: (previous_latencies),
-			            execute: (true));				    
+  var is_nstage_wbe_free: boolean;
+
+  instance previous : instruction(execute: (true));
+  instance current : instruction(execute: (progress));
 
   var initialized: boolean;
 
   procedure nstage_wbe_free ()
   modifies is_nstage_wbe_free;
   {
-    is_nstage_wbe_free = true;
+    is_nstage_wbe_free = false;
     
     case
-      (current.instr.stage == MEM)  : { if (previous.instr.stage == ST &&
-      				    	      	  previous.instr.var_latencies.st > 1 &&
-      				    	      	  current.instr.opcode == store_op) {
-						  is_nstage_wbe_free = false;
-					       }
-					       if (previous.instr.stage == WB &&
-      				    	      	  previous.instr.fixed_latencies.wb > 1 &&
-      				    	      	  current.instr.opcode != store_op) {
-						  is_nstage_wbe_free = false;
-					       }
-					    }
-      (current.instr.stage == EX)   : { if (previous.instr.stage == MEM &&
-      				    	      	  previous.instr.var_latencies.mem > 1) {
-						  is_nstage_wbe_free = false;
-					      }
-					    }
-	// We probably do not need to check that current.instr.opcode is a nop
-      (current.instr.stage == ID)   : { if (previous.instr.stage == EX &&
-      				    	      	  previous.instr.fixed_latencies.ex > 1) {
-						  is_nstage_wbe_free = false;
-					      }
-					    }
-      (current.instr.stage == IF)   : { if (previous.instr.stage == ID &&
-      				    	      	  previous.instr.fixed_latencies.id > 1) {
-						  is_nstage_wbe_free = false;
-					      }
-					    }
-      (current.instr.stage == pre)  : { if (previous.instr.stage == IF &&
-      				    	      	  previous.instr.var_latencies.fetch > 1) {
-						  is_nstage_wbe_free = false;
-					      }
-   					    }
+      (current.instr.stage == ST ||
+       current.instr.stage == WB)   : { 
+				        is_nstage_wbe_free = true;
+				      }
+      (current.instr.stage == MEM)  : { if (previous.instr.var_latencies.st <= 1 &&
+      				    	    current.instr.opcode == store_op) {
+					  is_nstage_wbe_free = true;
+					}
+					if (previous.instr.fixed_latencies.wb <= 1 &&
+      				    	    current.instr.opcode != store_op) {
+					  is_nstage_wbe_free = true;
+					}
+			              }
+      (current.instr.stage == EX)   : { if (previous.instr.var_latencies.mem <= 1) {
+					  is_nstage_wbe_free = true;
+				        }
+				      }
+      (current.instr.stage == ID)   : { if (previous.instr.fixed_latencies.ex <= 1) {
+					  is_nstage_wbe_free = true;
+					}
+				      }
+      (current.instr.stage == IF)   : { if (previous.instr.fixed_latencies.id <= 1) {
+				          is_nstage_wbe_free = true;
+					}
+				      }
+      (current.instr.stage == pre)  : { if (previous.instr.var_latencies.fetch <= 1) {
+				          is_nstage_wbe_free = true;
+				         }
+   				      }
    esac
   }
 
-
   init {
-    progress = false;
+    progress = false;  
     initialized = false;
+    blocked = 0;
 
     // This is to ensure that test-properties stays generic
     assume(is_inst_ready == true);
     assume(is_branch_pending == false);
     assume(is_mem_pending == false);
     assume(is_store_pending == false);
-    assume(is_data_dependant == false);    
+    assume(is_data_dependant == false);
   }
 
   procedure update_progress()
@@ -89,8 +89,6 @@ module pret {
     progress = is_nstage_wbe_free;
   }
 
-
-
   // Updating the state of the instructions
   next  {
     if (!initialized) {
@@ -98,15 +96,16 @@ module pret {
 	assume(previous.instr.opcode == previous_op);
         assume(current.instr.var_latencies == current_latencies);
         assume(previous.instr.var_latencies == previous_latencies);
+        assume(current.instr.tid == current_tid);	
+        assume(previous.instr.tid == previous_tid);
+	assume(previous.instr.stage == previous_stage);
+	assume(current.instr.stage == pre);
     	initialized' = true;
-	// To start filling the pipeline ...
-      	next(previous_i);	
-    } else {
-	next(previous_i);
-	next(previous_j);
-    	next(previous_k);	
-    	next(current);
-    }
+    } 
+    next(previous);
+    call update_progress();
+    if (progress') { next(current); }
+    else { if (current.instr.stage != post) {blocked' = blocked + 1; }}
   }
 }
 

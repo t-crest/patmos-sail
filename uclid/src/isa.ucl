@@ -48,5 +48,6 @@ module isa {
 			 fixed_latencies: fixed_latency_t,
 			 tid: bv2,
 			 delay: integer,
+			 new_stage: boolean,			 
 			 stage: stage_t };
 }

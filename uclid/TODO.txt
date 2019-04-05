@@ -1,3 +1,12 @@
+- The alt design of instruction is only correct for the previous.
+  Reaching latency of 0 in a given stage does not mean we can proceed
+  to the next stage! => we should check and put together the rule
+  about whether the next stage is going to be free or not!
+  => IT IS NOT CORRECT AT ALL, if previous is blocked a sufficient number of time,
+     current will reach him and as it will not be block will be in the same stage
+     => NOTE: This is not a problem for checking timing anomaly, as a timing anomaly
+     	      will occur before this incorrect behavior can be noticed.
+
 - Design specific test to check that the no timing anomaly is correct
   => when fetch is already in progress (timing anomaly)
   => when transition on fetch and latency is 1 (no timing anomaly)

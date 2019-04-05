@@ -1,0 +1,40 @@
+module conditions {
+
+  var op_i, op_j: isa.opcode_t;
+  var latencies_i, latencies_j: isa.var_latency_t;
+  var tid_i, tid_j: bv2;
+  var stage_j: isa.stage_t;  
+
+  instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_tid_i: (tid_i),
+		       cond_tid_j: (tid_j),
+		       cond_stage_j: (stage_j));
+
+  init {
+    // Assume all type of opcodes
+    assume(op_i == nop || op_i == load_op || op_i == store_op ||
+    	   op_i == branch_op || op_i == other_op);
+    assume(op_j == nop || op_j == load_op || op_j == store_op ||
+    	   op_j == branch_op || op_j == other_op);
+    // Assume scratchpad and no "miss"
+    assume(latencies_i.fetch == 1);
+    assume(latencies_j.fetch == 1);
+    assume(latencies_i.mem == 1);
+    assume(latencies_j.mem == 1);
+    assume(latencies_i.st == 1);
+    assume(latencies_j.st == 1);
+    // Assume that first instruction can take arbitration stage
+    assume(stage_j == pre || stage_j == IF || stage_j == ID ||
+           stage_j == EX || stage_j == MEM || stage_j == ST ||
+	   stage_j == WB);
+    // Relation between tid according to release constraint of instruction
+    assume((stage_j == pre || stage_j == IF) ==> tid_i != tid_j);
+  }
+
+  next {
+    next(cond);
+  }
+
+}

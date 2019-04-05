@@ -9,38 +9,36 @@ module main {
     next(run);
   }
 
-  // The LTL property for no timing anomaly and the invariant version using delays
-  // property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
-  // 				      (run.cond.pipeline.previous.instr.opcode == load_op ||
-  // 				       run.cond.pipeline.previous.instr.opcode == store_op))
-  // 				     ==> (run.cond.pipeline.current.instr.stage != IF));
+  property[LTL] no_blocked: G(run.cond.pipeline.blocked == 0);
 
-
-  // property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == EX &&
-  // 				      run.cond.pipeline.previous.instr.fixed_latencies.ex == 0 &&
-  // 				      (run.cond.pipeline.previous.instr.opcode == load_op ||
-  // 				       run.cond.pipeline.previous.instr.opcode == store_op))
-  // 				     ==> (run.cond.pipeline.current.instr.stage != IF ||
-  // 				     	  (run.cond.pipeline.current.instr.stage == IF &&
-  // 					   run.cond.pipeline.current.instr.var_latencies.fetch == 1)));
+  // TODO: I want to 
 
   property[LTL] no_timing_anomaly: G((run.cond.pipeline.previous.instr.stage == MEM &&
   				      run.cond.pipeline.previous.instr.new_stage &&
   				      (run.cond.pipeline.previous.instr.opcode == load_op ||
 				       run.cond.pipeline.previous.instr.opcode == store_op))
-  				     ==> (run.cond.pipeline.current.instr.stage != IF));
+  				     ==> (run.cond.pipeline.current.instr.stage != IF) ||
+				     	  (run.cond.pipeline.current.instr.stage == IF && run.cond.pipeline.current.instr.var_latencies.fetch <= 1));
 
   // To check that all previous instruction have been retired from the pipeline
   // This is enough, no need to ensure that the current instruction has been retired as well
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth
   			      ==> (run.cond.pipeline.previous.instr.stage == post));
 
+  invariant generate_counter_example: run.cond.step < param.bmc_depth;
+
   control {
     vbmc = bmc(param.bmc_depth);
+    vunroll = unroll(param.bmc_depth);    
     check;
     print_results;
     vbmc.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
     		   run.cond.pipeline.is_branch_pending, run.cond.pipeline.is_mem_pending, run.cond.pipeline.is_store_pending, 
-    		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr);
+    		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr,
+		   run.cond.pipeline.blocked);
+    vunroll.print_cex(run.cond.step, run.cond.pipeline.progress, run.cond.pipeline.is_inst_ready, run.cond.pipeline.is_nstage_wbe_free,
+    		   run.cond.pipeline.is_branch_pending, run.cond.pipeline.is_mem_pending, run.cond.pipeline.is_store_pending, 
+    		   run.cond.pipeline.current.instr, run.cond.pipeline.previous.instr,
+		   run.cond.pipeline.blocked);		   
   }
 }
