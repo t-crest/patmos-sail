@@ -18,7 +18,9 @@
 - In instruction, put assume to specify the latency of instruction
   (nop, branch_op may not have fixed_latencies = 1)
 
-- Discuss the ready procedure when in the EX stage: specific to SIC no?
+- Discuss the ready procedure when in the EX stage: specific to SIC
+  no?  => YES, specific to SIC model, corresponds to the case of
+  instruction cache hit but data cache miss.
 
 - The no timing anomaly property LTL version is incorrect (well
   pessimistic, i.e. can lead to say that a processos is not free from
@@ -56,7 +58,7 @@
   value between the MEM and ST stage in the SIC paper (store op stays
   1 cycle in MEM and the other cycles in the ST stage?)
 
-  => check that the bmc bound is sufficient => interested in stage after mem for previous?
+  => check that the bmc bound is sufficient => interested in stage after mem for previous? => no
 
 - Only 2 values for latencies in order to model cache hit et miss (no
   need to have an interval) => there could be more values depending on

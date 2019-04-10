@@ -1,0 +1,34 @@
+module conditions {
+
+  var op_i, op_j: isa.opcode_t;
+  var latencies_i, latencies_j: isa.latencies_t;
+
+  instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j));
+  
+  init {
+    // Check the next stage ready logic (in stage MEM)
+    op_i = other_op;
+    op_j = other_op;
+    // Check the next stage ready logic (in stage MEM)
+    op_i = other_op;
+    op_j = other_op;
+    latencies_i.fetch = 1;
+    latencies_i.id = 1;
+    latencies_i.ex = 1;    
+    latencies_i.mem = 1;
+    latencies_i.st = 1;
+    latencies_i.wb = 1;        
+    latencies_j.fetch = 1;
+    latencies_j.id = 1;
+    latencies_j.ex = 1;        
+    latencies_j.mem = 3;
+    latencies_j.st = 1;
+    latencies_j.wb = 1;
+  }
+
+  next {
+    next(cond);
+  }
+}

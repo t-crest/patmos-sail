@@ -15,6 +15,7 @@ module sic {
   var is_branch_pending : boolean;
   var is_mem_pending: boolean;
   var is_store_pending: boolean;
+  var is_data_dependant: boolean;
 
   instance previous : instruction(execute: (true));
   instance current : instruction(execute: (progress));				    
@@ -150,6 +151,8 @@ module sic {
   init {
     progress = false;
     initialized = false;
+
+    assume(is_data_dependant == false);
   }
 
   procedure update_progress()

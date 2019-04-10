@@ -4,7 +4,7 @@ module instruction {
   input execute: boolean;
 
   // The instruction
-  var instr: isa.inst_regs_t;
+  var instr: isa.inst_t;
   
   procedure latency_IF() modifies instr; {
     instr.var_latencies.fetch = instr.var_latencies.fetch - 1;

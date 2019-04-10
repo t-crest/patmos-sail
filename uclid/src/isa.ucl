@@ -25,6 +25,8 @@ module isa {
   // Latencies information for each instruction
   type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
 
+  type latencies_t = record { fetch: integer, id: integer, ex: integer, mem: integer, wb: integer, st: integer};
+
   // Instruction 
   type inst_regs_t = record { opcode: opcode_t,
 			 var_latencies: var_latency_t,

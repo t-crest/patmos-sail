@@ -1,0 +1,112 @@
+module inorder {
+
+  input current_op, previous_op: isa.opcode_t;
+  input current_latencies, previous_latencies: isa.latencies_t;
+
+  // The instruction
+  var previous_stage: isa.stage_t;
+  var previous_latency: integer;
+  var previous_new_stage: boolean;
+  var previous_delay: integer;
+  var previous_progress: boolean;  
+
+  var current_stage: isa.stage_t;
+  var current_latency: integer;  
+  var current_new_stage: boolean;
+  var current_delay: integer;  
+  var current_progress: boolean;
+
+  // This computes the next stage and latency of an instruction (previous and current)
+  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
+    case
+      (stage == pre) : { new = IF; latency = latencies.fetch; }
+      (stage == IF)  : { new = ID; latency = latencies.id; }
+      (stage == ID)  : { if (opcode != nop && opcode != branch_op) { new = EX; latency = latencies.ex; }
+			 else { new = post; latency = -1;}
+		       }
+      (stage == EX)  : { new = MEM; latency = latencies.mem; }
+      (stage == MEM) : { if (opcode == store_op) { new = ST; latency = latencies.st; }
+	  	    	 else { new = WB; latency = latencies.wb; }
+		       }
+      (stage == ST || stage == WB) : { new = post; latency = -1;}
+    esac  
+  }
+
+  // This is the condition for the previous instruction to check if it can progress
+  procedure check_previous_progress(input_delay: integer) returns(b: boolean, output_delay: integer) {
+    // By default the instruction cannot move to the next stage 
+    b = false;
+    output_delay = input_delay;    
+
+    if (previous_latency == 1) {
+      b = true;
+     
+      if ((previous_stage == EX && previous_latency == 1) &&
+     	  (previous_op == load_op || previous_op == store_op) &&
+	  (current_stage == IF && current_latency >= 1)) {
+	  b = false;
+	  output_delay = input_delay + 1;
+      }
+    }
+  }
+
+  // This is the condition to check whether current can progress or not
+  procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
+    // By defaukt the instruction cannot move to the next stage
+    b = false;
+    
+    // Except if its latency is going to run out or has run out
+    if (current_latency <= 1) {
+      case
+	// ... and its targeted next stage is not occupied by the previous 
+        (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
+        (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
+        (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
+        (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	
+        (current_stage == MEM) : { if ((current_op == store_op && pprime_stage != ST) ||
+	       	       	       	        pprime_stage != WB)
+	       	       	   	   { b = true; }
+			         }
+	// Willing to switch from these stages mean exiting the pipeline ...
+        (current_stage == ST ||
+	 current_stage == WB)  : { b = true; }
+      esac
+    }
+  }
+
+  init {
+    previous_stage = IF;
+    previous_new_stage = false;
+    previous_latency = 1;
+    previous_delay = 0;
+    previous_progress = false;
+
+    current_stage = pre;
+    current_new_stage = false;
+    current_latency = 1;
+    current_delay = 0;
+    current_progress = false;
+  }
+
+  // Updating the state of the instructions
+  next  {
+    call (previous_progress', previous_delay') = check_previous_progress(previous_delay);
+    if (previous_progress') {
+       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latencies);
+       previous_new_stage' = true;
+    } else {
+      if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
+    }
+    call (current_progress') = check_current_progress(previous_stage');
+    if (current_progress') {
+       call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latencies);	       
+       current_new_stage' = true;
+    } else {
+       if (current_latency > 0) {current_latency' = current_latency - 1;}
+       if (current_latency' == 0) {current_delay' = current_delay + 1;}
+    }
+  }
+}
+	
+
+
