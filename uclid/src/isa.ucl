@@ -11,14 +11,6 @@ module isa {
   // Source registers
   type src_regs_t = record { src1: reg_t, src2: reg_t };
 
-  // We prefer to directly modify the latencies, instead of having a single latency
-  // variable which would be initialized with the latency of each stage.
-  // This allows to more easily see how the system evolves and put sanety checks
-  // This also allows to more easily implement nstage_wbe_free
-  // However, a single latency variable would simplify the instruction module
-  // as the first things to do would be to decrement the current value of the latency
-  // => This is how it is done in SIC
-  
   // Variable latencies for each instruction
   type var_latency_t = record { fetch: integer, mem: integer, st: integer };
 
@@ -52,4 +44,5 @@ module isa {
 			 delay: integer,
 			 new_stage: boolean,			 
 			 stage: stage_t };
+
 }

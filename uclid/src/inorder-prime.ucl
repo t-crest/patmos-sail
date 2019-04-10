@@ -2,6 +2,7 @@ module inorder {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.latencies_t;
+  input input_previous_stage: isa.stage_t;
 
   // The instruction
   var previous_stage: isa.stage_t;
@@ -15,6 +16,8 @@ module inorder {
   var current_new_stage: boolean;
   var current_delay: integer;  
   var current_progress: boolean;
+
+  var initialized: boolean;
 
   // This computes the next stage and latency of an instruction (previous and current)
   procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
@@ -75,9 +78,9 @@ module inorder {
   }
 
   init {
-    previous_stage = IF;
+    initialized = false;
+
     previous_new_stage = false;
-    previous_latency = 1;
     previous_delay = 0;
     previous_progress = false;
 
@@ -90,6 +93,16 @@ module inorder {
 
   // Updating the state of the instructions
   next  {
+    if (!initialized) {
+       assume(previous_stage == input_previous_stage);
+       assume(input_previous_stage == IF ==> previous_latency == previous_latencies.fetch);
+       assume(input_previous_stage == ID ==> previous_latency == previous_latencies.id);
+       assume(input_previous_stage == EX ==> previous_latency == previous_latencies.ex);
+       assume(input_previous_stage == MEM ==> previous_latency == previous_latencies.mem);
+       assume(input_previous_stage == ST ==> previous_latency == previous_latencies.st);
+       assume(input_previous_stage == WB ==> previous_latency == previous_latencies.wb);
+       initialized' = true;
+    }
     call (previous_progress', previous_delay') = check_previous_progress(previous_delay);
     if (previous_progress') {
        call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latencies);
