@@ -1,0 +1,51 @@
+module conditions {
+
+  var op_i, op_j: isa.opcode_t;
+  var latencies_i, latencies_j: isa.latencies_t;
+  var stage_i: isa.stage_t;
+
+  instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_stage_i: (stage_i));
+  
+  init {
+    // Assume all type of opcodes
+    assume(op_i == nop || op_i == load_op || op_i == store_op ||
+    	   op_i == branch_op || op_i == other_op);
+    assume(op_j == nop || op_j == load_op || op_j == store_op ||
+    	   op_j == branch_op || op_j == other_op);
+    // Assume variable latencies for all instructions in IF stage
+    assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
+    assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
+    // Assume latencies for ID stage
+    assume(latencies_i.id == 1);
+    assume(latencies_j.id == 1);
+    // Assume latencies for EX stage
+    assume(latencies_i.ex == 1);
+    assume(latencies_j.ex == 1);        
+    // Assume variable latencies for load and store opcodes in MEM stage
+    // TODO: different options could be considered here (intervals or a set of values)
+    assume((op_i == load_op || op_i == store_op)
+    	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
+    assume((op_j == load_op || op_j == store_op)
+    	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
+    // Assume that other operations takes 1 cycle in MEM stage 
+    assume((op_i == branch_op || op_i == nop || op_i == other_op) ==> latencies_i.mem == 1);
+    assume((op_j == branch_op || op_j == nop || op_j == other_op) ==> latencies_j.mem == 1);
+    // Assume latency values in the ST stage
+    assume(op_i == store_op ==> 0 < latencies_i.st && latencies_i.st <= param.max_latency);
+    assume(op_i != store_op ==> latencies_i.st == 0);
+    assume(op_j == store_op ==> 0 < latencies_j.st && latencies_j.st <= param.max_latency);
+    assume(op_j != store_op ==> latencies_j.st == 0);
+    // Assume latencies for WB stage
+    assume(latencies_i.wb == 1);
+    assume(latencies_j.wb == 1);            
+    assume(stage_i == pre || stage_i == IF || stage_i == ID || stage_i == EX ||
+           stage_i == MEM || stage_i == ST || stage_i == WB);
+  }
+
+  next {
+    next(cond);
+  }
+}

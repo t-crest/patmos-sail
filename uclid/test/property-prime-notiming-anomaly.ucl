@@ -1,0 +1,28 @@
+module main {
+
+  type stage_t = isa.stage_t;
+  type opcode_t = isa.opcode_t;
+
+  instance run : conditions();
+
+  next {
+    next(run);
+  }
+
+  property[LTL] no_timing_anomaly: G(run.cond.pipeline.previous_delay == 0);
+
+  // To check that the previous instruction has finished
+  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> run.cond.pipeline.previous_stage == post);
+
+  control {
+    vbmc = bmc(param.bmc_depth);
+    check;
+    print_results;
+    vbmc.print_cex(run.cond.pipeline.current_op, run.cond.pipeline.current_stage,
+    		   run.cond.pipeline.current_latency, 
+		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delay,
+		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
+    		   run.cond.pipeline.previous_latency, 
+		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay);
+  }
+}

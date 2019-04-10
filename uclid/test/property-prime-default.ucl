@@ -18,9 +18,12 @@ module main {
   				        run.cond.pipeline.current_stage == WB)
 				      	==> run.cond.pipeline.current_stage != run.cond.pipeline.previous_stage);
 
+  invariant no_negative_latency: (run.cond.pipeline.current_latency >= 0 &&
+  	    			  run.cond.pipeline.previous_latency >= 0);
+
   // To check that all instructions have been retired from the run.cond.pipeline ...
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.current_stage == post &&
-  	   			      	   	      	   run.cond.pipeline.previous_stage == post));
+  	   			      	   	      	       	    run.cond.pipeline.previous_stage == post));
 
   // A simple invariant to generate a counter-example for later trace comparison
   invariant generate_counter_example: run.cond.step < param.bmc_depth;
@@ -31,16 +34,16 @@ module main {
     check;
     print_results;
     vbmc.print_cex(run.cond.pipeline.current_op, run.cond.pipeline.current_stage,
-    		   run.cond.pipeline.current_latency, run.cond.pipeline.current_new_stage,
+    		   run.cond.pipeline.current_latency, 
 		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delay,
 		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
-    		   run.cond.pipeline.previous_latency, run.cond.pipeline.previous_new_stage,
+    		   run.cond.pipeline.previous_latency, 
 		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay);
     vunroll.print_cex(run.cond.pipeline.current_op, run.cond.pipeline.current_stage,
-    		   run.cond.pipeline.current_latency, run.cond.pipeline.current_new_stage,
+    		   run.cond.pipeline.current_latency, 
 		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delay,		   
 		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
-    		   run.cond.pipeline.previous_latency, run.cond.pipeline.previous_new_stage,
+    		   run.cond.pipeline.previous_latency, 
 		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay);
   }
 }
