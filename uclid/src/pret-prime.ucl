@@ -1,19 +1,23 @@
-module inorder {
+module pret {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.latencies_t;
   input input_previous_stage: isa.stage_t;
+  input input_previous_tid: bv2;
+  input input_current_tid: bv2;  
 
   // The instruction
   var previous_stage: isa.stage_t;
   var previous_latency: integer;
   var previous_delay: integer;
-  var previous_progress: boolean;  
+  var previous_progress: boolean;
+  var previous_tid: bv2;  
 
   var current_stage: isa.stage_t;
   var current_latency: integer;  
   var current_delay: integer;  
   var current_progress: boolean;
+  var current_tid: bv2;    
 
   // This computes the next stage and latency of an instruction (previous and current)
   procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
@@ -81,7 +85,9 @@ module inorder {
     assume(input_previous_stage == MEM ==> previous_latency == previous_latencies.mem);
     assume(input_previous_stage == ST ==> previous_latency == previous_latencies.st);
     assume(input_previous_stage == WB ==> previous_latency == previous_latencies.wb);
-    assume(input_previous_stage == pre ==> previous_latency == 1);    
+    assume(input_previous_stage == pre ==> previous_latency == 1);
+    assume(previous_tid == input_previous_tid);
+    assume(current_tid == input_current_tid);    
 
     previous_delay = 0;
     previous_progress = false;
@@ -90,6 +96,7 @@ module inorder {
     current_latency = 1;
     current_delay = 0;
     current_progress = false;
+    current_tid = 0bv2;    
   }
 
   // Updating the state of the instructions

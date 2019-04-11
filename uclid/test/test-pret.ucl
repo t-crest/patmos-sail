@@ -3,15 +3,16 @@ module test {
   var step : integer;
 
   input cond_op_i, cond_op_j: isa.opcode_t;
-  input cond_latencies_i, cond_latencies_j: isa.var_latency_t;
+  input cond_latencies_i, cond_latencies_j: isa.latencies_t;
   input cond_tid_i, cond_tid_j: bv2;
-  input cond_stage_j: isa.stage_t;
+  input cond_stage_i: isa.stage_t;
 
-  instance pipeline : pret(current_op: (cond_op_i), previous_op: (cond_op_j),
-  	   	             current_latencies: (cond_latencies_i),
-			     previous_latencies: (cond_latencies_j),
-			     current_tid: (cond_tid_i), previous_tid: (cond_tid_j),
-			     previous_stage: (cond_stage_j));
+  instance pipeline : pret(current_op: (cond_op_j), previous_op: (cond_op_i),
+  	   	           current_latencies: (cond_latencies_j),
+			   previous_latencies: (cond_latencies_i),
+			   input_previous_tid: (cond_tid_i),
+			   input_current_tid: (cond_tid_j),			   
+			   input_previous_stage: (cond_stage_i));
 
   init {
     step = 0;
