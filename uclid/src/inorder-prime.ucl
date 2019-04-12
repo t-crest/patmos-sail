@@ -16,15 +16,22 @@ module inorder {
   var current_progress: boolean;
 
   // This computes the next stage and latency of an instruction (previous and current)
-  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
+  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, in_latency: integer, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
     case
       (stage == pre) : { new = IF; latency = latencies.fetch; }
       (stage == IF)  : { new = ID; latency = latencies.id; }
       (stage == ID)  : { if (opcode != nop && opcode != branch_op) { new = EX; latency = latencies.ex; }
 			 else { new = post; latency = 0;}
 		       }
-      (stage == EX)  : { new = MEM; latency = latencies.mem; }
-      (stage == MEM) : { if (opcode == store_op) { new = ST; latency = latencies.st; }
+      (stage == EX)  : { if (opcode != branch_op) {new = MEM; latency = latencies.mem; }
+      	     	         else { new = post; latency = 0;}
+		       }
+      (stage == MEM) : { if (opcode == store_op) {
+      	     	       	   new = ST; latency = in_latency - 1;
+			   // This should avoid letting a store in the ST unnecessary
+			   // (In case it has initially a latency of 1 in the mem stage
+      	     	       	   if (latency == 0) { new = post; }
+			 }
 	  	    	 else { new = WB; latency = latencies.wb; }
 		       }
       (stage == ST || stage == WB || stage == post) : { new = post; latency = 0;}
@@ -35,27 +42,41 @@ module inorder {
   procedure check_previous_progress(input_delay: integer) returns(b: boolean, output_delay: integer) {
     // By default the instruction cannot move to the next stage 
     b = false;
-    output_delay = input_delay;    
+    output_delay = input_delay;
 
+    // If we were in the MEM stage and we are a store op, jump to the ST stage
+    if (previous_op == store_op && previous_stage == MEM) { b = true; }
+
+    // The semantic is different depending on whether the op is a store or not
     if (previous_latency <= 1) {
       b = true;
 
       // If a latency of 1 in MEM is fine (i.e. cache hit) => then check previous_latencies.mem
       if (previous_stage == EX && (previous_op == load_op || previous_op == store_op) &&
-	  (current_stage == IF && current_latency > 1)) {
-	  b = false;
-	  output_delay = input_delay + 1;
+      	 // Checking the stage being already in IF exclude the case of simultaneous transition
+	 // by previous and current in MEM and IF, as in this case, priority is given to the
+	 // data access, i.e the previous instruction.
+	 (current_stage == IF && current_latency > 1)) {
+	 b = false;
+	 output_delay = input_delay + 1;
       }
     }
   }
 
   // This is the condition to check whether current can progress or not
   procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
-    // By defaukt the instruction cannot move to the next stage
+    // By default the instruction cannot move to the next stage
     b = false;
+
+    // If we were in the MEM stage and we are a store op, jump to the ST stage
+    // The only exception is of course
+    if (current_op == store_op && current_stage == MEM &&
+        pprime_stage != ST) { b = true; }
     
     // Except if its latency is going to run out or has run out
-    if (current_latency <= 1) {
+    // And the pipeline is not stalled due to a cache miss in the MEM stage
+    if (current_latency <= 1 &&
+        (pprime_stage != MEM || (pprime_stage == MEM && previous_latencies.mem == 1)) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
         (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
@@ -96,7 +117,7 @@ module inorder {
   next  {
     call (previous_progress', previous_delay') = check_previous_progress(previous_delay);
     if (previous_progress') {
-       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latencies);
+       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latency, previous_latencies);
     } else {
       if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
     }

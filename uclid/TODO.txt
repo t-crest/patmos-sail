@@ -1,3 +1,39 @@
+- SIC: branch are solved in EX stage => exit at the end of that stage.
+  The time spent in the ST stage is one cycle less than the one in the
+  MEM stage for store. The meaning is one oustanding write that moves
+  as soon as possible in the ST stage if it is free
+
+- Simultaneous access to the data and instruction => data wins => no
+  timing anomaly in this case in fact
+  	 => It is the case in the inorder-prime model
+
+- stores are asynchronous with the pipeline => be careful
+  Write Allocate vs. No write allocate
+  Write through vs. write back 
+  CASE: Write back (=> in fact we cannot model this behavior by looking at the pipeline only)
+  
+   	and no write allocate => the write access will occur later on
+   	the shared bus between instruction and data ...
+
+	nothing
+	
+	and write allocate => This can potentially lead to evict data
+	from the private cache (but this will occur later one) and
+	load the data to be written in the cache, meaning that it is
+	similar to a load operation and later on write ...
+
+	write, load
+	
+  CASE: Write through => (usually assume no write allocate)
+
+  	and no write allocate => the write access will access
+  	immediately and thus request the shared bus (as the load op
+  	but for a shorter amount of time as no need to wait for the
+  	ack) => 
+
+	and write allocate => a write for any potential evicted
+	data, then a load, then a write
+
 - The alt design of instruction is only correct for the previous.
   Reaching latency of 0 in a given stage does not mean we can proceed
   to the next stage! => we should check and put together the rule

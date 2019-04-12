@@ -25,7 +25,6 @@ module conditions {
     assume(latencies_i.ex == 1);
     assume(latencies_j.ex == 1);        
     // Assume variable latencies for load and store opcodes in MEM stage
-    // TODO: different options could be considered here (intervals or a set of values)
     assume((op_i == load_op || op_i == store_op)
     	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
     assume((op_j == load_op || op_j == store_op)
@@ -33,11 +32,6 @@ module conditions {
     // Assume that other operations takes 1 cycle in MEM stage 
     assume((op_i == branch_op || op_i == nop || op_i == other_op) ==> latencies_i.mem == 1);
     assume((op_j == branch_op || op_j == nop || op_j == other_op) ==> latencies_j.mem == 1);
-    // Assume latency values in the ST stage
-    assume(op_i == store_op ==> 0 < latencies_i.st && latencies_i.st <= param.max_latency);
-    assume(op_i != store_op ==> latencies_i.st == 0);
-    assume(op_j == store_op ==> 0 < latencies_j.st && latencies_j.st <= param.max_latency);
-    assume(op_j != store_op ==> latencies_j.st == 0);
     // Assume latencies for WB stage
     assume(latencies_i.wb == 1);
     assume(latencies_j.wb == 1);            
