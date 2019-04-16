@@ -10,20 +10,18 @@ module conditions {
 		       cond_stage_i: (stage_i));
   
   init {
-    // Check the next stage ready logic (in stage MEM)
+    // Check the next stage ready logic (in stages IF and MEM)
     assume(op_i == other_op);
     assume(op_j == other_op);
     assume(latencies_i.fetch == 3);
     assume(latencies_i.id == 1);
     assume(latencies_i.ex == 1);    
-    assume(latencies_i.mem == 1);
-    assume(latencies_i.st == 1);
+    assume(latencies_i.mem == 3);
     assume(latencies_i.wb == 1);        
     assume(latencies_j.fetch == 1);
     assume(latencies_j.id == 1);
     assume(latencies_j.ex == 1);        
     assume(latencies_j.mem == 1);
-    assume(latencies_j.st == 1);
     assume(latencies_j.wb == 1);
     assume(stage_i == IF);
   }

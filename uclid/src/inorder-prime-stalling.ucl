@@ -75,7 +75,9 @@ module inorder {
     
     // Except if its latency is going to run out or has run out
     // And the pipeline is not stalled due to a cache miss in the MEM stage
-    if (current_latency <= 1) {
+    if (current_latency <= 1 &&
+        (pprime_stage != MEM || (pprime_stage == MEM && previous_latencies.mem == 1)) &&
+	(pprime_stage != IF || (pprime_stage == IF && previous_latencies.fetch == 1))) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
         (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  

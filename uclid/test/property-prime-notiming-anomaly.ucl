@@ -12,7 +12,9 @@ module main {
   property[LTL] no_timing_anomaly: G(run.cond.pipeline.previous_delay == 0);
 
   // To check that the previous instruction has finished
-  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> run.cond.pipeline.previous_stage == post);
+  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> (run.cond.pipeline.previous_stage == ST ||
+  			    		       		       	    run.cond.pipeline.previous_stage == WB ||
+								    run.cond.pipeline.previous_stage == post));
 
   control {
     vbmc = bmc(param.bmc_depth);
