@@ -2,36 +2,35 @@ module pret {
 
   input current_op, previous_op: isa.opcode_t;
   input current_latencies, previous_latencies: isa.latencies_t;
+  input input_current_tid, input_previous_tid: bv2;  
   input input_previous_stage: isa.stage_t;
-  input input_previous_tid: bv2;
-  input input_current_tid: bv2;  
 
   // The instruction
   var previous_stage: isa.stage_t;
   var previous_latency: integer;
   var previous_delay: integer;
   var previous_progress: boolean;
-  var previous_tid: bv2;  
+  var previous_tid: bv2;
 
   var current_stage: isa.stage_t;
   var current_latency: integer;  
   var current_delay: integer;  
   var current_progress: boolean;
-  var current_tid: bv2;    
+  var current_tid: bv2;
 
   // This computes the next stage and latency of an instruction (previous and current)
-  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
+  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, in_latency: integer, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
     case
       (stage == pre) : { new = IF; latency = latencies.fetch; }
       (stage == IF)  : { new = ID; latency = latencies.id; }
       (stage == ID)  : { if (opcode != nop && opcode != branch_op) { new = EX; latency = latencies.ex; }
 			 else { new = post; latency = 0;}
 		       }
-      (stage == EX)  : { new = MEM; latency = latencies.mem; }
-      (stage == MEM) : { if (opcode == store_op) { new = ST; latency = latencies.st; }
-	  	    	 else { new = WB; latency = latencies.wb; }
+      (stage == EX)  : { if (opcode != branch_op) {new = MEM; latency = latencies.mem; }
+      	     	         else { new = post; latency = 0;}
 		       }
-      (stage == ST || stage == WB || stage == post) : { new = post; latency = 0;}
+      (stage == MEM) : { new = WB; latency = latencies.wb; }
+      (stage == WB || stage == post) : { new = post; latency = 0;}
     esac  
   }
 
@@ -39,26 +38,32 @@ module pret {
   procedure check_previous_progress(input_delay: integer) returns(b: boolean, output_delay: integer) {
     // By default the instruction cannot move to the next stage 
     b = false;
-    output_delay = input_delay;    
+    output_delay = input_delay;
 
+    // The semantic is different depending on whether the op is a store or not
     if (previous_latency <= 1) {
       b = true;
 
-      // If a latency of 1 in MEM is fine (i.e. cache hit) => then check previous_latencies.mem
-      if (previous_stage == EX && (previous_op == load_op || previous_op == store_op) &&
+      // If the latency of the MEM stage is equal to 1, then this is a cache hit so no problem ...
+      if (previous_stage == EX &&
+      	  previous_latencies.mem > 1 &&
+      	  // Checking the stage being already in IF exclude the case of simultaneous transition
+	  // by previous and current in MEM and IF, as in this case, priority is given to the
+	  // data access, i.e the previous instruction.
 	  (current_stage == IF && current_latency > 1)) {
-	  b = false;
-	  output_delay = input_delay + 1;
+	 b = false;
+	 output_delay = input_delay + 1;
       }
     }
   }
 
   // This is the condition to check whether current can progress or not
   procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
-    // By defaukt the instruction cannot move to the next stage
+    // By default the instruction cannot move to the next stage
     b = false;
-    
+
     // Except if its latency is going to run out or has run out
+    // And the pipeline is not stalled due to a cache miss in the MEM stage
     if (current_latency <= 1) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
@@ -66,13 +71,9 @@ module pret {
         (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
         (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	
-        (current_stage == MEM) : { if ((current_op == store_op && pprime_stage != ST) ||
-	       	       	       	       (current_op != store_op && pprime_stage != WB))
-	       	       	   	   { b = true; }
-			         }
+        (current_stage == MEM) : { if (pprime_stage != WB) { b = true; }}
 	// Willing to switch from these stages mean exiting the pipeline ...
-        (current_stage == ST ||
-	 current_stage == WB)  : { b = true; }
+        (current_stage == WB)  : { b = true; }
       esac
     }
   }
@@ -83,7 +84,6 @@ module pret {
     assume(input_previous_stage == ID ==> previous_latency == previous_latencies.id);
     assume(input_previous_stage == EX ==> previous_latency == previous_latencies.ex);
     assume(input_previous_stage == MEM ==> previous_latency == previous_latencies.mem);
-    assume(input_previous_stage == ST ==> previous_latency == previous_latencies.st);
     assume(input_previous_stage == WB ==> previous_latency == previous_latencies.wb);
     assume(input_previous_stage == pre ==> previous_latency == 1);
     assume(previous_tid == input_previous_tid);
@@ -93,23 +93,22 @@ module pret {
     previous_progress = false;
 
     current_stage = pre;
-    current_latency = 1;
+    current_latency = 0;
     current_delay = 0;
     current_progress = false;
-    current_tid = 0bv2;    
   }
 
   // Updating the state of the instructions
   next  {
     call (previous_progress', previous_delay') = check_previous_progress(previous_delay);
     if (previous_progress') {
-       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latencies);
+       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latency, previous_latencies);
     } else {
       if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
     }
     call (current_progress') = check_current_progress(previous_stage');
     if (current_progress') {
-       call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latencies);	       
+       call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latency, current_latencies);	       
     } else {
        if (current_latency > 0) {current_latency' = current_latency - 1;}
        if (current_latency' == 0 && current_stage' != post) {current_delay' = current_delay + 1;}

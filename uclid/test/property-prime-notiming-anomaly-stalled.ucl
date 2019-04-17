@@ -26,6 +26,7 @@ module main {
 		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
     		   run.cond.pipeline.previous_latency, 
 		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay,
+		   run.cond.pipeline.pipeline_after_stalled, run.cond.pipeline.pipeline_before_stalled,
 		   run.latencies_i, run.latencies_j);
   }
 }

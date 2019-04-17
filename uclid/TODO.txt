@@ -1,7 +1,15 @@
+- New prime model verified for timing anomalies:
+  - test the stalling logic (before and whole) => DONE
+  - put back assumptions for PRET and Patmos => DONE for PRET
+  - put back rules for SIC
+
 - SIC: branch are solved in EX stage => exit at the end of that stage.
   The time spent in the ST stage is one cycle less than the one in the
   MEM stage for store. The meaning is one oustanding write that moves
   as soon as possible in the ST stage if it is free
+
+  => What happens with a mem of 1 and a store instruction
+  => 
 
 - Simultaneous access to the data and instruction => data wins => no
   timing anomaly in this case in fact

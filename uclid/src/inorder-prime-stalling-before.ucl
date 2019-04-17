@@ -15,6 +15,8 @@ module inorder {
   var current_delay: integer;  
   var current_progress: boolean;
 
+  var pipeline_stalled: boolean;
+
   // This computes the next stage and latency of an instruction (previous and current)
   procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, in_latency: integer, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
     case
@@ -51,11 +53,13 @@ module inorder {
     if (previous_latency <= 1) {
       b = true;
 
-      // If a latency of 1 in MEM is fine (i.e. cache hit) => then check previous_latencies.mem
-      if (previous_stage == EX && (previous_op == load_op || previous_op == store_op) &&
-      	 // Checking the stage being already in IF exclude the case of simultaneous transition
-	 // by previous and current in MEM and IF, as in this case, priority is given to the
-	 // data access, i.e the previous instruction.
+      // If the latency of the MEM stage is equal to 1, then this is a cache hit so no problem ...
+      if (previous_stage == EX && /*(previous_op == load_op || previous_op == store_op) &&*/
+      	  /* The test on the operation is useless, only load and store can have latencies > 1 */
+          previous_latencies.mem > 1 &&
+      	  // Checking the stage being already in IF exclude the case of simultaneous transition
+	  // by previous and current in MEM and IF, as in this case, priority is given to the
+	  // data access, i.e the previous instruction.
 	 (current_stage == IF && current_latency > 1)) {
 	 b = false;
 	 output_delay = input_delay + 1;
@@ -63,21 +67,24 @@ module inorder {
     }
   }
 
+  // This pipeline only stalls instruction before in the pipeline (i.e later in flow)
+  procedure check_stalling(pprime_stage: isa.stage_t) returns (b: boolean) {
+    b = (pprime_stage == MEM && previous_latencies.mem > 1) ||
+    	(pprime_stage == IF && previous_latencies.fetch > 1);
+  }
+
   // This is the condition to check whether current can progress or not
-  procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
+  procedure check_current_progress(pprime_stage: isa.stage_t, stalled: boolean) returns (b: boolean) {
     // By default the instruction cannot move to the next stage
     b = false;
 
     // If we were in the MEM stage and we are a store op, jump to the ST stage
-    // The only exception is of course
     if (current_op == store_op && current_stage == MEM &&
         pprime_stage != ST) { b = true; }
     
     // Except if its latency is going to run out or has run out
     // And the pipeline is not stalled due to a cache miss in the MEM stage
-    if (current_latency <= 1 &&
-        (pprime_stage != MEM || (pprime_stage == MEM && previous_latencies.mem == 1)) &&
-	(pprime_stage != IF || (pprime_stage == IF && previous_latencies.fetch == 1))) {
+    if (current_latency <= 1 && !stalled) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
         (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
@@ -112,6 +119,8 @@ module inorder {
     current_latency = 0;
     current_delay = 0;
     current_progress = false;
+
+    pipeline_stalled = false;
   }
 
   // Updating the state of the instructions
@@ -122,12 +131,13 @@ module inorder {
     } else {
       if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
     }
-    call (current_progress') = check_current_progress(previous_stage');
+    call (pipeline_stalled') = check_stalling(previous_stage');
+    call (current_progress') = check_current_progress(previous_stage', pipeline_stalled');
     if (current_progress') {
        call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latency, current_latencies);	       
     } else {
-       if (current_latency > 0) {current_latency' = current_latency - 1;}
-       if (current_latency' == 0 && current_stage' != post) {current_delay' = current_delay + 1;}
+       if (current_latency > 0 && !pipeline_stalled') { current_latency' = current_latency - 1;}
+       if ((current_latency' == 0 || pipeline_stalled') && current_stage' != post) { current_delay' = current_delay + 1;}
     }
   }
 }
