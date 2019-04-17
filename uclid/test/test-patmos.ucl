@@ -3,11 +3,13 @@ module test {
   var step : integer;
 
   input cond_op_i, cond_op_j: isa.opcode_t;
-  input cond_latencies_i, cond_latencies_j: isa.var_latency_t;
+  input cond_latencies_i, cond_latencies_j: isa.latencies_t;
+  input cond_stage_i: isa.stage_t;    
 
-  instance pipeline : patmos(current_op: (cond_op_i), previous_op: (cond_op_j),
-  	   	             current_latencies: (cond_latencies_i),
-			     previous_latencies: (cond_latencies_j));
+  instance pipeline : patmos(current_op: (cond_op_j), previous_op: (cond_op_i),
+  	   	             current_latencies: (cond_latencies_j),
+			     previous_latencies: (cond_latencies_i),
+			     input_previous_stage: (cond_stage_i));			     
 
   init {
     step = 0;

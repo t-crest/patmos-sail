@@ -1,6 +1,6 @@
 - New prime model verified for timing anomalies:
   - test the stalling logic (before and whole) => DONE
-  - put back assumptions for PRET and Patmos => DONE for PRET
+  - put back assumptions for PRET and Patmos => DONE for PRET and Patmos
   - put back rules for SIC
 
 - SIC: branch are solved in EX stage => exit at the end of that stage.
