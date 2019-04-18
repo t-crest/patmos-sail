@@ -7,9 +7,9 @@ module test {
   input cond_stage_i: isa.stage_t;  
 
   instance pipeline : inorder(current_op: (cond_op_j), previous_op: (cond_op_i),
-  	   	             current_latencies: (cond_latencies_j),
-			     previous_latencies: (cond_latencies_i),
-			     input_previous_stage: (cond_stage_i));
+  	   	              current_latencies: (cond_latencies_j),
+			      previous_latencies: (cond_latencies_i),
+			      input_previous_stage: (cond_stage_i));
 
   init {
     step = 0;

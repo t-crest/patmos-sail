@@ -1,19 +1,79 @@
-- New prime model verified for timing anomalies:
-  - test the stalling logic (before and whole) => DONE
-  - put back assumptions for PRET and Patmos => DONE for PRET and Patmos
-  - put back rules for SIC
+TODO
 
-- SIC: branch are solved in EX stage => exit at the end of that stage.
-  The time spent in the ST stage is one cycle less than the one in the
-  MEM stage for store. The meaning is one oustanding write that moves
-  as soon as possible in the ST stage if it is free
+- Check the inorder / inorder-stalling-before / inorder-stalling-whole variants
+  using invariants
 
-  => What happens with a mem of 1 and a store instruction
-  => 
+- Check the use of store_pending rule => if current is a load
+  operation and generates a cache miss in MEM stage, then what is
+  required is on that no store is pending. If a store is pending, then
+  the load is could jump in the memory stage and tries to generate a
+  cache miss. However, this is fine to me as it will not delay the
+  previous instruction ... And if a load is pending (cache miss), well
+  current will be blocked. => checking absence of timing anomalies
+  without this store_pending rule
+  	   
 
-- Simultaneous access to the data and instruction => data wins => no
-  timing anomaly in this case in fact
-  	 => It is the case in the inorder-prime model
+- Design specific test to check that the no timing anomaly is correct
+  => when fetch is already in progress (timing anomaly)
+  => when transition on fetch and latency is 1 (no timing anomaly)
+  => when transition on fetch and latency is > 1 (timing anomaly)
+
+- Cleanup old models & separate per processor type
+
+- Model K1 pipeline
+
+- Compute maximal delay an instruction can experience
+
+- Model branches
+
+NOTE on the design of the abstract models
+
+- We assume branch are removed from ID (except Patmos) or EX (Patmos)
+
+- We assume nop instruction except for Patmos
+
+- We model no ST stage for Patmos (because it has no ST stage)
+
+- We assume branch generating cache misses in Patmos as being part of
+  load instructions
+
+- We do not model the data dependencies as it has nothing to do with
+  timing anomalies and would only artificially increase the number of
+  states (besides Patmos assumes no data dependencies, it is the job
+  of the compiler ...).
+
+- Branch behavior? Currently, we assume that the branch is not taken (fall through)
+  So pipeline flush is useless ...
+  => If we want to explore both branches, we should ...
+
+RESULTS
+
+- Demonstrate no timing anomaly for SIC: done, BMC needed is 23
+- Demonstrate no timing anomaly for Patmos: done, BMC needed is 14
+- Demonstrate no timing anomaly for PRET: done, BMC needed is 10
+- Demonstrate timing anomalies for inorder:
+  stalling before and without stalling variants => done, BMC needed is 31
+  stalling whole pipeline => done, BMC needed is 33 (I was expected an higher value)
+
+
+NOTES
+
+- We were unable to model using an array of record using UCLID. Arrays
+  of values works well, but we want to update a subset of an element
+  of an array -> TLA+ seems better here. Similary we are unable to use
+  prime value easily in a next block as we need to update a full
+  variable. It is not allowed to update a field of a record for
+  instance ==> one solution would be to model an instruction as a flat
+  structure. This means that we have a lot of parameters to set when
+  creating an instance of an instruction but that does not hurt ...
+
+- a ST stage ensures that store accesses are performed in a asynchronous way.
+  SIC paper models a write-allocate policy on write miss. No-write allocate policy
+  would mean that MEM delays are ignored
+  Note: If you think about the K1 processor => writes are never blocked ==>
+  An infinite number of instructions can be in the ST stage => be careful for the sanity check
+  For load, K1 as x loads in parallel possible, meaning that a timing anomay occurs
+  if the number of instruction in MEM and IF stages is higher than x
 
 - stores are asynchronous with the pipeline => be careful
   Write Allocate vs. No write allocate
@@ -42,139 +102,3 @@
 	and write allocate => a write for any potential evicted
 	data, then a load, then a write
 
-- The alt design of instruction is only correct for the previous.
-  Reaching latency of 0 in a given stage does not mean we can proceed
-  to the next stage! => we should check and put together the rule
-  about whether the next stage is going to be free or not!
-  => IT IS NOT CORRECT AT ALL, if previous is blocked a sufficient number of time,
-     current will reach him and as it will not be block will be in the same stage
-     => NOTE: This is not a problem for checking timing anomaly, as a timing anomaly
-     	      will occur before this incorrect behavior can be noticed.
-
-- Design specific test to check that the no timing anomaly is correct
-  => when fetch is already in progress (timing anomaly)
-  => when transition on fetch and latency is 1 (no timing anomaly)
-  => when transition on fetch and latency is > 1 (timing anomaly)
-
-- Redesign the use of regs or not -> duplicate instruction module or
-  check that putting assume does not introduce an overhead
-
-- In instruction, put assume to specify the latency of instruction
-  (nop, branch_op may not have fixed_latencies = 1)
-
-- Discuss the ready procedure when in the EX stage: specific to SIC
-  no?  => YES, specific to SIC model, corresponds to the case of
-  instruction cache hit but data cache miss.
-
-- The no timing anomaly property LTL version is incorrect (well
-  pessimistic, i.e. can lead to say that a processos is not free from
-  timing anomalies, while it can be free from timing anomalies) ! =>
-  1) the current instruction can be in the fetch stage. However, its
-  latency should not be higher than 1. If it is equal to 1, than this
-  is equivalent to a a cache hit => so no memory acces. If it is
-  higher than 1, than this means that, a cache miss will occur. 2) we
-  do not capture the fact that the instruction current must be in the
-  IF stage before instruction previous reaches the MEM stage.
-  
-  NOTE: the property using the delay is correct. But be careful, this
-  is due to the fact that the previous instruction is never
-  blocked. If it is possible to block it, then we must add in the
-  property cheking if it can progress in the next stage. => Does this
-  means that we do not model this case? Do we need to put additional
-  delays for the previous instruction?
-  
-  NOTE: the simplified LTL property is correct for SIC as we do not
-  handle caches ...
-
-- Need to check the simultaneous transition for current and previous
-  to repsectively MEM and IF stages to ensure that we detect this case ...
-  
-- The sanety_latencies property is becoming too big in
-  property-default => split it per opcode for better readability
-
-- To compute delays => find an example that should lead to a delay higher than 1
-  and see if we can reproduce and capture it
-
-- Change fixed and var latencies into latencies (more generic)
-
-- Mismatch with SIC model: inst_ready is performed in the SIC paper
-  only when latency == 0. In addition, check how is handle the latency
-  value between the MEM and ST stage in the SIC paper (store op stays
-  1 cycle in MEM and the other cycles in the ST stage?)
-
-  => check that the bmc bound is sufficient => interested in stage after mem for previous? => no
-
-- Only 2 values for latencies in order to model cache hit et miss (no
-  need to have an interval) => there could be more values depending on
-  whether a line a cache should be evicted before loading a new one in fact ...
-  ==> NO WAIT, an interval is needed to abstract the distance between current and previous
-      instructions and to ensure that our abstract model using 2 instructions is
-      sufficient to cover all cases ? Then, what should be the values?
-
-- Model branch behavior for the in-order pipeline? Do we model only a
-  path of a program? ==> model an assume on the current instruction
-  when previous branch op has been executed in order to leave current
-  in his current stage (no branch) or put it back in the pre stage (branch taken)
-
-- Refactoring code between rules and instruction/pipeline (WiP) to avoid duplicating
-  rules. In fact in the rules for a specific pipeline, we only look at instructions
-  => they are not modified in those modules, only in the instruction modules
-  So it migth be better to have instances of instruction in the module
-  instruction in order to define generic rules in this module
-
-- Handle delays not within each specialized pipeline (rules module)
-  but instead in the instruction/pipeline module. This would avoid the
-  files inorder-delays.ucl and sic-delays.ucl. But this requires a
-  refactoring between rules and instruction/pipeline as the associated procedure
-  requires to access to both current and previous instructions
-
-- Specify PRET and Patmos rules
-
-- Develop a version using prime variables for instruction module
-  => cannot update a part of a record (no similar except keyword as in TLA+)
-  => this means that the isa model should be flat
-
-- Develop a version with several subsequent instructions => should be
-  generated from a description of a pipeline
-
-RESULTS
-
-- Demonstrate no timing anomaly using LTL property for SIC initial: DONE (but bmc bound tightness has not been verified)
-- Demonstrate no timing anomaly using LTL property for SIC simplified: DONE (but bmc bound tightness has not been verified)
-- Demonstrate no timing anomaly using invariant property for SIC (simplified with delays):
-- Compute delays for inorder pipeline:
-  => This should be done for various values of latencies => but which one
-- Show the equivalence between SIC initial and SIC simplified => well this is true if we do not model cache hit and cache miss
-  => Demonstrate no timing anomaly using LTL property for SIC simplified:
-  => Do functional equivalence and check the state and latency values for both instructions are always equal:
-- Demonstrate no timing anomaly using LTL property for SIC simplified without store_pending
-  => The meaning is that an unlimited number of store request can be present in ST stage 
-- Demonstrate no timing anomaly using LTL property for SIC simplified with a max outstanding memory request (assume targeting different areas)
-- Demonstrate no timing anomaly using LTL property for Patmos
-
-
-NOTES
-
-- The LTL property of no_timing_anomaly assume that we do not
-  distinguish cache hit and misses in the pipeline rules. If we
-  distinguish cache hit and misses, then current being in Fetch and
-  instruction cache hit for current is fine. The property should be:
-  (old_property && pipeline.previous.instr.dmiss) ==>
-  (pipeline.current.instr.stage != IF && !pipeline.current.instr.stage.imiss)
-
-- We were unable to model using an array of record using UCLID. Arrays
-  of values works well, but we want to update a subset of an element
-  of an array -> TLA+ seems better here. Similary we are unable to use
-  prime value easily in a next block as we need to update a full
-  variable. It is not allowed to update a field of a record for
-  instance ==> one solution would be to model an instruction as a flat
-  structure. This means that we have a lot of parameters to set when
-  creating an instance of an instruction but that does not hurt ...
-
-- a ST stage ensures that store accesses are performed in a asynchronous way.
-  SIC paper models a write-allocate policy on write miss. No-write allocate policy
-  would mean that MEM delays are ignored
-  Note: If you think about the K1 processor => writes are never blocked ==>
-  An infinite number of instructions can be in the ST stage => be careful for the sanity check
-  For load, K1 as x loads in parallel possible, meaning that a timing anomay occurs
-  if the number of instruction in MEM and IF stages is higher than x
