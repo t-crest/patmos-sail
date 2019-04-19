@@ -2,8 +2,12 @@ module isa {
   // Pipeline stages
   type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
 
+//  type stage_k1_t = enum { pre, PF, ID, RR, E1, E2, E3, E4, post };
+
   // Opcode 
   type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
+
+  //type opcode_k1_t = enum { alu_op, lsu_op, bcu_id_op, bcu_rr_op, mau_op };
 
   // Registers. 5 bits to allow 32 registers
   type reg_t = bv5;
@@ -18,6 +22,8 @@ module isa {
   type fixed_latency_t = record { id: integer, ex: integer, wb: integer };
 
   type latencies_t = record { fetch: integer, id: integer, ex: integer, mem: integer, wb: integer};
+
+  type latencies_k1_t = record { fetch: integer, mem: integer};
 
   // Instruction 
   type inst_regs_t = record { opcode: opcode_t,

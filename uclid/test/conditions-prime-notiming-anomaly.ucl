@@ -37,6 +37,8 @@ module conditions {
     assume(latencies_j.wb == 1);            
     assume(stage_i == pre || stage_i == IF || stage_i == ID || stage_i == EX ||
            stage_i == MEM || stage_i == ST || stage_i == WB);
+    // This is to allow only store operation to start from ST stage
+    assume(stage_i == ST ==> op_i == store_op);
   }
 
   next {

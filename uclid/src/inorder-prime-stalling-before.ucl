@@ -32,7 +32,7 @@ module inorder {
       	     	       	   new = ST; latency = in_latency - 1;
 			   // This should avoid letting a store in the ST unnecessary
 			   // (In case it has initially a latency of 1 in the mem stage
-      	     	       	   if (latency == 0) { new = post; }
+      	     	       	   if (latency <= 0) { new = post; latency = 0;}
 			 }
 	  	    	 else { new = WB; latency = latencies.wb; }
 		       }
