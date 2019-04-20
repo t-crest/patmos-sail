@@ -1,8 +1,5 @@
 TODO
 
-- Check the inorder / inorder-stalling-before / inorder-stalling-whole variants
-  using invariants
-
 - Check the use of store_pending rule => if current is a load
   operation and generates a cache miss in MEM stage, then what is
   required is on that no store is pending. If a store is pending, then
