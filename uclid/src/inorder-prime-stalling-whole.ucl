@@ -86,8 +86,11 @@ module inorder {
     // And the pipeline is not stalled due to a cache miss in the MEM stage
     if (current_latency <= 1 && !stalled) {
       case
-	// ... and its targeted next stage is not occupied by the previous 
-        (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
+	// ... and its targeted next stage is not occupied by the previous
+        (current_stage == pre) : { if (pprime_stage != IF &&
+		       	       	       // This is to give priority to data access
+		       	       	       (pprime_stage != MEM ||
+				        previous_latencies.mem == 1)) { b = true; }}  	
         (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
         (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	

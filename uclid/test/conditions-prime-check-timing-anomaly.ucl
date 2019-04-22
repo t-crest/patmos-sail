@@ -10,20 +10,43 @@ module conditions {
 		       cond_stage_i: (stage_i));
   
   init {
-    // Check the next stage ready logic (in stage MEM)
+    // Do the 3 tests with load as well
     assume(op_i == store_op);
     assume(op_j == other_op);
     assume(latencies_i.fetch == 1);
     assume(latencies_i.id == 1);
-    assume(latencies_i.ex == 1);    
-    assume(latencies_i.mem == 2);
-    assume(latencies_i.wb == 1);        
-    assume(latencies_j.fetch == 4);
+    assume(latencies_i.ex == 1);
+
+    assume(latencies_i.wb == 1);
     assume(latencies_j.id == 1);
     assume(latencies_j.ex == 1);        
     assume(latencies_j.mem == 1);
     assume(latencies_j.wb == 1);
-    assume(stage_i == IF);
+
+    // Case when current is trying to move to IF
+    // while previous is trying to move to MEM
+    // => current must wait
+    // assume(latencies_i.mem == 2);
+    // assume(stage_i == EX);
+    // assume(latencies_j.fetch == 4);
+
+    // Case when current is already in fetch while
+    // previous tries to move to mem
+    // => previous must wait
+    // assume(latencies_i.mem == 2);
+    // assume(stage_i == ID);
+    // assume(latencies_j.fetch == 4);
+
+    // With these values, inorder is only for issue, not for retired
+    assume(latencies_i.mem == 7);
+    assume(stage_i == ID);
+    assume(latencies_j.fetch == 4);
+
+    // Same as first but both are cache hit
+    // => no one wait
+    // assume(latencies_i.mem == 1);
+    // assume(stage_i == EX);
+    // assume(latencies_j.fetch == 1);
   }
 
   next {

@@ -1,20 +1,5 @@
 TODO
 
-- Check the use of store_pending rule => if current is a load
-  operation and generates a cache miss in MEM stage, then what is
-  required is on that no store is pending. If a store is pending, then
-  the load is could jump in the memory stage and tries to generate a
-  cache miss. However, this is fine to me as it will not delay the
-  previous instruction ... And if a load is pending (cache miss), well
-  current will be blocked. => checking absence of timing anomalies
-  without this store_pending rule
-  	   
-
-- Design specific test to check that the no timing anomaly is correct
-  => when fetch is already in progress (timing anomaly)
-  => when transition on fetch and latency is 1 (no timing anomaly)
-  => when transition on fetch and latency is > 1 (timing anomaly)
-
 - Cleanup old models & separate per processor type
 
 - Model K1 pipeline
@@ -51,7 +36,9 @@ RESULTS
 - Demonstrate timing anomalies for inorder:
   stalling before and without stalling variants => done, BMC needed is 31
   stalling whole pipeline => done, BMC needed is 33 (I was expected an higher value)
-
+- Demonstrate no timing anomay for SIC without no store pending when in EX stage
+- Check the behavior of previous and current for simultaneous willing of transition
+  (cache miss, cache hit)
 
 NOTES
 
@@ -63,6 +50,29 @@ NOTES
   instance ==> one solution would be to model an instruction as a flat
   structure. This means that we have a lot of parameters to set when
   creating an instance of an instruction but that does not hurt ...
+
+
+- Check the use of store_pending rule => For current to reach stage
+  EX, this implies a cache hit in IF or no mempending. When current
+  reach stage EX, it can only go in MEM. If it is a hit in MEM, it
+  will go in MEM for 1 cycle and then directly in post if a store (as
+  no WB stage), while in WB and then in post if a load.
+
+  If no store_pending, ST is free and MEM potentially.  Then, if
+  current is a store => no problem as ST is free: current can enter in
+  the MEM stage it will not be blocked after. If current is a load,
+  MEM may potentially be blocked: the willbefree rule will prevent any
+  way the instruction to progress. Removing no storepending, ST may
+  not be free as well. The current instruction cannot enter in the MEM
+  if previous is a load (willbefree will prevent this in this case as
+  well), so no problem. However, if previous is a store => when
+  current is a load, current can enter in MEM and no problem. If
+  current is a store, then current can enter in MEM and later being
+  blocked in MEM while ST is occupied by previous.
+  => So putting  no store pending is to allow only 1 single outstanding store
+  
+  => It has nothing to do with the timing anomaly if we assume that a
+  store stays in the MEM stage for the time needed to pipeline stores. 
 
 - a ST stage ensures that store accesses are performed in a asynchronous way.
   SIC paper models a write-allocate policy on write miss. No-write allocate policy

@@ -144,10 +144,10 @@ module sic {
 				 }  
         (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
-        (current_stage == EX)  : { /*call store_pending(pprime_stage);*/
+        (current_stage == EX)  : { call store_pending(pprime_stage);
 		       	           if (pprime_stage != MEM &&
 				       ((current_op != store_op && current_op != load_op) ||
-				        (/*!is_store_pending ||*/ current_latencies.mem == 1)))
+				        (!is_store_pending || current_latencies.mem == 1)))
 				     { b = true; }
 				 }	
         (current_stage == MEM) : { if ((current_op == store_op && pprime_stage != ST) ||

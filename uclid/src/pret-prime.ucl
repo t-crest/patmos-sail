@@ -66,7 +66,9 @@ module pret {
     // And the pipeline is not stalled due to a cache miss in the MEM stage
     if (current_latency <= 1) {
       case
-	// ... and its targeted next stage is not occupied by the previous 
+	// ... and its targeted next stage is not occupied by the previous
+	// There is no need to check if pprime_stage is different from MEM as
+	// the latency is that stage is alway equal to 1
         (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
         (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
