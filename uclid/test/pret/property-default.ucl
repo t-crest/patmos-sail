@@ -18,6 +18,11 @@ module main {
   				        run.cond.pipeline.current_stage == WB)
 				      	==> run.cond.pipeline.current_stage != run.cond.pipeline.previous_stage);
 
+  invariant equal_tid: ((run.cond.pipeline.current_tid == run.cond.pipeline.previous_tid &&
+  	    	         run.cond.pipeline.previous_stage != post && run.cond.pipeline.current_stage != post &&
+			 run.cond.pipeline.current_stage != pre && run.cond.pipeline.previous_stage != pre)
+  	    		==> ((run.cond.pipeline.current_stage == IF && run.cond.pipeline.previous_stage == WB)));
+
   invariant no_negative_latency: (run.cond.pipeline.current_latency >= 0 &&
   	    			  run.cond.pipeline.previous_latency >= 0);
 

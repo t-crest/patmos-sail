@@ -1,6 +1,0 @@
-module param {
-  const bmc_depth: integer = 45;
-
-  const max_latency: integer = 10;
-}
-
