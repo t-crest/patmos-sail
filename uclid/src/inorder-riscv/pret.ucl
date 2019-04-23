@@ -1,25 +1,26 @@
 module pret {
 
-  input current_op, previous_op: isa.opcode_t;
-  input current_latencies, previous_latencies: isa.latencies_t;
+  input current_op, previous_op: common.opcode_t;
+  input current_latencies, previous_latencies: common.latencies_t;
   input input_current_tid, input_previous_tid: bv2;  
-  input input_previous_stage: isa.stage_t;
+  input input_previous_stage: common.stage_t;
 
   // The instruction
-  var previous_stage: isa.stage_t;
+  var previous_stage: common.stage_t;
   var previous_latency: integer;
   var previous_delay: integer;
   var previous_progress: boolean;
   var previous_tid: bv2;
 
-  var current_stage: isa.stage_t;
+  var current_stage: common.stage_t;
   var current_latency: integer;  
   var current_delay: integer;  
   var current_progress: boolean;
   var current_tid: bv2;
 
   // This computes the next stage and latency of an instruction (previous and current)
-  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, in_latency: integer, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
+  procedure next_stage(stage: common.stage_t, opcode: common.opcode_t, in_latency: integer, latencies: common.latencies_t)
+  returns (new: common.stage_t, latency: integer) {
     case
       (stage == pre) : { new = IF; latency = latencies.fetch; }
       (stage == IF)  : { new = ID; latency = latencies.id; }
@@ -35,7 +36,8 @@ module pret {
   }
 
   // This is the condition for the previous instruction to check if it can progress
-  procedure check_previous_progress(input_delay: integer) returns(b: boolean, output_delay: integer) {
+  procedure check_previous_progress(input_delay: integer)
+  returns(b: boolean, output_delay: integer) {
     // By default the instruction cannot move to the next stage 
     b = false;
     output_delay = input_delay;
@@ -58,7 +60,8 @@ module pret {
   }
 
   // This is the condition to check whether current can progress or not
-  procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
+  procedure check_current_progress(pprime_stage: common.stage_t)
+  returns (b: boolean) {
     // By default the instruction cannot move to the next stage
     b = false;
 

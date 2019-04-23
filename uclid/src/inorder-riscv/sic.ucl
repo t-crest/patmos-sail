@@ -1,22 +1,27 @@
-module inorder {
+module sic {
 
-  input current_op, previous_op: isa.opcode_t;
-  input current_latencies, previous_latencies: isa.latencies_t;
-  input input_previous_stage: isa.stage_t;
+  input current_op, previous_op: common.opcode_t;
+  input current_latencies, previous_latencies: common.latencies_t;
+  input input_previous_stage: common.stage_t;
 
   // The instruction
-  var previous_stage: isa.stage_t;
+  var previous_stage: common.stage_t;
   var previous_latency: integer;
   var previous_delay: integer;
   var previous_progress: boolean;  
 
-  var current_stage: isa.stage_t;
+  var current_stage: common.stage_t;
   var current_latency: integer;  
   var current_delay: integer;  
   var current_progress: boolean;
 
+  var is_branch_pending : boolean;
+  var is_mem_pending: boolean;
+  var is_store_pending: boolean;
+
   // This computes the next stage and latency of an instruction (previous and current)
-  procedure next_stage(stage: isa.stage_t, opcode: isa.opcode_t, in_latency: integer, latencies: isa.latencies_t) returns (new: isa.stage_t, latency: integer) {
+  procedure next_stage(stage: common.stage_t, opcode: common.opcode_t, in_latency: integer, latencies: common.latencies_t)
+  returns (new: common.stage_t, latency: integer) {
     case
       (stage == pre) : { new = IF; latency = latencies.fetch; }
       (stage == IF)  : { new = ID; latency = latencies.id; }
@@ -39,7 +44,8 @@ module inorder {
   }
 
   // This is the condition for the previous instruction to check if it can progress
-  procedure check_previous_progress(input_delay: integer) returns(b: boolean, output_delay: integer) {
+  procedure check_previous_progress(input_delay: integer)
+  returns(b: boolean, output_delay: integer) {
     // By default the instruction cannot move to the next stage 
     b = false;
     output_delay = input_delay;
@@ -65,8 +71,59 @@ module inorder {
     }
   }
 
+  procedure branch_pending (pprime_stage: common.stage_t)
+  modifies is_branch_pending; {
+    is_branch_pending = false;
+
+    if (previous_op == branch_op &&
+        (pprime_stage == IF ||
+  	 pprime_stage == ID ||
+  	 pprime_stage == EX)) {
+  	is_branch_pending = true;
+    }
+  }
+
+  procedure mem_pending (pprime_stage: common.stage_t)
+  modifies is_mem_pending, is_store_pending; {
+    var is_load_pending : boolean;
+
+    is_store_pending = false;
+    is_mem_pending = false;
+    is_load_pending = false;
+
+    if (previous_op == load_op &&
+        previous_latencies.mem > 1 &&
+      	(pprime_stage == IF ||
+  	 pprime_stage == ID ||
+  	 pprime_stage == EX || 
+  	 pprime_stage == MEM))  {
+  	is_load_pending = true;
+    }
+
+    call store_pending(pprime_stage);
+
+    is_mem_pending = is_store_pending || is_load_pending;
+  }
+
+  procedure store_pending (pprime_stage: common.stage_t)
+  modifies is_store_pending; {
+    is_store_pending = false;
+
+    if (previous_op == store_op &&
+        previous_latencies.mem > 1 &&
+        (pprime_stage == IF ||
+  	 pprime_stage == ID ||
+  	 pprime_stage == EX ||
+  	 pprime_stage == MEM ||
+	 pprime_stage == ST)) {
+  	is_store_pending = true;
+    }   
+  }
+
   // This is the condition to check whether current can progress or not
-  procedure check_current_progress(pprime_stage: isa.stage_t) returns (b: boolean) {
+  procedure check_current_progress(pprime_stage: common.stage_t)
+  returns (b: boolean)
+  modifies is_mem_pending, is_branch_pending, is_store_pending; {
     // By default the instruction cannot move to the next stage
     b = false;
 
@@ -78,14 +135,24 @@ module inorder {
     // And the pipeline is not stalled due to a cache miss in the MEM stage
     if (current_latency <= 1) {
       case
-	// ... and its targeted next stage is not occupied by the previous 
-        (current_stage == pre) : { if (pprime_stage != IF &&
-		       	       	       // This is to give priority to data access
-		       	       	       (pprime_stage != MEM ||
-				        previous_latencies.mem == 1)) { b = true; }}  		
+	// ... and its targeted next stage is not occupied by the previous
+	// ... plus the specific rules for SIC
+        (current_stage == pre) : { call branch_pending(pprime_stage);
+		       	       	   call mem_pending(pprime_stage);
+		       	       	   if (pprime_stage != IF &&
+				       !is_branch_pending &&
+				       (!is_mem_pending ||
+				       	current_latencies.fetch == 1))
+				     { b = true; }
+				 }  
         (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
-        (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	
+        (current_stage == EX)  : { call store_pending(pprime_stage);
+		       	           if (pprime_stage != MEM &&
+				       ((current_op != store_op && current_op != load_op) ||
+				        (!is_store_pending || current_latencies.mem == 1)))
+				     { b = true; }
+				 }	
         (current_stage == MEM) : { if ((current_op == store_op && pprime_stage != ST) ||
 	       	       	       	       (current_op != store_op && pprime_stage != WB))
 	       	       	   	   { b = true; }
@@ -114,6 +181,10 @@ module inorder {
     current_latency = 0;
     current_delay = 0;
     current_progress = false;
+
+    is_branch_pending = false;
+    is_mem_pending = false;
+    is_store_pending = false;
   }
 
   // Updating the state of the instructions

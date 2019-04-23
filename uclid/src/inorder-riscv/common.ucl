@@ -1,0 +1,10 @@
+module common {
+  // Pipeline stages
+  type stage_t = enum { pre, IF, ID, EX, MEM, ST, WB, post };
+
+  // Opcode 
+  type opcode_t = enum { nop, load_op, store_op, branch_op, other_op };
+
+  // Latencies information for each instruction
+  type latencies_t = record { fetch: integer, id: integer, ex: integer, mem: integer, wb: integer};
+}
