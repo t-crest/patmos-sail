@@ -2,7 +2,7 @@ UCLID = uclid
 
 DIR ?= riscs
 # Possible rules for run-specific: patmos, pret
-# Possible rules for run-sic: sic
+# Possible rules for run-sic: sic (this model is intermediate: specific for test and param but not for conditions and properties)
 # Possible rules for inorder: inorder-nostalling-onmiss, inorder-stalling-before-onmiss, inorder-stalling-whole-onmiss
 RULES ?= inorder
 APP ?= test-check
