@@ -1,7 +1,5 @@
 TODO
 
-- Update Makefile
-
 - Model K1 pipeline
 
 - Compute maximal delay an instruction can experience
