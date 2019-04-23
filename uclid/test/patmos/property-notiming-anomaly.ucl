@@ -1,7 +1,7 @@
 module main {
 
-  type stage_t = isa.stage_t;
-  type opcode_t = isa.opcode_t;
+  type stage_t = common.stage_t;
+  type opcode_t = common.opcode_t;
 
   instance run : conditions();
 

@@ -1,6 +1,7 @@
 TODO
 
 - Cleanup old models & separate per processor type
+  Update Makefile
 
 - Model K1 pipeline
 

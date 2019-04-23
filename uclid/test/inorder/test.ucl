@@ -2,9 +2,9 @@ module test {
 
   var step : integer;
 
-  input cond_op_i, cond_op_j: isa.opcode_t;
-  input cond_latencies_i, cond_latencies_j: isa.latencies_t;
-  input cond_stage_i: isa.stage_t;  
+  input cond_op_i, cond_op_j: common.opcode_t;
+  input cond_latencies_i, cond_latencies_j: common.latencies_t;
+  input cond_stage_i: common.stage_t;  
 
   instance pipeline : inorder(current_op: (cond_op_j), previous_op: (cond_op_i),
   	   	              current_latencies: (cond_latencies_j),

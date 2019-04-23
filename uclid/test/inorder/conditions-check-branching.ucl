@@ -1,8 +1,8 @@
 module conditions {
 
-  var op_i, op_j: isa.opcode_t;
-  var latencies_i, latencies_j: isa.latencies_t;
-  var stage_i: isa.stage_t;
+  var op_i, op_j: common.opcode_t;
+  var latencies_i, latencies_j: common.latencies_t;
+  var stage_i: common.stage_t;
 
   instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
   	   	       cond_latencies_i: (latencies_i),
@@ -17,13 +17,11 @@ module conditions {
     assume(latencies_i.id == 1);
     assume(latencies_i.ex == 1);    
     assume(latencies_i.mem == 1);
-//    assume(latencies_i.st == 1);
     assume(latencies_i.wb == 1);        
     assume(latencies_j.fetch == 1);
     assume(latencies_j.id == 1);
     assume(latencies_j.ex == 1);        
     assume(latencies_j.mem == 1);
-//    assume(latencies_j.st == 1);
     assume(latencies_j.wb == 1);
     assume(stage_i == IF);
   }
