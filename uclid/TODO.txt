@@ -37,8 +37,16 @@ RESULTS
   stalling before and without stalling variants => done, BMC needed is 31
   stalling whole pipeline => done, BMC needed is 33 (I was expected an higher value)
 - Demonstrate no timing anomay for SIC without no store pending when in EX stage
-- Check the behavior of previous and current for simultaneous willing of transition
+- Checked the behavior of previous and current for simultaneous willing of transition
   (cache miss, cache hit)
+
+HOW:
+
+Examples:
+uclid src/isa.ucl src/inorder-prime.ucl test/test-inorder-prime.ucl test/param-inorder-prime.ucl test/conditions-prime-notiming-anomaly.ucl test/property-prime-notiming-anomaly.ucl
+uclid src/isa.ucl src/inorder-prime-stalling-whole.ucl test/test-inorder-prime.ucl test/param-inorder-prime.ucl test/conditions-prime-notiming-anomaly.ucl test/property-prime-notiming-anomaly-stalled.ucl
+uclid src/isa.ucl src/sic-prime-withoutstore.ucl test/test-sic-simplified.ucl test/param-sic-notiming-anomaly.ucl test/property-prime-notiming-anomaly.ucl
+...
 
 NOTES
 
