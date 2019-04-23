@@ -1,0 +1,9 @@
+module common {
+
+  type stage_t = enum { pre, PF, ID, RR, E1, E2, E3, E4, post };
+
+  // Opcode 
+  type opcode_t = enum { alu_op, lsu_op, bcu_id_op, bcu_rr_op, mau_op };
+
+  type latencies_t = record { fetch: integer, mem: integer};
+}

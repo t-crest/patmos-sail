@@ -1,0 +1,23 @@
+module test {
+
+  var step : integer;
+
+  input cond_op_i, cond_op_j: common.opcode_t;
+  input cond_latencies_i, cond_latencies_j: common.latencies_t;
+  input cond_stage_i: common.stage_t;  
+
+  instance pipeline : k1(current_op: (cond_op_j), previous_op: (cond_op_i),
+  	   	              current_latencies: (cond_latencies_j),
+			      previous_latencies: (cond_latencies_i),
+			      input_previous_stage: (cond_stage_i));
+
+  init {
+    step = 0;
+  }
+
+  next {
+    step' = step + 1;
+    next(pipeline);
+  }
+}
+  
