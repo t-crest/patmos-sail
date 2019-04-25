@@ -15,10 +15,8 @@ module conditions {
     // Assume all type of opcodes for now
     // TODO: need to add the instruction constraints
     // (see section 7 of K1 assembly level optimization)
-    assume(op_i == alu_op || op_i == lsu_op || op_i == bcu_id_op ||
-    	   op_i == bcu_rr_op || op_i == mau_op);
-    assume(op_j == alu_op || op_j == lsu_op || op_j == bcu_id_op ||
-    	   op_j == bcu_rr_op || op_j == mau_op);
+    assume(op_i == alu_op || op_i == load_op || op_i == store_op);
+    assume(op_j == alu_op || op_j == load_op || op_j == store_op);
     // Assume variable latencies for all instructions in IF stage
     assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
     assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
@@ -27,16 +25,16 @@ module conditions {
     	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
     assume((op_j == load_op)
     	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
-    // Stores are purely asynchronous and thus their bundles do not store
-    // Kalray doc says: "Thus their execution latency is always 1. However,
-    // they can make the d$ busy which may in turn stall the pipeline should
-    // the core want to access the cache."
-    assume((op_i == store_op)
+    // Stores are purely asynchronous and thus their bundles do not stall
+    // Other operations involve no memory accesses ...
+    assume((op_i != load_op)
     	   ==> latencies_i.mem == 1);
-    assume((op_j == load_op)
-    	   ==> latencies_i.mem == 1);
+    assume((op_j != load_op)
+    	   ==> latencies_j.mem == 1);	   
     assume(stage_i == pre || stage_i == PF || stage_i == ID || stage_i == RR ||
-           stage_i == E1 || stage_i == E2 || stage_i == E3 || stage_i == E4);
+           stage_i == E1 || stage_i == E2 || stage_i == E3);
+    assume((op_i == mau_op) ==> stage_i == E4);
+    assume(data_cache_blocked_i == 10);	   
   }
 
   next {

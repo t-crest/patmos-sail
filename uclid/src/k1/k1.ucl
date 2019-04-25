@@ -21,6 +21,19 @@
 // Currently we assume a single-issue core.
 // TODO: make it 5-issue
 
+// When the instruction words requested by the PFB are not in the cache,
+// they are fetched from memory and stored into the cache. During this
+// time the core stalls. The requested instruction bundle is then
+// returned to the instruction buffer.
+// => core stalls mean: whole pipeline or instruction later in the pipe?
+
+// When data to be loaded by the core are not in the cache, they are
+// fetched from memory and stored into the cache. During this time the
+// core stalls except data streaming is enabled by setting the USE bit of
+// the PS register, see Section 2.2. In case data streaming is enabled,
+// the core continues execution until it is stalled by a dependency on
+// the loaded data.
+
 module k1 {
 
   // TODO: expand by an array of opcodes (5 issue)
@@ -62,15 +75,14 @@ module k1 {
       (stage == E1)  : { new = E2; latency = 1; }
       (stage == E2)  : { new = E3; latency = 1;
       	     	         // TODO: this should be, if any opcode is a load ...
-      	     	       	 if (opcode == load_op && latencies.mem > 1) {
+      	     	       	 if (opcode == load_op || opcode == store_op) {
 			  latency = latencies.mem;
 			 }
 		       }
-      (stage == E3)  : { new = E4; latency = 1;
-      	     	         // TODO: this should be, if any opcode is a store ...
-      	     	         if (opcode == store_op && latencies.mem > 1) {
-			   latency = latencies.mem; 
-			 }
+      (stage == E3)  : { // All instructions exit when leaving stage E3
+      	     	       	 // (LSU and ALU operations), except MAU
+      	     	         new = post; latency = 0;
+			 if (opcode == mau_op) { new = E4; latency = 1; }
 		       }
       (stage == E4 || stage == post) : { new = post; latency = 0;}
     esac  
@@ -92,7 +104,7 @@ module k1 {
     }
     // Here we set the amount of time the data is unavailable in case of a load cache miss
     if (previous_op == load_op && pprime_stage == E3 && previous_latencies.mem > 1) {
-       new = previous_latencies.mem + 3;
+       new = 3; // Due to the critical word first
     }
   }
 
@@ -155,8 +167,11 @@ module k1 {
 // computed using Table 1 of section 3
         (current_stage == RR)  : { if (pprime_stage != E1) { b = true; }}	
         (current_stage == E1)  : { if (pprime_stage != E2) { b = true; }}
-        (current_stage == E2)  : { if (pprime_stage != E3) { b = true; }}		
-        (current_stage == E3)  : { if (pprime_stage != E4) { b = true; }}
+        (current_stage == E2)  : { if (pprime_stage != E3) { b = true; }}
+		       	       	   // As all instructions are leaving at stage E3
+				   // except MAU instructions
+        (current_stage == E3)  : { if (pprime_stage != E4 ||
+		       	       	       current_op != mau_op) { b = true; }}
 	// Willing to switch from these stages mean exiting the pipeline ...
         (current_stage == E4)  : { b = true; }
       esac

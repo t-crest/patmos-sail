@@ -40,13 +40,15 @@ module main {
 		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
     		   run.cond.pipeline.previous_latency, 
 		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay,
-		   run.cond.pipeline.pipeline_stalled, run.cond.pipeline.blocked_data_cache);
+		   run.cond.pipeline.pipeline_stalled, run.cond.pipeline.blocked_data_cache,
+		   run.latencies_i, run.latencies_j);		   
     vunroll.print_cex(run.cond.pipeline.current_op, run.cond.pipeline.current_stage,
     		   run.cond.pipeline.current_latency, 
 		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delay,		   
 		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
     		   run.cond.pipeline.previous_latency, 
 		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay,
-		   run.cond.pipeline.pipeline_stalled, run.cond.pipeline.blocked_data_cache);
+		   run.cond.pipeline.pipeline_stalled, run.cond.pipeline.blocked_data_cache,
+		   run.latencies_i, run.latencies_j);		   
   }
 }

@@ -8,7 +8,7 @@ module common {
   // Currently, we assume that load_op stall in E3 only (and blocks the cache)
   // Currently, we assume that store_op does not stall but blocks the cache
   // Currently, we only consider load, store and alu operations ...
-  type opcode_t = enum { alu_op, load_op, store_op };
+  type opcode_t = enum { alu_op, load_op, store_op, mau_op };
 
   // Semantic: latency of mem is the amout of time the instruction
   // is going to wait when its reaches the stage where stalling occur

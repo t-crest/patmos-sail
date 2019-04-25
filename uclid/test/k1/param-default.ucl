@@ -1,4 +1,10 @@
 module param {
-  const bmc_depth: integer = 20;
+  // Checking depth for invariants
+  const bmc_depth: integer = 32;
+
+  // For no timing anomaly property
+  //const bmc_depth: integer = 33;
+
+  const max_latency: integer = 10;
 }
 

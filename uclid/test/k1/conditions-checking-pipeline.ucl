@@ -12,15 +12,36 @@ module conditions {
 		       cond_data_cache_i: (data_cache_blocked_i));
   
   init {
-    // Assume all type of opcodes for now
-    assume(op_i == store_op);
+    // The load is stalled as the cache is busy
+    assume(op_i == load_op);
     assume(op_j == load_op);
     assume(latencies_i.fetch == 1);
     assume(latencies_j.fetch == 1);
-    assume(latencies_i.mem == 1);
+    assume(latencies_i.mem == 4);
     assume(latencies_j.mem == 3);
-    assume(stage_i == pre);
+    assume(stage_i == PF);
     assume(data_cache_blocked_i == 5);
+
+    // The alu is not stalled as it does not use the cache
+    // assume(op_i == store_op);
+    // assume(op_j == load_op);
+    // assume(latencies_i.fetch == 1);
+    // assume(latencies_j.fetch == 1);
+    // assume(latencies_i.mem == 1);
+    // assume(latencies_j.mem == 3);
+    // assume(stage_i == PF);
+    // assume(data_cache_blocked_i == 5);
+
+    // Examples of section 4.1.1.1 requires data dependency rules
+
+    // assume(op_i == load_op);
+    // assume(op_j == alu_op);
+    // assume(latencies_i.fetch == 1);
+    // assume(latencies_j.fetch == 1);
+    // assume(latencies_i.mem == 1);
+    // assume(latencies_j.mem == 3);
+    // assume(stage_i == PF);
+    // assume(data_cache_blocked_i == 5);
   }
 
   next {
