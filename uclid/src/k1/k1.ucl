@@ -1,40 +1,99 @@
+// k1 processor features 5 primary execution
+// units (EXUs) :
+// • 2 ALUs
+// • 1 MAU
+// • 1 LSU
+// • 1 BCU
+
+// These five execution units are primarily connected through a shared
+// register file of 64 32-bit general-purpose registers (GPRs), which
+// allows for 11 reads and 4 writes per cycle. The current
+// implementation of the k1 features 9 simple read ports, 1 double read
+// port, 2 simple write ports, 2 double write ports and 1 special
+// simple write port.
+
+// => TODO: should we consider read/write ports constraints and check them?
+//   => or are we at an higher abstract level?
+
+// Only upstream instructions in the pipeline are blocked on cache misses and not
+// whole pipeline
+
+// Currently we assume a single-issue core.
+// TODO: make it 5-issue
+
 module k1 {
 
+  // TODO: expand by an array of opcodes (5 issue)
   input current_op, previous_op: common.opcode_t;
   input current_latencies, previous_latencies: common.latencies_t;
   input input_previous_stage: common.stage_t;
+  input data_cache_unavailable: integer;
 
-  // The instruction
+  // The instructions
   var previous_stage: common.stage_t;
   var previous_latency: integer;
   var previous_delay: integer;
-  var previous_progress: boolean;  
+  var previous_progress: boolean;
 
   var current_stage: common.stage_t;
   var current_latency: integer;  
   var current_delay: integer;  
   var current_progress: boolean;
 
+  // The amount of time the data cache is left unavailable after a load miss
+  var blocked_data_cache: integer;
+
+  // Stalling upstream instructions
+  var pipeline_stalled: boolean;
+
+  // As we have an array of opcodes for previous and current, next_stage should only be called
+  // when we are sure that an instruction can progress
+  // TODO: should we check that the 5 instructions have executed to remove it from pipeline?
+
   // This computes the next stage and latency of an instruction (previous and current)
+  // There is a single LSU unit, so bundle previous cannot be use several times the LSU unit
   procedure next_stage(stage: common.stage_t, opcode: common.opcode_t, in_latency: integer, latencies: common.latencies_t)
   returns (new: common.stage_t, latency: integer) {
     case
       (stage == pre) : { new = PF; latency = latencies.fetch; }
       (stage == PF)  : { new = ID; latency = 1; }
-      // TODO: need to check for bcu what is this write back port simple register needed at stage E3 ?
-      (stage == ID)  : { if (opcode == bcu_id_op) { new = post; latency = 0; }
-      	     	         else { new = RR; latency = 1; }
-		       }
-      (stage == RR)  : { if (opcode == bcu_rr_op) { new = post; latency = 0; }
-      	     	         else { new = E1; latency = 1; }
-		       }
+      (stage == ID)  : { new = RR; latency = 1; }
+      (stage == RR)  : { new = E1; latency = 1; }
       (stage == E1)  : { new = E2; latency = 1; }
-      (stage == E2)  : { new = E3; latency = 1; }
-      (stage == E3)  : { if (opcode == alu_op || opcode == lsu_op) { new = post; latency = 0; }
-      	     	       	 else { new = E4; latency = 1; }
+      (stage == E2)  : { new = E3; latency = 1;
+      	     	         // TODO: this should be, if any opcode is a load ...
+      	     	       	 if (opcode == load_op && latencies.mem > 2) {
+			  latency = latencies.mem - 2;
+			 }
+		       }
+      (stage == E3)  : { new = E4; latency = 1;
+      	     	         // TODO: this should be, if any opcode is a store ...
+      	     	         if (opcode == store_op && latencies.mem > 3) {
+			   latency = latencies.mem - 3; 
+			 }
 		       }
       (stage == E4 || stage == post) : { new = post; latency = 0;}
     esac  
+  }
+
+  procedure update_data_cache_blocked(pprime_stage: common.stage_t, old: integer)
+  returns (new: integer) {
+    new = old;
+    if (old > 0) { new = old - 1;}
+
+    // If we abstract the write policy (through or write back)
+    // we simply need to make the data cache unavailable for a
+    // given amout of time (the bound is not known as it depends
+    // on the availability of the SMEM!).
+    // The only case where no stalling occur is cache hit
+    // with write-back policy  
+    if (previous_op == store_op && pprime_stage == E1) {
+      new = data_cache_unavailable;
+    }
+    // Here we set the amount of time the data is unavailable in case of a load cache miss
+    if (previous_op == load_op && pprime_stage == E3 && previous_latencies.mem > 1) {
+       new = previous_latencies.mem + 3;
+    }
   }
 
   // This is the condition for the previous instruction to check if it can progress
@@ -44,53 +103,62 @@ module k1 {
     b = false;
     output_delay = input_delay;
 
-    // If we were in the MEM stage and we are a store op, jump to the ST stage
-    if (previous_op == store_op && previous_stage == MEM) { b = true; }
-
-    // The semantic is different depending on whether the op is a store or not
     if (previous_latency <= 1) {
       b = true;
 
-      // If the latency of the MEM stage is equal to 1, then this is a cache hit so no problem ...
-      // NOTE: checking the type of operation is useless, this is set using assume in conditions
-      if (previous_stage == EX && /*(previous_op == load_op || previous_op == store_op) &&*/
-      	  previous_latencies.mem > 1 &&
-      	  // Checking the stage being already in IF exclude the case of simultaneous transition
-	  // by previous and current in MEM and IF, as in this case, priority is given to the
-	  // data access, i.e the previous instruction.
-	  (current_stage == IF && current_latency > 1)) {
+      // There is a RR arbitrary policy for getting out from the instruction and data caches
+      // Model it as being always in favor of the current instruction
+      if (previous_stage == RR && previous_latencies.mem > 1 &&
+      	  // Checking the if current is already in the PF stage and doing a miss 
+	  ((current_stage == PF && current_latency > 1) ||
+	   // or if it is going to move to PF and will perform a miss
+	   (current_stage == pre && current_latency <= 1 && current_latencies.fetch > 1))) {
 	 b = false;
 	 output_delay = input_delay + 1;
       }
     }
   }
 
+  // This pipeline only stalls instruction before in the pipeline (i.e later in flow)
+  // Currently, only for the data cache. Instruction cache impacts PF stage
+  procedure check_stalling(pprime_stage: common.stage_t)
+  returns (b: boolean) {
+         // Stalling when a load is either in stage E2 or E3 ...
+    b = ((pprime_stage == E2 || pprime_stage == E3) &&
+      	 // ... and it is a load cache miss 
+         previous_latencies.mem > 1 && previous_op == load_op) ||
+    	 // The data cache is unvailable for 3 extra cycles as the K1 implements
+	 // critical-word return strategy 	 
+	 (blocked_data_cache > 0 &&
+	 // Of course these 3 extra cycles only apply if the cache is used (hit or miss)
+	 (current_op == load_op || current_op == store_op));
+  }
+
   // This is the condition to check whether current can progress or not
-  procedure check_current_progress(pprime_stage: common.stage_t)
+  procedure check_current_progress(pprime_stage: common.stage_t, stalled: boolean)
   returns (b: boolean) {
     // By default the instruction cannot move to the next stage
     b = false;
 
-    // If we were in the MEM stage and we are a store op, jump to the ST stage
-    if (current_op == store_op && current_stage == MEM &&
-        pprime_stage != ST) { b = true; }
-    
     // Except if its latency is going to run out or has run out
-    // And the pipeline is not stalled due to a cache miss in the MEM stage
+    // And the pipeline is not stalled due in E3 to a cache miss 
     if (current_latency <= 1) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
-        (current_stage == pre) : { if (pprime_stage != IF) { b = true; }}  
-        (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
-        (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
-        (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	
-        (current_stage == MEM) : { if ((current_op == store_op && pprime_stage != ST) ||
-	       	       	       	       (current_op != store_op && pprime_stage != WB))
-	       	       	   	   { b = true; }
-			         }
+        (current_stage == pre) : { if (pprime_stage != PF) { b = true; }}  
+        (current_stage == PF)  : { if (pprime_stage != ID) { b = true; }}
+        (current_stage == ID)  : { if (pprime_stage != RR) { b = true; }}
+// TODO: this is where we need to add  constraints about data hazards if we care ...
+// Thus, reading a load’s result in the following bundle will result in a
+// 1 cycle stall if the consumer EXU is an ALU, 2 if it is a BCU, 0 if it
+// is a LSU using the result as store data, etc. as can easily be
+// computed using Table 1 of section 3
+        (current_stage == RR)  : { if (pprime_stage != E1) { b = true; }}	
+        (current_stage == E1)  : { if (pprime_stage != E2) { b = true; }}
+        (current_stage == E2)  : { if (pprime_stage != E3) { b = true; }}		
+        (current_stage == E3)  : { if (pprime_stage != E4) { b = true; }}
 	// Willing to switch from these stages mean exiting the pipeline ...
-        (current_stage == ST ||
-	 current_stage == WB)  : { b = true; }
+        (current_stage == E4)  : { b = true; }
       esac
     }
   }
@@ -101,18 +169,22 @@ module k1 {
     assume(input_previous_stage == ID ==> previous_latency == 1);
     assume(input_previous_stage == RR ==> previous_latency == 1);
     assume(input_previous_stage == E1 ==> previous_latency == 1);
-    assume(input_previous_stage == E2 ==> previous_latency == 1);    
-    assume(input_previous_stage == E3 ==> previous_latency == 1);
+    assume(input_previous_stage == E2 ==> previous_latency == 1);
+    assume(input_previous_stage == E3 ==> previous_latency == previous_latencies.mem);
     assume(input_previous_stage == E4 ==> previous_latency == 1);    
     assume(input_previous_stage == pre ==> previous_latency == 1);    
 
     previous_delay = 0;
     previous_progress = false;
 
+    blocked_data_cache = 0;
+
     current_stage = pre;
     current_latency = 0;
     current_delay = 0;
     current_progress = false;
+
+    pipeline_stalled = false;
   }
 
   // Updating the state of the instructions
@@ -123,12 +195,14 @@ module k1 {
     } else {
       if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
     }
-    call (current_progress') = check_current_progress(previous_stage');
+    call (blocked_data_cache') = update_data_cache_blocked(previous_stage', blocked_data_cache);    
+    call (pipeline_stalled') = check_stalling(previous_stage'); 
+    call (current_progress') = check_current_progress(previous_stage', pipeline_stalled');
     if (current_progress') {
        call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latency, current_latencies);	       
     } else {
-       if (current_latency > 0) {current_latency' = current_latency - 1;}
-       if (current_latency' == 0 && current_stage' != post) {current_delay' = current_delay + 1;}
+       if (current_latency > 0 && ! pipeline_stalled') {current_latency' = current_latency - 1;}
+       if ((current_latency' == 0 || pipeline_stalled') && current_stage' != post) {current_delay' = current_delay + 1;}
     }
   }
 }

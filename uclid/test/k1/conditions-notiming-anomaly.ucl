@@ -3,11 +3,13 @@ module conditions {
   var op_i, op_j: common.opcode_t;
   var latencies_i, latencies_j: common.latencies_t;
   var stage_i: common.stage_t;
+  var data_cache_blocked_i: integer;
 
   instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
   	   	       cond_latencies_i: (latencies_i),
 		       cond_latencies_j: (latencies_j),
-		       cond_stage_i: (stage_i));
+		       cond_stage_i: (stage_i),
+		       cond_data_cache_i: (data_cache_blocked_i));
   
   init {
     // Assume all type of opcodes for now
@@ -20,11 +22,19 @@ module conditions {
     // Assume variable latencies for all instructions in IF stage
     assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
     assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
-    // Assume variable latencies for lsu opcodes in ?? stage
-    assume((op_i == lsu_op)
+    // Assume variable latencies for load in stage E3 
+    assume((op_i == load_op)
     	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
-    assume((op_j == lsu_op)
+    assume((op_j == load_op)
     	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
+    // Stores are purely asynchronous and thus their bundles do not store
+    // Kalray doc says: "Thus their execution latency is always 1. However,
+    // they can make the d$ busy which may in turn stall the pipeline should
+    // the core want to access the cache."
+    assume((op_i == store_op)
+    	   ==> latencies_i.mem == 1);
+    assume((op_j == load_op)
+    	   ==> latencies_i.mem == 1);
     assume(stage_i == pre || stage_i == PF || stage_i == ID || stage_i == RR ||
            stage_i == E1 || stage_i == E2 || stage_i == E3 || stage_i == E4);
   }

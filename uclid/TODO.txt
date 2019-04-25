@@ -1,10 +1,10 @@
 TODO
 
-- Model K1 pipeline
-
-- Compute maximal delay an instruction can experience
+- Model K1 pipeline, Flex-PRET
 
 - Model branches
+
+- Compute maximal delay an instruction can experience
 
 NOTE on the design of the abstract models
 

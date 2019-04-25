@@ -2,8 +2,17 @@ module common {
 
   type stage_t = enum { pre, PF, ID, RR, E1, E2, E3, E4, post };
 
-  // Opcode 
-  type opcode_t = enum { alu_op, lsu_op, bcu_id_op, bcu_rr_op, mau_op };
+  // Opcodes
+  // LSU instructions: write in register file either in E2, E3 or async (store)
+  //   => split in load and store 
+  // Currently, we assume that load_op stall in E3 only (and blocks the cache)
+  // Currently, we assume that store_op does not stall but blocks the cache
+  // Currently, we only consider load, store and alu operations ...
+  type opcode_t = enum { alu_op, load_op, store_op };
 
+  // Semantic: latency of mem is the amout of time the instruction
+  // is going to wait when its reaches the stage where stalling occur
+  // For instance, a load which stalls in E3 will have a latency of
+  // mem + 2 cycles (amount of time to reach E3 from E1)
   type latencies_t = record { fetch: integer, mem: integer};
 }
