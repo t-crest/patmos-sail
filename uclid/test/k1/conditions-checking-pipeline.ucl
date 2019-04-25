@@ -1,0 +1,29 @@
+module conditions {
+
+  var op_i, op_j: common.opcode_t;
+  var latencies_i, latencies_j: common.latencies_t;
+  var stage_i: common.stage_t;
+  var data_cache_blocked_i: integer;
+
+  instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_stage_i: (stage_i),
+		       cond_data_cache_i: (data_cache_blocked_i));
+  
+  init {
+    // Assume all type of opcodes for now
+    assume(op_i == alu_op);
+    assume(op_j == alu_op);
+    assume(latencies_i.fetch == 1);
+    assume(latencies_j.fetch == 1);
+    assume(latencies_i.mem == 1);
+    assume(latencies_j.mem == 1);
+    assume(stage_i == pre);
+    assume(data_cache_blocked_i == 10);
+  }
+
+  next {
+    next(cond);
+  }
+}
