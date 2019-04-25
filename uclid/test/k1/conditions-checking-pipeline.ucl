@@ -13,14 +13,14 @@ module conditions {
   
   init {
     // Assume all type of opcodes for now
-    assume(op_i == alu_op);
-    assume(op_j == alu_op);
+    assume(op_i == store_op);
+    assume(op_j == load_op);
     assume(latencies_i.fetch == 1);
     assume(latencies_j.fetch == 1);
     assume(latencies_i.mem == 1);
-    assume(latencies_j.mem == 1);
+    assume(latencies_j.mem == 3);
     assume(stage_i == pre);
-    assume(data_cache_blocked_i == 10);
+    assume(data_cache_blocked_i == 5);
   }
 
   next {

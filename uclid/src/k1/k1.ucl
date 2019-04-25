@@ -62,14 +62,14 @@ module k1 {
       (stage == E1)  : { new = E2; latency = 1; }
       (stage == E2)  : { new = E3; latency = 1;
       	     	         // TODO: this should be, if any opcode is a load ...
-      	     	       	 if (opcode == load_op && latencies.mem > 2) {
-			  latency = latencies.mem - 2;
+      	     	       	 if (opcode == load_op && latencies.mem > 1) {
+			  latency = latencies.mem;
 			 }
 		       }
       (stage == E3)  : { new = E4; latency = 1;
       	     	         // TODO: this should be, if any opcode is a store ...
-      	     	         if (opcode == store_op && latencies.mem > 3) {
-			   latency = latencies.mem - 3; 
+      	     	         if (opcode == store_op && latencies.mem > 1) {
+			   latency = latencies.mem; 
 			 }
 		       }
       (stage == E4 || stage == post) : { new = post; latency = 0;}
@@ -142,7 +142,7 @@ module k1 {
 
     // Except if its latency is going to run out or has run out
     // And the pipeline is not stalled due in E3 to a cache miss 
-    if (current_latency <= 1) {
+    if (current_latency <= 1 && !stalled) {
       case
 	// ... and its targeted next stage is not occupied by the previous 
         (current_stage == pre) : { if (pprime_stage != PF) { b = true; }}  
