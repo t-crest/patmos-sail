@@ -1,6 +1,6 @@
 module param {
   // Checking depth for invariants
-  const bmc_depth: integer = 32;
+  const bmc_depth: integer = 20;
 
   // For no timing anomaly property
   //const bmc_depth: integer = 33;

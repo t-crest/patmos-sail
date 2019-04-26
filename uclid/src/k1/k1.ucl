@@ -99,12 +99,12 @@ module k1 {
     // on the availability of the SMEM!).
     // The only case where no stalling occur is cache hit
     // with write-back policy  
-    if (previous_op == store_op && pprime_stage == E1) {
+    if (previous_op == store_op && pprime_stage == E3) {
       new = data_cache_unavailable;
     }
     // Here we set the amount of time the data is unavailable in case of a load cache miss
     if (previous_op == load_op && pprime_stage == E3 && previous_latencies.mem > 1) {
-       new = 3; // Due to the critical word first
+       new = data_cache_unavailable + 3; // Due to the critical word first
     }
   }
 
@@ -120,7 +120,11 @@ module k1 {
 
       // There is a RR arbitrary policy for getting out from the instruction and data caches
       // Model it as being always in favor of the current instruction
-      if (previous_stage == RR && previous_latencies.mem > 1 &&
+      // So blocking whenever trying to leave RR stage
+      if (previous_stage == RR &&
+      	  // if either the latency of a load is a miss and generates an access to the bus
+	  // or the operation is a store as we abstract write-back policies
+      	  (previous_latencies.mem > 1 || previous_op == store_op) &&
       	  // Checking the if current is already in the PF stage and doing a miss 
 	  ((current_stage == PF && current_latency > 1) ||
 	   // or if it is going to move to PF and will perform a miss
@@ -135,15 +139,21 @@ module k1 {
   // Currently, only for the data cache. Instruction cache impacts PF stage
   procedure check_stalling(pprime_stage: common.stage_t)
   returns (b: boolean) {
-         // Stalling when a load is either in stage E2 or E3 ...
-    b = ((pprime_stage == E2 || pprime_stage == E3) &&
-      	 // ... and it is a load cache miss 
-         previous_latencies.mem > 1 && previous_op == load_op) ||
+    // Stalling when reaching RR (this is difference compared to inorder models
+    // where stalling upstream occurs anywhere ...
+    // TODO: consider the exception of RPD for LSU and MAU instruction as well as BCU
+    b = (current_stage == RR &&
+      	 // ... a previous in E3 ...
+      	 (((pprime_stage == E1 || pprime_stage == E2 || pprime_stage == E3) &&
+	  // ... for a load cache miss
+	  ((previous_latencies.mem > 1 && previous_op == load_op) ||
+	  // ... or a store
+	  previous_op == store_op))) ||
     	 // The data cache is unvailable for 3 extra cycles as the K1 implements
 	 // critical-word return strategy 	 
-	 (blocked_data_cache > 0 &&
-	 // Of course these 3 extra cycles only apply if the cache is used (hit or miss)
-	 (current_op == load_op || current_op == store_op));
+	 (blocked_data_cache > 1 &&
+	  // Of course these extra cycles only apply if the cache is used (hit or miss)
+	  (current_op == load_op || current_op == store_op)));
   }
 
   // This is the condition to check whether current can progress or not
@@ -208,7 +218,10 @@ module k1 {
     if (previous_progress') {
        call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latency, previous_latencies);
     } else {
-      if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
+      // TODO: should we have a variable to say when stalling? ==> yes!!
+      if (previous_latency > 0 && previous_delay == previous_delay') {
+      	previous_latency' = previous_latency - 1;
+      }
     }
     call (blocked_data_cache') = update_data_cache_blocked(previous_stage', blocked_data_cache);    
     call (pipeline_stalled') = check_stalling(previous_stage'); 
