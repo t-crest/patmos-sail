@@ -1,6 +1,8 @@
 TODO
 
-- Model K1 pipeline, Flex-PRET
+- Model Flex-PRET pipeline
+
+- Put back data dependencies rules
 
 - Model branches
 
@@ -107,3 +109,16 @@ NOTES
 	and write allocate => a write for any potential evicted
 	data, then a load, then a write
 
+- While in WCET 2018 we were targeting scheduling timing anomalies: no
+  other change than the length of a pivot instruction. This can be
+  generalized to several instructions which are called speculation
+  timing anomalies. Here we target speculation timing anomalies =>
+  depending on the length of a pivot instruction, additional effects
+  from the microarchitecture (access to the bus) impacts the other
+  instructions.
+
+The monotonicity assumption means that when uncertain information is
+processed by a WCET analysis ap- proach, it is assumed that a longer
+latency for an instruction necessarily imposes an at least equal or
+longer (bounded by the amount of the latency change) execution time
+for the overall instruction sequence under consideration.
