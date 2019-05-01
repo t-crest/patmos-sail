@@ -12,7 +12,30 @@ module conditions {
 		       cond_data_cache_i: (data_cache_blocked_i));
   
   init {
-    // Assume all type of opcodes for now
+    // TODO: need to add the instruction constraints
+    // (see section 7 of K1 assembly level optimization)
+    // assume(op_i == alu_op || op_i == load_op || op_i == store_op);
+    // assume(op_j == alu_op || op_j == load_op || op_j == store_op);
+    // // Assume variable latencies for all instructions in IF stage
+    // assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
+    // assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
+    // // Assume variable latencies for load in stage E3 
+    // assume((op_i == load_op)
+    // 	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
+    // assume((op_j == load_op)
+    // 	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
+    // // Stores are purely asynchronous and thus their bundles do not stall
+    // // Other operations involve no memory accesses ...
+    // assume((op_i != load_op)
+    // 	   ==> latencies_i.mem == 1);
+    // assume((op_j != load_op)
+    // 	   ==> latencies_j.mem == 1);	   
+    // assume(stage_i == pre || stage_i == PF || stage_i == ID || stage_i == RR ||
+    //        stage_i == E1 || stage_i == E2 || stage_i == E3);
+    // assume((op_i == mau_op) ==> stage_i == E4);
+    // assume(data_cache_blocked_i == 10);
+
+    // Another configuration representing streaming loads
     // TODO: need to add the instruction constraints
     // (see section 7 of K1 assembly level optimization)
     assume(op_i == alu_op || op_i == load_op || op_i == store_op);
@@ -20,11 +43,11 @@ module conditions {
     // Assume variable latencies for all instructions in IF stage
     assume(0 < latencies_i.fetch && latencies_i.fetch <= param.max_latency);
     assume(0 < latencies_j.fetch && latencies_j.fetch <= param.max_latency);
-    // Assume variable latencies for load in stage E3 
+    // Assume streaming load in E3 => 1 as the total execution latency
     assume((op_i == load_op)
-    	   ==> 0 < latencies_i.mem && latencies_i.mem <= param.max_latency);
+    	   ==> latencies_i.mem == 1);
     assume((op_j == load_op)
-    	   ==> 0 < latencies_j.mem && latencies_j.mem <= param.max_latency);
+    	   ==> latencies_i.mem == 1);
     // Stores are purely asynchronous and thus their bundles do not stall
     // Other operations involve no memory accesses ...
     assume((op_i != load_op)

@@ -14,18 +14,29 @@ module conditions {
   init {
     // A store hit (but leading to data cache access) followed a load
     // The load is stalled as the cache is busy    
-    // How much is the load delayed?
-    assume(op_i == store_op);
-    assume(op_j == load_op);
-    assume(latencies_i.fetch == 1);
-    assume(latencies_j.fetch == 9);
-    assume(latencies_i.mem == 1);
-    assume(latencies_j.mem == 10);
-    assume(stage_i == ID);
-    assume(data_cache_blocked_i == 5);
+    // assume(op_i == store_op);
+    // assume(op_j == load_op);
+    // assume(latencies_i.fetch == 1);
+    // assume(latencies_j.fetch == 9);
+    // assume(latencies_i.mem == 1);
+    // assume(latencies_j.mem == 10);
+    // assume(stage_i == ID);
+    // assume(data_cache_blocked_i == 5);
+
+    // A load hit (but leading to data cache access) followed a load miss
+    // The previous load should not stall due to the IC miss of current
+    // assume(op_i == load_op);
+    // assume(op_j == load_op);
+    // assume(latencies_i.fetch == 1);
+    // assume(latencies_j.fetch == 5);
+    // assume(latencies_i.mem == 1);
+    // assume(latencies_j.mem == 5);
+    // assume(stage_i == ID);
+    // assume(data_cache_blocked_i == 5);
+
 
     // A cache miss on a load followed by a store
-    // Store should stall at E1
+    // Store should stall at E1 (including the additional delay, $D unavailable)
     // assume(op_i == load_op);
     // assume(op_j == store_op);
     // assume(latencies_i.fetch == 1);
@@ -35,15 +46,17 @@ module conditions {
     // assume(stage_i == PF);
     // assume(data_cache_blocked_i == 2);
 
-    // The alu is not stalled as it does not use the cache
-    // assume(op_i == store_op);
-    // assume(op_j == load_op);
-    // assume(latencies_i.fetch == 1);
-    // assume(latencies_j.fetch == 1);
-    // assume(latencies_i.mem == 1);
-    // assume(latencies_j.mem == 3);
-    // assume(stage_i == PF);
-    // assume(data_cache_blocked_i == 5);
+    // The store is stalled even if it is a hit as the write buffer could miss
+    // thus the data cache is busy for a given amount of time ... The stalling is
+    // due to this expected memory access, as the load is a miss in PF.
+    assume(op_i == store_op);
+    assume(op_j == load_op);
+    assume(latencies_i.fetch == 1);
+    assume(latencies_j.fetch == 3);
+    assume(latencies_i.mem == 1);
+    assume(latencies_j.mem == 3);
+    assume(stage_i == PF);
+    assume(data_cache_blocked_i == 5);
 
     // Examples of section 4.1.1.1 requires data dependency rules
 

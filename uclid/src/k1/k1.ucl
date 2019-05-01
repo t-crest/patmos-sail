@@ -15,17 +15,42 @@
 // => TODO: should we consider read/write ports constraints and check them?
 //   => or are we at an higher abstract level?
 
-// Only upstream instructions in the pipeline are blocked on cache misses and not
-// whole pipeline
-
 // Currently we assume a single-issue core.
 // TODO: make it 5-issue
 
-// When the instruction words requested by the PFB are not in the cache,
-// they are fetched from memory and stored into the cache. During this
-// time the core stalls. The requested instruction bundle is then
-// returned to the instruction buffer.
-// => core stalls mean: whole pipeline or instruction later in the pipe?
+// When the instruction words requested by the PFB are not in the
+//cache, they are fetched from memory and stored into the
+//cache. During that time the pipeline is not stalled. However, if the
+//PFB has nothing left in it, then the pipeline is stalled.  So the
+//PFB can hide some of a IC miss, whose penalty is reported to be 18
+//cycles in "Using execution graphs to model a prefetch and write
+//buffers and its application to the Bostan MPPA" (~20 cycles
+//according to Kalray). If a branch occur (at stage ID), the PFB is
+//flushed. The IC answers only using cache lines, meaning that if the
+//PFB requests at the end of a cache line, 2 bubbles will be created
+//in the pipeline (See section 6.1 of K1 assembly level optimization
+//guide). In case of unbalanced bundles (assumin IC hits), a buble can
+//also be created.
+// => The pipeline is not stalled when IC miss occurs.
+// => Similarly, the pipeline is not stalled when DC miss occurs
+//    The cache is simply busy for a given amount of time
+
+// Uncached (non misaligned) loads => no refill in the D$ and D$ is
+//not busy. As the pipeline is not blocked in this case, current (with
+//potentially a miss) cannot block previous => no timing
+//anomaly. However, at most 5 streaming loads can be ongoing => more
+//means stalling at E3 stage (reminder the bubble-crunching
+//capability) => this does not lead to additional delay for previous
+//due to current.
+
+// Inserting bubles cannot delay other previous bundles. Note that
+//this cannot be modeled in our abstract pipeline models. Let's assume
+//IC miss => can the PFB hide the latency of the miss? 4 FIFO 3*32
+//bits each => 12 instructions (bundle of 1 instruction). => no,
+//bubles will be inserted. => To demonstrate this we would need have
+//the notion of bundle in our model. The goal of the PFB is to
+//eliminate cache line issues (short answer if asked at the end of a
+//cache line) due to variable length bundles.
 
 // When data to be loaded by the core are not in the cache, they are
 // fetched from memory and stored into the cache. During this time the
@@ -70,6 +95,7 @@ module k1 {
     case
       (stage == pre) : { new = PF; latency = latencies.fetch; }
       (stage == PF)  : { new = ID; latency = 1; }
+      // TODO: branches exit after ID.
       (stage == ID)  : { new = RR; latency = 1; }
       (stage == RR)  : { new = E1; latency = 1; }
       (stage == E1)  : { new = E2; latency = 1; }
@@ -104,7 +130,9 @@ module k1 {
     }
     // Here we set the amount of time the data is unavailable in case of a load cache miss
     if (previous_op == load_op && pprime_stage == E3 && previous_latencies.mem > 1) {
-       new = data_cache_unavailable + 3; // Due to the critical word first
+       // We take data cache unavailable as the write buffer could be asked for room for
+       // the evicted data due to the load => This time depends on the availability of the SMEM
+       new = data_cache_unavailable + 3; // We add 3 due to the critical word first strategy
     }
   }
 
@@ -124,7 +152,8 @@ module k1 {
       if (previous_stage == RR &&
       	  // if either the latency of a load is a miss and generates an access to the bus
 	  // or the operation is a store as we abstract write-back policies
-      	  (previous_latencies.mem > 1 || previous_op == store_op) &&
+	  // NOTE: when previous_op == store_op is commented => streaming store
+      	  (previous_latencies.mem > 1/* || previous_op == store_op*/) &&
       	  // Checking the if current is already in the PF stage and doing a miss 
 	  ((current_stage == PF && current_latency > 1) ||
 	   // or if it is going to move to PF and will perform a miss
@@ -135,25 +164,23 @@ module k1 {
     }
   }
 
-  // This pipeline only stalls instruction before in the pipeline (i.e later in flow)
-  // Currently, only for the data cache. Instruction cache impacts PF stage
+  // The pipeline stalls current if previous is using the cache (load miss or store)
+  // and the current op is going to use the cache (load or store)
   procedure check_stalling(pprime_stage: common.stage_t)
   returns (b: boolean) {
     // Stalling when reaching RR (this is difference compared to inorder models
     // where stalling upstream occurs anywhere ...
     // TODO: consider the exception of RPD for LSU and MAU instruction as well as BCU
-    b = (current_stage == RR &&
-      	 // ... a previous in E3 ...
+    b = ((current_stage == E1 && (current_op == load_op || current_op == store_op)) &&
+      	 // ... previous is using the cache from Ex ...
       	 (((pprime_stage == E1 || pprime_stage == E2 || pprime_stage == E3) &&
-	  // ... for a load cache miss
-	  ((previous_latencies.mem > 1 && previous_op == load_op) ||
-	  // ... or a store
-	  previous_op == store_op))) ||
-    	 // The data cache is unvailable for 3 extra cycles as the K1 implements
-	 // critical-word return strategy 	 
-	 (blocked_data_cache > 1 &&
-	  // Of course these extra cycles only apply if the cache is used (hit or miss)
-	  (current_op == load_op || current_op == store_op)));
+	   // ... for a load cache miss
+	   ((previous_latencies.mem > 1 && previous_op == load_op) ||
+	    // ... or a store
+	    previous_op == store_op)) ||
+    	  // The data cache is unvailable for 3 extra cycles as the K1 implements
+	  // critical-word return strategy 	 
+	  blocked_data_cache > 1));
   }
 
   // This is the condition to check whether current can progress or not

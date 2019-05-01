@@ -1,12 +1,29 @@
 TODO
 
-- Model Flex-PRET pipeline
+- Model Flex-PRET pipeline => simply change the assume for the tids.
+  (since we do not have data dependencies nothing change => we should
+  introduce back data dependencies to have it stalled correctly).
 
-- Put back data dependencies rules
+- Think of properties comparing local and global delta
+  Free from timing anomaly: sum local worst-case = global worst-case
+  First instance of the pipeline taking locally worst-case => store the global worst-case
+  Second instance of the pipeline taking any other behavior => store the global worst-case
+    What is the local effect => change in the latency of accesses (fetch or mem):
+    	    	      	     	local acceleration is modeled for a given instruction
+				Explore this for any initial distance between instructions
+  Worst-case behavior of previous: the local worst-case at each stage?
+  
+   => Set the worst-case value of latencies for current and let the
+   system find how current+previous is going to be (for now set
+   previous to a given stage). Let any other possible behavior for current
+   and let the system find how current+previous is going to be
+   => This models that "current" can accelerate if its wins the access to the bus
 
 - Model branches
 
 - Compute maximal delay an instruction can experience
+
+- Put back data dependencies rules
 
 NOTE on the design of the abstract models
 
@@ -27,6 +44,9 @@ NOTE on the design of the abstract models
 - Branch behavior? Currently, we assume that the branch is not taken (fall through)
   So pipeline flush is useless ...
   => If we want to explore both branches, we should ...
+
+- There is no need to model n-issue in our models as there is only a
+  single load/store unit in such pipeline (K1, Patmos)
 
 RESULTS
 
