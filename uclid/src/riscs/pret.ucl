@@ -68,6 +68,7 @@ module pret {
     // Except if its latency is going to run out or has run out
     // And the pipeline is not stalled due to a cache miss in the MEM stage
     if (current_latency <= 1) {
+      // TODO: this should be replaced by simply set b to true
       case
 	// ... and its targeted next stage is not occupied by the previous
 	// There is no need to check if pprime_stage is different from MEM as

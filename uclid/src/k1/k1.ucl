@@ -193,7 +193,7 @@ module k1 {
     // And the pipeline is not stalled due in E3 to a cache miss 
     if (current_latency <= 1 && !stalled) {
       case
-	// ... and its targeted next stage is not occupied by the previous 
+	// ... and its targeted next stage is not occupied by the previous
         (current_stage == pre) : { if (pprime_stage != PF) { b = true; }}  
         (current_stage == PF)  : { if (pprime_stage != ID) { b = true; }}
         (current_stage == ID)  : { if (pprime_stage != RR) { b = true; }}
