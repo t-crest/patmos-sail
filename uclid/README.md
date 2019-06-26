@@ -54,7 +54,8 @@ In the test directory
 
 - For each model, there is a test.ucl that instantiates the pipeline
 
-- condition-* describes several the test cases (assume). The
+- condition-* describes several concrete test cases or abstract test
+  cases using assume statements of UCLID5. The
   condition-notiming-anomaly.ucl implements the required strategy to
   check whether a downstream instruction can be blocked by an upstream
   instruction.
