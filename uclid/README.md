@@ -52,7 +52,24 @@ stalling (patmos-singleissue-methodcache.ucl) and specific upstream
 
 In the test directory
 
-Checking amplification timing anomalies
+- For each model, there is a test.ucl that instantiates the pipeline
+
+- condition-* describes several the test cases (assume). The
+  condition-notiming-anomaly.ucl implements the required strategy to
+  check whether a downstream instruction can be blocked by an upstream
+  instruction.
+
+- param-* for setting different BMC depth for the different condition test cases.
+
+- property-* the default properties being checked
+  (property-default.ucl) to ensure that the developed models are
+  correct and the specific property using the delay of the downstream
+  instruction (property-notiming-anomaly.ucl). 
+
+- test-check.ucl: used to verify that models in the src directory can
+  be parsed by uclid
+
+How to run some models 
 -------------------
 
 In-order model:
@@ -64,8 +81,27 @@ uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/
 Patmos model:
 
 ```
-uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
 ```
+
+SIC model:
+
+```
+uclid src/riscs/common.ucl src/riscs/pret.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+```
+
+PRET model:
+
+```
+uclid src/riscs/common.ucl src/riscs/sic.ucl test/pret/test.ucl test/pret/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+```
+
+K1 model:
+
+```
+uclid src/k1/common.ucl src/k1/k1.ucl test/k1/test.ucl test/k1/param-default.ucl test/k1/conditions-notiming-anomaly.ucl test/k1/property-notiming-anomaly.ucl
+```
+
 
 
 
