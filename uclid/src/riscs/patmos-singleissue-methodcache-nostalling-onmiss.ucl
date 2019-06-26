@@ -1,0 +1,126 @@
+module patmos {
+
+  input current_op, previous_op: common.opcode_t;
+  input current_latencies, previous_latencies: common.latencies_t;
+  input input_previous_stage: common.stage_t;
+
+  // The instruction
+  var previous_stage: common.stage_t;
+  var previous_latency: integer;
+  var previous_delay: integer;
+  var previous_progress: boolean;  
+
+  var current_stage: common.stage_t;
+  var current_latency: integer;  
+  var current_delay: integer;  
+  var current_progress: boolean;
+
+  var pipeline_before_stalled: boolean;
+  var pipeline_after_stalled: boolean;  
+
+  // This computes the next stage and latency of an instruction (previous and current)
+  procedure next_stage(stage: common.stage_t, opcode: common.opcode_t, in_latency: integer, latencies: common.latencies_t)
+  returns (new: common.stage_t, latency: integer) {
+    case
+      (stage == pre) : { new = IF; latency = latencies.fetch; }
+      (stage == IF)  : { new = ID; latency = latencies.id; }
+      (stage == ID)  : { new = EX; latency = latencies.ex; }
+      (stage == EX)  : { if (opcode != branch_op) {new = MEM; latency = latencies.mem; }
+      	     	         else { new = post; latency = 0;}
+		       }
+      (stage == MEM) : { new = WB; latency = latencies.wb; }
+      (stage == WB || stage == post) : { new = post; latency = 0;}
+    esac  
+  }
+
+  // This is the condition for the previous instruction to check if it can progress
+  procedure check_previous_progress(input_delay: integer)
+  returns(b: boolean, output_delay: integer) {
+    // By default the instruction cannot move to the next stage 
+    b = false;
+    output_delay = input_delay;
+
+    // The semantic is different depending on whether the op is a store or not
+    if (previous_latency <= 1) {
+      b = true;
+
+      // If the latency of the MEM stage is equal to 1, then this is a cache hit so no problem ...
+      // NOTE: checking the type of operation is useless, this is set using assume in conditions
+      if (previous_stage == EX && /*(previous_op == load_op || previous_op == store_op) &&*/
+      	  previous_latencies.mem > 1 &&
+      	  // Checking the stage being already in IF exclude the case of simultaneous transition
+	  // by previous and current in MEM and IF, as in this case, priority is given to the
+	  // data access, i.e the previous instruction.
+	  (current_stage == IF && current_latency > 1)) {
+	 b = false;
+	 output_delay = input_delay + 1;
+      }
+    }
+  }
+
+  // This is the condition to check whether current can progress or not
+  procedure check_current_progress(pprime_stage: common.stage_t)
+  returns (b: boolean) {
+    // By default the instruction cannot move to the next stage
+    b = false;
+
+    // Except if its latency is going to run out or has run out
+    // And the pipeline is not stalled due to a cache miss in the MEM stage
+    if (current_latency <= 1) {
+      case
+	// ... and its targeted next stage is not occupied by the previous
+	// No more check is required as no cache miss in IF ...
+        (current_stage == pre) : { if (pprime_stage != IF &&
+		       	       	       (pprime_stage != MEM ||
+				        previous_latencies.mem == 1)) { b = true; }}  
+        (current_stage == IF)  : { if (pprime_stage != ID) { b = true; }}
+        (current_stage == ID)  : { if (pprime_stage != EX) { b = true; }}
+        (current_stage == EX)  : { if (pprime_stage != MEM) { b = true; }}	
+        (current_stage == MEM) : { if (pprime_stage != WB) { b = true; }}
+	// Willing to switch from these stages mean exiting the pipeline ...
+        (current_stage == WB)  : { b = true; }
+      esac
+    }
+  }
+
+  init {
+    assume(previous_stage == input_previous_stage);
+    assume(input_previous_stage == IF ==> previous_latency == previous_latencies.fetch);
+    assume(input_previous_stage == ID ==> previous_latency == previous_latencies.id);
+    assume(input_previous_stage == EX ==> previous_latency == previous_latencies.ex);
+    assume(input_previous_stage == MEM ==> previous_latency == previous_latencies.mem);
+    assume(input_previous_stage == WB ==> previous_latency == previous_latencies.wb);
+    assume(input_previous_stage == pre ==> previous_latency == 1);    
+
+    previous_delay = 0;
+    previous_progress = false; 
+
+    current_stage = pre;
+    current_latency = 0;
+    current_delay = 0;
+    current_progress = false;
+
+    pipeline_before_stalled = false;
+    pipeline_after_stalled = false;    
+  }
+
+  // Updating the state of the instructions
+  next  {
+    call (previous_progress', previous_delay') = check_previous_progress(previous_delay);
+    if (previous_progress') {
+       call (previous_stage', previous_latency') = next_stage(previous_stage, previous_op, previous_latency, previous_latencies);
+    } else {
+      if (previous_latency > 0) { previous_latency' = previous_latency - 1; }
+    }
+    call (current_progress') = check_current_progress(previous_stage');    
+    if (current_progress') {
+       call (current_stage', current_latency') = next_stage(current_stage, current_op, current_latency, current_latencies);	       
+    } else {
+       if (current_latency > 0) {current_latency' = current_latency - 1;}
+       if (current_latency' == 0 && current_stage' != post) {current_delay' = current_delay + 1;}
+    }
+  }
+}
+	
+
+
