@@ -60,18 +60,21 @@ In the test directory
   check whether a downstream instruction can be blocked by an upstream
   instruction.
 
-- param-* for setting different BMC depth for the different condition test cases.
+- param-* for setting BMC depths for the different available test cases.
 
 - property-* the default properties being checked
   (property-default.ucl) to ensure that the developed models are
   correct and the specific property using the delay of the downstream
   instruction (property-notiming-anomaly.ucl). 
 
-- test-check.ucl: used to verify that models in the src directory can
+- test-check.ucl is used to verify that models in the src directory can
   be parsed by uclid
 
 How to run some models 
 -------------------
+
+The following are examples of how to run models. Please modify to pick
+the appropriate stalling logic and test case as needed.
 
 In-order model:
 
@@ -102,6 +105,7 @@ K1 model:
 ```
 uclid src/k1/common.ucl src/k1/k1.ucl test/k1/test.ucl test/k1/param-default.ucl test/k1/conditions-notiming-anomaly.ucl test/k1/property-notiming-anomaly.ucl
 ```
+
 
 
 
