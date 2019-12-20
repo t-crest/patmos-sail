@@ -1,0 +1,19 @@
+module common {
+  // Pipeline stages
+  type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
+  type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
+
+  // Opcodes
+  type I_opcode_t = enum { I_nop, I_branch_op, other_I_op };
+  type LS_opcode_t = enum { LS_nop, load_op, store_op, LS_branch_op, other_LS_op };
+
+  // Couple of an I- and a LS-instruction
+  type instr_pair_t = record { I_instr: I_opcode_t, LS_instr: LS_opcode_t, is_LS_second: boolean };
+
+  // Latencies information for each instruction
+  type latencies_t = record { IF: integer, ID: integer, EX: integer, WB: integer, ST: integer };
+  type dual_latencies_t = record { I_pipe: latencies_t, LS_pipe: latencies_t };
+
+  type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
+  type dual_boolean_t = record { I_pipe: boolean, LS_pipe: boolean };
+}
