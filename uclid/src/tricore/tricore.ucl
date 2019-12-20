@@ -1,0 +1,169 @@
+module tricore {
+
+  input current_ops, previous_ops: common.instr_pair_t;
+  input current_initial_latencies, previous_initial_latencies: common.dual_latencies_t;
+  input input_previous_stages: common.dual_stage_t;
+
+  // The instructions
+  var current_stages, previous_stages: common.dual_stage_t;
+  var current_latencies, previous_latencies: common.dual_integer_t;
+  var current_delays, previous_delays: common.dual_integer_t;
+  var current_progress, previous_progress: common.dual_boolean_t;
+
+  var current_stalled, previous_stalled: common.dual_boolean_t;
+
+  procedure next_stages(progress_prime: common.dual_boolean_t, stages: common.dual_stage_t, opcodes: common.instr_pair_t, latencies: common.dual_latencies_t, in_latencies: common.dual_integer_t)
+  returns (new: common.dual_stage_t, new_latencies: common.dual_integer_t)
+  {
+	 if (progress_prime.LS_pipe) {
+		 case
+		  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
+		  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
+		  (stages.LS_pipe == ID)  : { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
+		  (stages.LS_pipe == EX)  : { new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+		  (stages.LS_pipe == WB)	 : { if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+		  	    			else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+						}
+		  (stages.LS_pipe == ST || stages.LS_pipe == post) : { new.LS_pipe = post; new_latencies.LS_pipe = 0;}
+    	esac
+	}
+	else {
+		if (in_latencies.LS_pipe > 0) { new_latencies.LS_pipe = in_latencies.LS_pipe - 1; }
+	}
+
+	if (progress_prime.I_pipe) {
+		case
+		  (stages.I_pipe == pre) : { new.I_pipe = IF; new_latencies.I_pipe = latencies.LS_pipe.IF; }
+		  (stages.I_pipe == IF)  : { new.I_pipe = ID; new_latencies.I_pipe = latencies.LS_pipe.ID; }
+		  (stages.I_pipe == ID)  : { new.I_pipe = EX; new_latencies.I_pipe = latencies.LS_pipe.EX; }
+		  (stages.I_pipe == EX)  : { new.I_pipe = WB; new_latencies.I_pipe = latencies.LS_pipe.WB; }
+		  (stages.I_pipe == WB)	 : { new.I_pipe = post; new_latencies.I_pipe = 0; }
+		  (stages.I_pipe == post) : { new.I_pipe = post; new_latencies.I_pipe = 0;}
+   		esac
+	}
+	else {
+		if (in_latencies.I_pipe > 0) { new_latencies.I_pipe = in_latencies.I_pipe - 1; }
+	}
+  }
+
+   // These are the conditions for the previous instructions to check if they can progress
+	procedure check_previous_progress(stalled: common.dual_boolean_t)
+	returns(b: common.dual_boolean_t) {
+		// By default the instruction cannot move to the next stage 
+		b.I_pipe = false;
+
+		if (previous_latencies.I_pipe <= 1 && !stalled.I_pipe) {
+			b.I_pipe = true;
+		}
+
+		b.I_pipe = false;
+
+		// If we were in the WB stage and we are a store op, jump to the ST stage
+	 	if (previous_ops.LS_instr == store_op && previous_stages.LS_pipe == WB) { b.LS_pipe = true; }
+
+		if (previous_latencies.LS_pipe <= 1 && !stalled.LS_pipe) {
+			b.LS_pipe = true;
+		}
+  	}
+
+ // Checking stalls for the previous instructions
+  procedure check_previous_stalling()
+  returns (b: common.dual_boolean_t) {
+    b.I_pipe = false;
+	b.LS_pipe = false;
+  }
+
+
+   // These are the conditions for the current instructions to check if they can progress
+	procedure check_current_progress(stalled: common.dual_boolean_t, pprime_stage: common.dual_stage_t)
+	returns(b: common.dual_boolean_t) {
+		// By default the instruction cannot move to the next stage
+		b.I_pipe = false;
+
+		// Except if its latency is going to run out or has run out
+		// And the pipeline is not stalled
+		if (current_latencies.I_pipe <= 1 && !stalled.I_pipe) {
+		  case
+		// ... and its targeted next stage is not occupied by the previous
+		    (current_stages.I_pipe == pre) : { if (pprime_stage.I_pipe != IF) { b.I_pipe = true; }}  
+		    (current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
+		    (current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
+		    (current_stages.I_pipe == EX)  : { if (pprime_stage.I_pipe != WB) { b.I_pipe = true; }}	
+		// Willing to switch from these stages mean exiting the pipeline ...
+		    (current_stages.I_pipe == WB)  : { b.I_pipe = true; }
+		  esac
+		}
+
+		// By default the instruction cannot move to the next stage
+		b.LS_pipe = false;
+	
+		// If we were in the WB stage and we are a store op, jump to the ST stage
+		if (current_ops.LS_instr == store_op && current_stages.LS_pipe == WB && pprime_stage.LS_pipe != ST) { b.LS_pipe = true; }
+
+		// Except if its latency is going to run out or has run out
+		// And the pipeline is not stalled
+		if (current_latencies.I_pipe <= 1 && !stalled.LS_pipe) {
+		  case
+		// ... and its targeted next stage is not occupied by the previous
+		    (current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF) { b.LS_pipe = true; }}  
+		    (current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
+		    (current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
+		    (current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}	
+		    (current_stages.LS_pipe == WB)  : { if (current_ops.LS_instr != store_op || pprime_stage.LS_pipe != ST) { b.LS_pipe = true; }}
+		  esac
+		}
+	}
+
+ 
+  // Checking stalls for the current instructions
+   procedure check_current_stalling()
+  	returns (b: common.dual_boolean_t) {
+		b.I_pipe = false;
+		b.LS_pipe = false;
+  }
+
+
+  init {
+    assume(previous_stages == input_previous_stages);
+
+    assume(input_previous_stages.LS_pipe == IF ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.IF);
+    assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID);
+    assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
+    assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
+    assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST);
+    assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);    
+
+    assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
+    assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID);
+    assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX);
+    assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB);
+    assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);   
+
+    previous_delays.I_pipe = 0; previous_delays.LS_pipe = 0;
+    previous_progress.I_pipe = false; previous_progress.LS_pipe = false;
+
+    current_stages.I_pipe = pre; current_stages.LS_pipe = pre;
+    current_latencies.I_pipe = 0; current_latencies.LS_pipe = 0;
+    current_delays.I_pipe = 0; current_delays.LS_pipe = 0;
+    current_progress.I_pipe = false; current_progress.LS_pipe = false;
+  }
+
+    procedure update_current_delays(current_delays: common.dual_integer_t, inc_LS: boolean, inc_I: boolean)
+	  returns (new_delays: common.dual_integer_t) {
+		if (inc_LS) { new_delays.LS_pipe = current_delays.LS_pipe + 1; }
+		if (inc_I) { new_delays.I_pipe = current_delays.I_pipe + 1; }
+  }
+
+  // Updating the state of the instructions
+  next  {
+	call (previous_stalled') = check_previous_stalling();
+	call (previous_progress') = check_previous_progress(previous_stalled');
+	call (previous_stages', previous_latencies') = next_stages(previous_progress', previous_stages, previous_ops, previous_initial_latencies, previous_latencies);
+
+	call (current_stalled') = check_current_stalling();
+	call (current_progress') = check_current_progress(current_stalled', previous_stages');
+	call (current_stages', current_latencies') = next_stages(current_progress', current_stages, current_ops, current_initial_latencies, current_latencies);
+
+	call (current_delays') = update_current_delays(current_delays, current_latencies'.LS_pipe == 0 && current_stages'.LS_pipe != post, current_latencies'.I_pipe == 0 && current_stages'.I_pipe != post);
+  }
+}

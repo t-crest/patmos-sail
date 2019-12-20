@@ -18,7 +18,7 @@ uclid
 |     |
 |     +---- old		 // Old versions of the pipeline models
 |     +
-|     +---- riscv	 // RISC-like pipeline models (SIC, PRET, Patmos, in-order)
+|     +---- riscs // RISC-like pipeline models (SIC, PRET, Patmos, in-order)
 |     +	    		 // Some models are available with different stalling logics
 |     +---- k1
 |
