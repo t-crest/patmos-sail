@@ -12,40 +12,41 @@ module conditions {
   init {
     // Assume all type of opcodes
     assume(ops_i.I_instr == I_nop || ops_i.I_instr == I_branch_op || ops_i.I_instr == other_I_op);
-	assume(ops_i.LS_instr == LS_nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == LS_branch_op || ops_i.LS_instr == other_LS_op);
-	assume(ops_i.is_LS_second == true || ops_i.is_LS_second == false);
+    assume(ops_i.LS_instr == LS_nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == LS_branch_op || ops_i.LS_instr == other_LS_op);
+    assume(ops_i.is_LS_second == true || ops_i.is_LS_second == false);
     assume(ops_j.I_instr == I_nop || ops_j.I_instr == I_branch_op || ops_j.I_instr == other_I_op);
-	assume(ops_j.LS_instr == LS_nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == LS_branch_op || ops_j.LS_instr == other_LS_op);
-	assume(ops_j.is_LS_second == true || ops_j.is_LS_second == false);
+    assume(ops_j.LS_instr == LS_nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == LS_branch_op || ops_j.LS_instr == other_LS_op);
+    assume(ops_j.is_LS_second == true || ops_j.is_LS_second == false);
 
     // Assume variable latencies for all instructions in IF stage
+    // MJ: probably this is made on purpuse (test), but this means no access to the instruction cache?
     assume(latencies_i.I_pipe.IF == 1);
     assume(latencies_i.LS_pipe.IF == 1);
-	assume(latencies_j.I_pipe.IF == 1);
+    assume(latencies_j.I_pipe.IF == 1);
     assume(latencies_j.LS_pipe.IF == 1);
     // Assume latencies for ID stage
     assume(latencies_i.I_pipe.ID == 1);
     assume(latencies_i.LS_pipe.ID == 1);
-	assume(latencies_j.I_pipe.ID == 1);
+    assume(latencies_j.I_pipe.ID == 1);
     assume(latencies_j.LS_pipe.ID == 1);
     // Assume latencies for EX I-stage
     assume(latencies_i.I_pipe.EX == 1);
-	assume(latencies_j.I_pipe.EX == 1);
+    assume(latencies_j.I_pipe.EX == 1);
     // Assume variable latencies for load and store opcodes in EX stage
     assume((ops_i.LS_instr == load_op || ops_i.LS_instr == store_op)
     	   ==> 0 < latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_latency);
-	assume((ops_j.LS_instr == load_op || ops_j.LS_instr == store_op)
+    assume((ops_j.LS_instr == load_op || ops_j.LS_instr == store_op)
     	   ==> 0 < latencies_j.LS_pipe.EX && latencies_j.LS_pipe.EX <= param.max_latency);
     // Assume that other LS-operations take 1 cycle in EX stage 
     assume((ops_i.LS_instr == LS_nop || ops_i.LS_instr == LS_branch_op || ops_i.LS_instr == other_LS_op) ==> latencies_i.LS_pipe.EX == 1);
-	assume((ops_j.LS_instr == LS_nop || ops_j.LS_instr == LS_branch_op || ops_j.LS_instr == other_LS_op) ==> latencies_j.LS_pipe.EX == 1);
+    assume((ops_j.LS_instr == LS_nop || ops_j.LS_instr == LS_branch_op || ops_j.LS_instr == other_LS_op) ==> latencies_j.LS_pipe.EX == 1);
     // Assume latencies for WB stage
     assume(latencies_i.I_pipe.WB == 1);
-	assume(latencies_i.LS_pipe.WB == 1);
+    assume(latencies_i.LS_pipe.WB == 1);
     assume(latencies_j.I_pipe.WB == 1);
-	assume(latencies_j.LS_pipe.WB == 1);          
+    assume(latencies_j.LS_pipe.WB == 1);
     assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == WB);
-	assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
+    assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
     // This is to allow only store operation to start from ST stage
     assume(stages_i.LS_pipe == ST ==> ops_i.LS_instr == store_op);
   }

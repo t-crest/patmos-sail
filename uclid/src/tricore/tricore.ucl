@@ -18,12 +18,13 @@ module tricore {
 	 if (progress_prime.LS_pipe) {
 		 case
 		  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
-		  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
+		  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
 		  (stages.LS_pipe == ID)  : { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
 		  (stages.LS_pipe == EX)  : { new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
-		  (stages.LS_pipe == WB)	 : { if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
-		  	    			else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
-						}
+		  // MJ: are you sure for new_latencies => get it from WB stage?
+		  (stages.LS_pipe == WB)  : { if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+		  		     	      else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+					    }
 		  (stages.LS_pipe == ST || stages.LS_pipe == post) : { new.LS_pipe = post; new_latencies.LS_pipe = 0;}
     	esac
 	}
@@ -37,8 +38,7 @@ module tricore {
 		  (stages.I_pipe == IF)  : { new.I_pipe = ID; new_latencies.I_pipe = latencies.LS_pipe.ID; }
 		  (stages.I_pipe == ID)  : { new.I_pipe = EX; new_latencies.I_pipe = latencies.LS_pipe.EX; }
 		  (stages.I_pipe == EX)  : { new.I_pipe = WB; new_latencies.I_pipe = latencies.LS_pipe.WB; }
-		  (stages.I_pipe == WB)	 : { new.I_pipe = post; new_latencies.I_pipe = 0; }
-		  (stages.I_pipe == post) : { new.I_pipe = post; new_latencies.I_pipe = 0;}
+		  (stages.I_pipe == WB || stages.I_pipe == post) : { new.I_pipe = post; new_latencies.I_pipe = 0; }
    		esac
 	}
 	else {
@@ -56,6 +56,7 @@ module tricore {
 			b.I_pipe = true;
 		}
 
+		// MJ: sure about the next lien, already done before ...
 		b.I_pipe = false;
 
 		// If we were in the WB stage and we are a store op, jump to the ST stage
@@ -108,7 +109,7 @@ module tricore {
 		    (current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF) { b.LS_pipe = true; }}  
 		    (current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 		    (current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
-		    (current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}	
+		    (current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}
 		    (current_stages.LS_pipe == WB)  : { if (current_ops.LS_instr != store_op || pprime_stage.LS_pipe != ST) { b.LS_pipe = true; }}
 		  esac
 		}
