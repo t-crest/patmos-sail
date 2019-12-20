@@ -91,13 +91,13 @@ uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/pat
 SIC model:
 
 ```
-uclid src/riscs/common.ucl src/riscs/pret.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
 ```
 
 PRET model:
 
 ```
-uclid src/riscs/common.ucl src/riscs/sic.ucl test/pret/test.ucl test/pret/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/pret.ucl test/pret/test.ucl test/pret/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
 ```
 
 K1 model:
