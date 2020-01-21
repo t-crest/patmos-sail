@@ -13,16 +13,15 @@ module main {
   invariant no_several_ins_per_stage: (((run.cond.pipeline.current_stages.I_pipe == IF ||
   				        run.cond.pipeline.current_stages.I_pipe == ID ||
   				        run.cond.pipeline.current_stages.I_pipe == EX ||
-  				        run.cond.pipeline.current_stages.I_pipe == ST ||
   				        run.cond.pipeline.current_stages.I_pipe == WB)
 				      	==> run.cond.pipeline.current_stages.I_pipe != run.cond.pipeline.previous_stages.I_pipe)
 				&&
-					((run.cond.pipeline.current_stages.I_pipe == IF ||
-  				        run.cond.pipeline.current_stages.I_pipe == ID ||
-  				        run.cond.pipeline.current_stages.I_pipe == EX ||
-  				        run.cond.pipeline.current_stages.I_pipe == ST ||
-  				        run.cond.pipeline.current_stages.I_pipe == WB)
-				      	==> run.cond.pipeline.current_stages.I_pipe != run.cond.pipeline.previous_stages.I_pipe));
+					((run.cond.pipeline.current_stages.LS_pipe == IF ||
+  				        run.cond.pipeline.current_stages.LS_pipe == ID ||
+  				        run.cond.pipeline.current_stages.LS_pipe == EX ||
+  				        run.cond.pipeline.current_stages.LS_pipe == ST ||
+  				        run.cond.pipeline.current_stages.LS_pipe == WB)
+				      	==> run.cond.pipeline.current_stages.LS_pipe != run.cond.pipeline.previous_stages.LS_pipe));
 
   invariant no_negative_latency: (run.cond.pipeline.current_latencies.I_pipe >= 0 && run.cond.pipeline.current_latencies.LS_pipe >= 0 &&
   	    			  run.cond.pipeline.previous_latencies.I_pipe >= 0 && run.cond.pipeline.previous_latencies.LS_pipe >= 0);

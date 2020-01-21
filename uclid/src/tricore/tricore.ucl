@@ -21,8 +21,7 @@ module tricore {
 		  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
 		  (stages.LS_pipe == ID)  : { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
 		  (stages.LS_pipe == EX)  : { new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
-		  // MJ: are you sure for new_latencies => get it from WB stage?
-		  (stages.LS_pipe == WB)  : { if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+		  (stages.LS_pipe == WB)  : { if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.ST; }
 		  		     	      else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
 					    }
 		  (stages.LS_pipe == ST || stages.LS_pipe == post) : { new.LS_pipe = post; new_latencies.LS_pipe = 0;}
