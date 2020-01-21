@@ -18,6 +18,10 @@ module conditions {
 	assume(ops_j.LS_instr == LS_nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == LS_branch_op || ops_j.LS_instr == other_LS_op);
 	assume(ops_j.is_LS_second == true || ops_j.is_LS_second == false);
 
+    // LS instructions can be issued paired only if they are the second
+    assume(ops_i.I_instr != I_nop ==> ops_i.is_LS_second == true);
+    assume(ops_j.I_instr != I_nop ==> ops_j.is_LS_second == true);
+
     // Assume variable latencies for all instructions in IF stage
     assume(latencies_i.I_pipe.IF == 1);
     assume(latencies_i.LS_pipe.IF == 1);
