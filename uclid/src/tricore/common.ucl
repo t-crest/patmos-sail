@@ -1,9 +1,13 @@
 module common {
   // Pipeline stages
+  // MJ: why do have a ST stage, there is no such ST stage in the pipeline ...
   type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
   type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
 
   // Opcodes
+  // MJ: why do you need a to distinguish opcodes from the different pipelines
+  // MJ: is nop is similar in I and LS or is it really different? Some question
+  // MJ: for the other instruction classes
   type I_opcode_t = enum { I_nop, I_branch_op, other_I_op };
   type LS_opcode_t = enum { LS_nop, load_op, store_op, LS_branch_op, other_LS_op };
 
