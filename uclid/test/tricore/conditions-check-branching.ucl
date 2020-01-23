@@ -20,7 +20,7 @@ module conditions {
 	assume(ops_i.is_LS_second == true);
 	assume(ops_j.is_LS_second == true);
 
- // Assume variable latencies for all instructions in IF stage
+	// Assume variable latencies for all instructions in IF stage
     assume(latencies_i.I_pipe.IF == 1);
     assume(latencies_i.LS_pipe.IF == 1);
     assume(latencies_j.I_pipe.IF == 1);
@@ -35,7 +35,7 @@ module conditions {
     assume(latencies_j.I_pipe.EX == 1);
     assume(latencies_i.LS_pipe.EX == 1);
     assume(latencies_j.LS_pipe.EX == 1);
-// Assume latencies for WB stage
+	// Assume latencies for WB stage
     assume(latencies_i.I_pipe.WB == 1);
     assume(latencies_i.LS_pipe.WB == 1);
     assume(latencies_j.I_pipe.WB == 1);
@@ -43,6 +43,8 @@ module conditions {
 
     assume(latencies_i.LS_pipe.ST == 1);
     assume(latencies_j.LS_pipe.ST == 1);
+    assume(latencies_i.I_pipe.ST == 1);
+    assume(latencies_j.I_pipe.ST == 1);
   }
 
   next {

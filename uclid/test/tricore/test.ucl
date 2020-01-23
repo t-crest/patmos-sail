@@ -9,7 +9,7 @@ module test {
   instance pipeline : tricore(current_ops: (cond_ops_j), previous_ops: (cond_ops_i),
   	   	             current_initial_latencies: (cond_latencies_j),
 			     previous_initial_latencies: (cond_latencies_i),
-			     input_previous_stages: (cond_stages_i));			     
+			     input_previous_stages: (cond_stages_i));
 
   init {
     step = 0;
@@ -20,4 +20,3 @@ module test {
     next(pipeline);
   }
 }
-  

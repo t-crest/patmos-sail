@@ -19,12 +19,12 @@ module main {
     check;
     print_results;
     vbmc.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
-    		   run.cond.pipeline.current_latencies, 
-		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
-		   run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
-    		   run.cond.pipeline.previous_latencies, 
-		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
-		   run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
-		   run.latencies_i, run.latencies_j);
+			run.cond.pipeline.current_latencies, 
+			run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
+			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
+			run.cond.pipeline.previous_latencies, 
+			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
+			run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
+			run.latencies_i, run.latencies_j);
   }
 }

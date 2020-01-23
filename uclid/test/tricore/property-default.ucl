@@ -10,7 +10,7 @@ module main {
   }
 
   // To check that there is not several instructions per stage
-  invariant no_several_ins_per_stage: (((run.cond.pipeline.current_stages.I_pipe == IF ||
+ invariant no_several_ins_per_stage: (((run.cond.pipeline.current_stages.I_pipe == IF ||
   				        run.cond.pipeline.current_stages.I_pipe == ID ||
   				        run.cond.pipeline.current_stages.I_pipe == EX ||
   				        run.cond.pipeline.current_stages.I_pipe == WB)
@@ -38,22 +38,21 @@ module main {
     vunroll = unroll(param.bmc_depth);
     check;
     print_results;
-
-   vbmc.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
-    		   run.cond.pipeline.current_latencies, 
-		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
-		   run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
-    		   run.cond.pipeline.previous_latencies, 
-		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
-		   run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
-		   run.latencies_i, run.latencies_j);
-    vunroll.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
-    		   run.cond.pipeline.current_latencies, 
-		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
-		   run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
-    		   run.cond.pipeline.previous_latencies, 
-		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
-		   run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
-		   run.latencies_i, run.latencies_j);
-  }
+	vbmc.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
+			run.cond.pipeline.current_latencies, 
+			run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
+			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
+			run.cond.pipeline.previous_latencies, 
+			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
+			run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
+			run.latencies_i, run.latencies_j);
+	vunroll.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
+			run.cond.pipeline.current_latencies, 
+			run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
+			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
+			run.cond.pipeline.previous_latencies, 
+			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
+			run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
+			run.latencies_i, run.latencies_j);
+	}
 }
