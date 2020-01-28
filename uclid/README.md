@@ -97,7 +97,7 @@ uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-no
 PRET model:
 
 ```
-uclid src/riscs/common.ucl src/riscs/pret.ucl test/pret/test.ucl test/pret/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/pret.ucl test/pret/test.ucl test/pret/param-notiming-anomaly.ucl test/pret/conditions.ucl test/inorder/property-notiming-anomaly.ucl
 ```
 
 K1 model:

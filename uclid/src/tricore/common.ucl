@@ -1,6 +1,7 @@
 module common {
   // Pipeline stages
   // MJ: why do have a ST stage, there is no such ST stage in the pipeline ...
+  // MJ: MAU operations are pipelined in EX1 and EX2
   type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
   type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
 
