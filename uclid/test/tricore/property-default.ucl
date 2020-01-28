@@ -23,6 +23,11 @@ module main {
   				        run.cond.pipeline.current_stages.LS_pipe == WB)
 				      	==> run.cond.pipeline.current_stages.LS_pipe != run.cond.pipeline.previous_stages.LS_pipe));
 
+  // To check that a bundle of 2 instructions are in the stage
+  // TODO: well this might be incorrect in fact ...
+  invariant same_stage: (run.cond.pipeline.current_stages.I_pipe == run.cond.pipeline.current_stages.LS_pipe &&
+  	    		 run.cond.pipeline.previous_stages.I_pipe == run.cond.pipeline.previous_stages.LS_pipe);
+
   invariant no_negative_latency: (run.cond.pipeline.current_latencies.I_pipe >= 0 && run.cond.pipeline.current_latencies.LS_pipe >= 0 &&
   	    			  run.cond.pipeline.previous_latencies.I_pipe >= 0 && run.cond.pipeline.previous_latencies.LS_pipe >= 0);
 

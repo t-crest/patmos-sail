@@ -1,0 +1,53 @@
+module conditions {
+
+  var ops_i, ops_j: common.instr_pair_t;
+  var latencies_i, latencies_j: common.dual_latencies_t;
+  var stages_i: common.dual_stage_t;
+
+  instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_stages_i: (stages_i));
+  
+  init {
+    // Check the next stage ready logic (in stage MEM)
+    assume(ops_i.LS_instr == load_op);
+    assume(ops_i.I_instr == other_I_op);
+    assume(ops_j.LS_instr == store_op);
+    assume(ops_j.I_instr == nop);
+    assume(stages_i.I_pipe == IF);
+    assume(stages_i.LS_pipe == IF);
+    assume(ops_i.is_LS_second == true);
+    assume(ops_j.is_LS_second == false);
+
+    // Assume variable latencies for all instructions in IF stage
+    assume(latencies_i.I_pipe.IF == 1);
+    assume(latencies_i.LS_pipe.IF == 1);
+    assume(latencies_j.I_pipe.IF == 1);
+    assume(latencies_j.LS_pipe.IF == 1);
+    // Assume latencies for ID stage
+    assume(latencies_i.I_pipe.ID == 1);
+    assume(latencies_i.LS_pipe.ID == 1);
+	assume(latencies_j.I_pipe.ID == 1);
+    assume(latencies_j.LS_pipe.ID == 1);
+    // Assume latencies for EX stage
+    assume(latencies_i.I_pipe.EX == 1);
+    assume(latencies_j.I_pipe.EX == 1);
+    assume(latencies_i.LS_pipe.EX == 1);
+    assume(latencies_j.LS_pipe.EX == 1);
+	// Assume latencies for WB stage
+    assume(latencies_i.I_pipe.WB == 1);
+    assume(latencies_i.LS_pipe.WB == 1);
+    assume(latencies_j.I_pipe.WB == 1);
+    assume(latencies_j.LS_pipe.WB == 1);
+
+    assume(latencies_i.LS_pipe.ST == 1);
+    assume(latencies_j.LS_pipe.ST == 1);
+    assume(latencies_i.I_pipe.ST == 1);
+    assume(latencies_j.I_pipe.ST == 1);
+  }
+
+  next {
+    next(cond);
+  }
+}
