@@ -22,7 +22,7 @@ module main {
 			run.cond.pipeline.current_latencies, 
 			run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
 			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
-			run.cond.pipeline.previous_latencies, 
+			run.cond.pipeline.previous_latencies,
 			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
 			run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
 			run.latencies_i, run.latencies_j);

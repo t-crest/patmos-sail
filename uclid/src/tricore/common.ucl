@@ -1,19 +1,20 @@
 module common {
-  // Pipeline stages
-  // MJ: why do have a ST stage, there is no such ST stage in the pipeline ...
-  type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
-  type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
+	// Pipeline stages
+	// MJ: why do have a ST stage, there is no such ST stage in the pipeline ...
+	type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
+	type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
 
-  // Opcodes
-  type opcode_t = enum { load_op, store_op, nop, uncond_branch_op, cond_branch_op, other_I_op, other_LS_op };
+	// Opcodes
+	type opcode_t = enum { load_op, store_op, nop, uncond_branch_op, cond_16_branch_op, cond_32_back_branch_op, cond_32_for_branch_op, other_I_op, other_LS_op };
+	type hazard_t = enum { no_hazard, WAW, RAW, mispred };
 
-  // Couple of an I- and a LS-instruction
-  type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t, is_LS_second: boolean };
+	// Couple of an I- and a LS-instruction
+	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t, is_LS_second: boolean, hazard: hazard_t };
 
-  // Latencies information for each instruction
-  type latencies_t = record { IF: integer, ID: integer, EX: integer, WB: integer, ST: integer };
-  type dual_latencies_t = record { I_pipe: latencies_t, LS_pipe: latencies_t };
+	// Latencies information for each instruction
+	type latencies_t = record { IF: integer, ID: integer, EX: integer, WB: integer, ST: integer };
+	type dual_latencies_t = record { I_pipe: latencies_t, LS_pipe: latencies_t };
 
-  type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
-  type dual_boolean_t = record { I_pipe: boolean, LS_pipe: boolean };
+	type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
+	type dual_boolean_t = record { I_pipe: boolean, LS_pipe: boolean };
 }

@@ -11,16 +11,29 @@ module conditions {
 
   init {
     // Assume all type of opcodes
-    assume(ops_i.I_instr == nop || ops_i.I_instr == cond_branch_op || ops_i.I_instr == other_I_op);
-    assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == cond_branch_op || ops_i.I_instr == uncond_branch_op ||  ops_i.LS_instr == other_LS_op);
+    assume(ops_i.I_instr == nop || ops_i.I_instr == cond_16_branch_op || ops_i.I_instr == cond_32_back_branch_op || ops_i.I_instr == cond_32_for_branch_op || ops_i.I_instr == other_I_op);
+    assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op  || ops_i.LS_instr == cond_16_branch_op || ops_i.LS_instr == cond_32_back_branch_op || ops_i.LS_instr == cond_32_for_branch_op  || ops_i.LS_instr == uncond_branch_op ||  ops_i.LS_instr == other_LS_op);
     assume(ops_i.is_LS_second == true || ops_i.is_LS_second == false);
-    assume(ops_j.I_instr == nop || ops_j.I_instr == cond_branch_op || ops_j.I_instr == other_I_op);
-    assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == cond_branch_op || ops_j.I_instr == uncond_branch_op ||  ops_j.LS_instr == other_LS_op);
+    assume(ops_j.I_instr == nop  || ops_j.I_instr == cond_16_branch_op || ops_j.I_instr == cond_32_back_branch_op || ops_j.I_instr == cond_32_for_branch_op || ops_j.I_instr == other_I_op);
+    assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == cond_16_branch_op || ops_j.LS_instr == cond_32_back_branch_op || ops_j.LS_instr == cond_32_for_branch_op || ops_j.I_instr == uncond_branch_op ||  ops_j.LS_instr == other_LS_op);
     assume(ops_j.is_LS_second == true || ops_j.is_LS_second == false);
 
     // LS instructions can be issued paired only if they are the second
     assume(ops_i.I_instr != nop ==> ops_i.is_LS_second == true);
     assume(ops_j.I_instr != nop ==> ops_j.is_LS_second == true);
+
+	// Assume all possible hazards
+	assume((ops_i.LS_instr == load_op && ops_i.I_instr != nop && ops_i.I_instr != cond_16_branch_op && ops_i.I_instr != cond_32_back_branch_op && ops_i.I_instr != cond_32_for_branch_op) ==> (ops_i.hazard == no_hazard || ops_i.hazard == RAW));
+	assume((ops_j.LS_instr == load_op && ops_j.I_instr != nop && ops_j.I_instr != cond_16_branch_op && ops_j.I_instr != cond_32_back_branch_op && ops_j.I_instr != cond_32_for_branch_op) ==> (ops_j.hazard == no_hazard || ops_j.hazard == RAW));
+
+	assume((ops_i.LS_instr == store_op && ops_i.I_instr != nop && ops_i.I_instr != cond_16_branch_op && ops_i.I_instr != cond_32_back_branch_op && ops_i.I_instr != cond_32_for_branch_op) ==> (ops_i.hazard == no_hazard || ops_i.hazard == WAW));
+	assume((ops_j.LS_instr == store_op && ops_j.I_instr != nop && ops_j.I_instr != cond_16_branch_op && ops_j.I_instr != cond_32_back_branch_op && ops_j.I_instr != cond_32_for_branch_op) ==> (ops_j.hazard == no_hazard || ops_j.hazard == WAW));
+
+	assume((ops_i.LS_instr == cond_16_branch_op || ops_i.LS_instr == cond_32_back_branch_op || ops_i.LS_instr == cond_32_for_branch_op) ==> (ops_i.hazard == no_hazard || ops_i.hazard == mispred));
+	assume((ops_j.LS_instr == cond_16_branch_op || ops_j.LS_instr == cond_32_back_branch_op || ops_j.LS_instr == cond_32_for_branch_op) ==> (ops_j.hazard == no_hazard || ops_j.hazard == mispred));
+
+	assume((ops_i.LS_instr != cond_16_branch_op && ops_i.LS_instr != cond_32_back_branch_op && ops_i.LS_instr != cond_32_for_branch_op && (ops_i.LS_instr != load_op || ops_i.I_instr == nop || ops_i.I_instr == cond_16_branch_op || ops_i.I_instr == cond_32_back_branch_op || ops_i.I_instr == cond_32_for_branch_op) && (ops_i.LS_instr != store_op || ops_i.I_instr == nop || ops_i.I_instr == cond_16_branch_op || ops_i.I_instr == cond_32_back_branch_op || ops_i.I_instr == cond_32_for_branch_op)) ==> ops_i.hazard == no_hazard);
+	assume((ops_j.LS_instr != cond_16_branch_op && ops_j.LS_instr != cond_32_back_branch_op && ops_j.LS_instr != cond_32_for_branch_op && (ops_j.LS_instr != load_op || ops_j.I_instr == nop || ops_j.I_instr == cond_16_branch_op || ops_j.I_instr == cond_32_back_branch_op || ops_j.I_instr == cond_32_for_branch_op) && (ops_j.LS_instr != store_op || ops_j.I_instr == nop || ops_j.I_instr == cond_16_branch_op || ops_j.I_instr == cond_32_back_branch_op || ops_j.I_instr == cond_32_for_branch_op)) ==> ops_j.hazard == no_hazard);
 
     // Assume variable latencies for all instructions in IF stage
 	assume(0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_latency);
@@ -41,8 +54,8 @@ module conditions {
     assume((ops_j.LS_instr == load_op || ops_j.LS_instr == store_op)
     	   ==> 0 < latencies_j.LS_pipe.EX && latencies_j.LS_pipe.EX <= param.max_latency);
     // Assume that other LS-operations take 1 cycle in EX stage 
-    assume((ops_i.LS_instr == nop || ops_i.LS_instr == cond_branch_op || ops_i.LS_instr == uncond_branch_op || ops_i.LS_instr == other_LS_op) ==> latencies_i.LS_pipe.EX == 1);
-    assume((ops_j.LS_instr == nop || ops_j.LS_instr == cond_branch_op || ops_j.LS_instr == uncond_branch_op || ops_j.LS_instr == other_LS_op) ==> latencies_j.LS_pipe.EX == 1);
+    assume((ops_i.LS_instr == nop || (ops_i.LS_instr == cond_16_branch_op || ops_i.LS_instr == cond_32_back_branch_op || ops_i.LS_instr == cond_32_for_branch_op) || ops_i.LS_instr == uncond_branch_op || ops_i.LS_instr == other_LS_op) ==> latencies_i.LS_pipe.EX == 1);
+    assume((ops_j.LS_instr == nop || (ops_j.LS_instr == cond_16_branch_op || ops_j.LS_instr == cond_32_back_branch_op || ops_j.LS_instr == cond_32_for_branch_op) || ops_j.LS_instr == uncond_branch_op || ops_j.LS_instr == other_LS_op) ==> latencies_j.LS_pipe.EX == 1);
     // Assume latencies for WB stage
     assume(latencies_i.I_pipe.WB == 1);
     assume(latencies_i.LS_pipe.WB == 1);
