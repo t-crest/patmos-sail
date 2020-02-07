@@ -1,18 +1,15 @@
 module common {
 	// Pipeline stages
-	// MJ: why do have a ST stage, there is no such ST stage in the pipeline ...
-	// MJ: MAU operations are pipelined in EX1 and EX2
-	type stage_t = enum { pre, IF, ID, EX, WB, ST, post };
+	type stage_t = enum { pre, IF, ID, EX, EX2, WB, post };
 	type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
 
-	type opcode_t = enum { load_op, store_op, nop, uncond_branch_op, cond_16_branch_op, cond_32_back_branch_op, cond_32_for_branch_op, other_I_op, other_LS_op };
-	type hazard_t = enum { no_hazard, WAW, RAW, mispred };
+	type opcode_t = enum { load_op, store_op, mac_op, nop, other_I_op, other_LS_op };
 
 	// Couple of an I- and a LS-instruction
-	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t, is_LS_second: boolean, hazard: hazard_t };
+	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t, is_LS_second: boolean };
 
 	// Latencies information for each instruction
-	type latencies_t = record { IF: integer, ID: integer, EX: integer, WB: integer, ST: integer };
+	type latencies_t = record { IF: integer, ID: integer, EX: integer, EX2: integer, WB: integer };
 	type dual_latencies_t = record { I_pipe: latencies_t, LS_pipe: latencies_t };
 
 	type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
