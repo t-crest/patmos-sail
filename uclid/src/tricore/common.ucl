@@ -6,7 +6,7 @@ module common {
 	type opcode_t = enum { load_op, store_op, mac_op, nop, other_I_op, other_LS_op };
 
 	// Couple of an I- and a LS-instruction
-	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t, is_LS_second: boolean };
+	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t }; //, is_LS_second: boolean };
 
 	// Latencies information for each instruction
 	type latencies_t = record { IF: integer, ID: integer, EX: integer, EX2: integer, WB: integer };

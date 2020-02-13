@@ -1,0 +1,54 @@
+module conditions {
+
+  var ops_i, ops_j: common.instr_pair_t;
+  var latencies_i, latencies_j: common.dual_latencies_t;
+  var stages_i: common.dual_stage_t;  
+
+  instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_stages_i: (stages_i));
+
+  init {
+    // Assume a unique instr. type
+    assume(ops_i.I_instr == nop );
+    assume(ops_i.LS_instr == nop);
+    assume(ops_j.I_instr == nop );
+    assume(ops_j.LS_instr == nop );
+	
+    // Assume latencies for IF stage
+    assume(latencies_i.I_pipe.IF == 1);
+    assume(latencies_i.LS_pipe.IF == 1);
+    assume(latencies_j.I_pipe.IF == 1);
+    assume(latencies_j.LS_pipe.IF == 1);
+    // Assume latencies for ID stage
+    assume(latencies_i.I_pipe.ID == 1);
+    assume(latencies_i.LS_pipe.ID == 1);
+    assume(latencies_j.I_pipe.ID == 1);
+    assume(latencies_j.LS_pipe.ID == 1);
+    // Assume latencies for EX stage
+    assume(latencies_i.I_pipe.EX == 1);
+    assume(latencies_i.LS_pipe.EX == 1);
+    assume(latencies_j.I_pipe.EX == 1);
+    assume(latencies_j.LS_pipe.EX == 1);
+	// Assume latencies for EX2 stage
+    assume(latencies_i.I_pipe.EX2 == 1);
+    assume(latencies_j.I_pipe.EX2 == 1);
+    assume(latencies_i.LS_pipe.EX2 == 1);
+    assume(latencies_j.LS_pipe.EX2 == 1);
+    // Assume latencies for WB stage
+    assume(latencies_i.I_pipe.WB == 1);
+    assume(latencies_i.LS_pipe.WB == 1);
+    assume(latencies_j.I_pipe.WB == 1);
+    assume(latencies_j.LS_pipe.WB == 1);
+	// Assume stages for previous instr.
+    assume(stages_i.I_pipe == ID);
+    assume(stages_i.LS_pipe == ID);
+    // This is to allow only MAC operation to start from EX2 stage
+    assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
+  }
+
+  next {
+	next(cond);
+  }
+}
