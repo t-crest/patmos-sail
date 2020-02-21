@@ -48,10 +48,9 @@ module tricore {
 	}
 
    // These are the conditions for the previous instructions to check if they can progress
-	procedure check_previous_progress(stalled: boolean, input_delays: common.dual_integer_t)
-	returns(b_both: boolean, output_delays: common.dual_integer_t) {
+	procedure check_previous_progress(stalled: boolean)
+	returns(b_both: boolean) {
 		var b: common.dual_boolean_t;
-		output_delays = input_delays;
 		
 		// By default the instructions cannot move to the next stages
 		b.I_pipe = false;
@@ -62,27 +61,23 @@ module tricore {
 		b.LS_pipe = false;
 		if (previous_latencies.LS_pipe <= 1 && !stalled) {
 			b.LS_pipe = true;
-
-			if (previous_stages.LS_pipe == ID && (previous_ops.LS_instr == load_op || previous_ops.LS_instr == store_op) && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
-				// Checking the stage being already in IF exclude the case of simultaneous transition
-				// by previous and current in EX and IF, as in this case, priority is given to the
-				// data access (??, assumption), i.e the previous instruction.
-				b.LS_pipe = false;
-				output_delays.LS_pipe = input_delays.LS_pipe + 1;
-			}
 	  	}
 		
 		b_both = b.I_pipe && b.LS_pipe;
 	}
 
 	// Checking stalls for the previous instructions
-	procedure check_previous_stalling()
-	returns (b: boolean) {
+	procedure check_previous_stalling(input_delays: common.dual_integer_t)
+	returns (b: boolean, output_delays: common.dual_integer_t) {
 		// Stalling when one of the current instructions is in IF
 		 b = (current_stages.I_pipe == IF && current_initial_latencies.I_pipe.IF > 1 && current_latencies.I_pipe >= 1) ||
 			(current_stages.LS_pipe == IF && current_initial_latencies.LS_pipe.IF > 1 && current_latencies.LS_pipe >= 1) ||
 			// Same thing for LS ops in EX stage
-			(current_stages.LS_pipe == EX && (current_ops.LS_instr == load_op || current_ops.LS_instr == store_op) && current_initial_latencies.LS_pipe.EX > 1 && current_latencies.LS_pipe >= 1);
+			(current_stages.LS_pipe == EX && current_ops.LS_instr == load_store_op && current_initial_latencies.LS_pipe.EX > 1 && current_latencies.LS_pipe >= 1);
+
+		output_delays = input_delays;
+		if (b && previous_stages.I_pipe != post) { output_delays.I_pipe = output_delays.I_pipe + 1; }
+		if (b && previous_stages.LS_pipe != post) { output_delays.LS_pipe = output_delays.LS_pipe + 1; }
 	}
 	
 	// These are the conditions for the current instructions to check if they can progress
@@ -101,10 +96,10 @@ module tricore {
 				(current_stages.I_pipe == pre) : { if (pprime_stage.I_pipe != IF) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
 				(current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
-				(current_stages.I_pipe == EX)  : { if (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2 || current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) { b.I_pipe = true; }}	
+				(current_stages.I_pipe == EX)  : { if ((current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) || (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2)) { b.I_pipe = true; }}	
 				(current_stages.I_pipe == EX2)  : { if (pprime_stage.I_pipe != WB) { b.I_pipe = true; }}		
 				// Willing to switch from these stages mean exiting the pipeline ...
-				(current_stages.I_pipe == WB)  : { b.I_pipe = true; }
+				(current_stages.I_pipe == WB || current_stages.I_pipe == post)  : { b.I_pipe = true; }
 			esac
 		}
 
@@ -112,11 +107,11 @@ module tricore {
 		if (current_latencies.LS_pipe <= 1 && !stalled) {
 			case
 				// ... and its targeted next stage is not occupied by the previous
-				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op && previous_ops.LS_instr != store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
+				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}
-				(current_stages.LS_pipe == WB)  : { b.LS_pipe = true; }
+				(current_stages.LS_pipe == WB || current_stages.LS_pipe == post)  : { b.LS_pipe = true; }
 			esac
 		}
 
@@ -126,7 +121,7 @@ module tricore {
 	// Checking stalls for the current instructions
 	procedure check_current_stalling(pprime_stages: common.dual_stage_t)
 	returns (b: boolean) {
-		b = (pprime_stages.LS_pipe == EX && (previous_ops.LS_instr == load_op || previous_ops.LS_instr == store_op) && previous_initial_latencies.LS_pipe.EX > 1) ||
+		b = (pprime_stages.LS_pipe == EX && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1) ||
 			(pprime_stages.LS_pipe == IF && previous_initial_latencies.LS_pipe.IF > 1) ||
 			(pprime_stages.I_pipe == IF && previous_initial_latencies.I_pipe.IF > 1);
 	}
@@ -167,8 +162,8 @@ module tricore {
 
 	// Updating the state of the instructions
 	next {
-		call (previous_stalled') = check_previous_stalling();
-		call (previous_progress', previous_delays') = check_previous_progress(previous_stalled', previous_delays);
+		call (previous_stalled', previous_delays') = check_previous_stalling(previous_delays);
+		call (previous_progress') = check_previous_progress(previous_stalled');
 		call (previous_stages', previous_latencies') = next_stages(previous_progress', previous_stalled', previous_stages, previous_ops, previous_initial_latencies, previous_latencies);
 		
 		call (current_stalled') = check_current_stalling(previous_stages');

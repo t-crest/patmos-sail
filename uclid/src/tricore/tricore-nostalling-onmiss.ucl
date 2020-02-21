@@ -58,7 +58,7 @@ module tricore {
 		if (previous_latencies.LS_pipe <= 1) {
 			b.LS_pipe = true;
 
-			if (previous_stages.LS_pipe == ID && (previous_ops.LS_instr == load_op || previous_ops.LS_instr == store_op) && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
+			if (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
 				// Checking the stage being already in IF exclude the case of simultaneous transition
 				// by previous and current in EX and IF, as in this case, priority is given to the
 				// data access (??, assumption), i.e the previous instruction.
@@ -79,17 +79,16 @@ module tricore {
 		// By default the instructions cannot move to the next stages
 		b.I_pipe = false;
 		// Except if its latency is going to run out or has run out
-		// And the pipeline is not stalled due to a cache miss
 		if (current_latencies.I_pipe <= 1) {
 			case
 				// ... and its targeted next stage is not occupied by the previous
 				(current_stages.I_pipe == pre) : { if (pprime_stage.I_pipe != IF) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
 				(current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
-				(current_stages.I_pipe == EX)  : { if (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2 || current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) { b.I_pipe = true; }}	
+				(current_stages.I_pipe == EX)  : { if ((current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) || (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2)) { b.I_pipe = true; }}	
 				(current_stages.I_pipe == EX2)  : { if (pprime_stage.I_pipe != WB) { b.I_pipe = true; }}		
 				// Willing to switch from these stages mean exiting the pipeline ...
-				(current_stages.I_pipe == WB)  : { b.I_pipe = true; }
+				(current_stages.I_pipe == WB || current_stages.I_pipe == post)  : { b.I_pipe = true; }
 			esac
 		}
 
@@ -97,11 +96,11 @@ module tricore {
 		if (current_latencies.LS_pipe <= 1) {
 			case
 				// ... and its targeted next stage is not occupied by the previous
-				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op && previous_ops.LS_instr != store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
+				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}
-				(current_stages.LS_pipe == WB)  : { b.LS_pipe = true; }
+				(current_stages.LS_pipe == WB || current_stages.LS_pipe == post)  : { b.LS_pipe = true; }
 			esac
 		}
 

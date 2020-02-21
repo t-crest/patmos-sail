@@ -1,16 +1,16 @@
 module main {
 
-  type dual_stage_t = common.dual_stage_t;
-  type instr_pair_t = common.instr_pair_t;
+	type dual_stage_t = common.dual_stage_t;
+	type instr_pair_t = common.instr_pair_t;
 
-  instance run : conditions();
+	instance run : conditions();
 
-  next {
-    next(run);
-  }
+	next {
+		next(run);
+	}
 
-  // To check that there are not several instructions per stage
- /*invariant no_several_ins_per_stage: (((run.cond.pipeline.current_stages.I_pipe == IF ||
+	// To check that there are not several instructions per stage
+	invariant no_several_ins_per_stage: (((run.cond.pipeline.current_stages.I_pipe == IF ||
   				        run.cond.pipeline.current_stages.I_pipe == ID ||
   				        run.cond.pipeline.current_stages.I_pipe == EX ||
 						run.cond.pipeline.current_stages.I_pipe == EX2 ||
@@ -22,9 +22,9 @@ module main {
   				        run.cond.pipeline.current_stages.LS_pipe == EX ||
 						run.cond.pipeline.current_stages.LS_pipe == EX2 || // should be impossible (assume/next)... 
   				        run.cond.pipeline.current_stages.LS_pipe == WB)
-				      	==> run.cond.pipeline.current_stages.LS_pipe != run.cond.pipeline.previous_stages.LS_pipe));*/
+				      	==> run.cond.pipeline.current_stages.LS_pipe != run.cond.pipeline.previous_stages.LS_pipe));
 
- /* invariant no_negative_latency: (run.cond.pipeline.current_latencies.I_pipe >= 0 && run.cond.pipeline.current_latencies.LS_pipe >= 0 &&
+	invariant no_negative_latency: (run.cond.pipeline.current_latencies.I_pipe >= 0 && run.cond.pipeline.current_latencies.LS_pipe >= 0 &&
   	    			  run.cond.pipeline.previous_latencies.I_pipe >= 0 && run.cond.pipeline.previous_latencies.LS_pipe >= 0);
 
   // To check that all instructions have been retired from the run.cond.pipeline ...
@@ -32,12 +32,12 @@ module main {
   	   			      	   	      	       	    run.cond.pipeline.previous_stages.I_pipe == post && run.cond.pipeline.previous_stages.LS_pipe == post));
 
   // A simple invariant to generate a counter-example for later trace comparison
-  invariant generate_counter_example: run.cond.step < param.bmc_depth;*/
+  invariant generate_counter_example: run.cond.step < param.bmc_depth;
 
   control {
-   // vbmc = bmc(param.bmc_depth);
-    vunroll = unroll(1);
-    /*check;
+	vbmc = bmc(param.bmc_depth);
+	vunroll = unroll(param.bmc_depth);
+	check;
     print_results;
 	vbmc.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
 			run.cond.pipeline.current_latencies, 
@@ -45,6 +45,7 @@ module main {
 			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
 			run.cond.pipeline.previous_latencies, 
 			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
+			//run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
 			run.latencies_i, run.latencies_j);
 	vunroll.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
 			run.cond.pipeline.current_latencies, 
@@ -52,6 +53,7 @@ module main {
 			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
 			run.cond.pipeline.previous_latencies, 
 			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
-			run.latencies_i, run.latencies_j);*/
+			//run.cond.pipeline.current_stalled, run.cond.pipeline.previous_stalled,
+			run.latencies_i, run.latencies_j);
 	}
 }

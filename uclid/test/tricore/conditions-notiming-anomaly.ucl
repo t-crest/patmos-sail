@@ -10,23 +10,17 @@ module conditions {
 		       cond_stages_i: (stages_i));
 
   init {
-    // Assume all type of opcodes
-    assume(ops_i.I_instr == nop || ops_i.I_instr == mac_op || ops_i.I_instr == other_I_op);
-    assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == other_LS_op);
-    assume(ops_j.I_instr == nop  || ops_j.I_instr == mac_op || ops_j.I_instr == other_I_op);
-    assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == other_LS_op);
-
-	/*
-    // LS instructions can be issued paired only if they are the second
-    assume(ops_i.I_instr != nop ==> ops_i.is_LS_second == true);
-    assume(ops_j.I_instr != nop ==> ops_j.is_LS_second == true);
-	*/
+    // Assume all types of opcodes
+    assume(ops_i.I_instr == nop || ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
+    assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_store_op || ops_i.LS_instr == other_op);
+    assume(ops_j.I_instr == nop || ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
+    assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_store_op || ops_j.LS_instr == other_op);
 
     // Assume variable latencies for all instructions in IF stage
 	assume(0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_latency);
 	assume(0 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= param.max_latency);
 	assume(0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_latency);
-	assume(0 < latencies_j.LS_pipe.IF && latencies_j.LS_pipe.IF <= param.max_latency);
+	assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF); // Reduce state space: current instructions (j) start both at pre and both pipelines reach IF at the same time
     // Assume latencies for ID stage
     assume(latencies_i.I_pipe.ID == 1);
     assume(latencies_i.LS_pipe.ID == 1);
@@ -35,20 +29,17 @@ module conditions {
     // Assume latencies for EX I-stage
     assume(latencies_i.I_pipe.EX == 1);
     assume(latencies_j.I_pipe.EX == 1);
-	// Assume latencies for EX2 I-stage
+	// Assume latencies for EX2 stage
     assume(latencies_i.I_pipe.EX2 == 1);
     assume(latencies_j.I_pipe.EX2 == 1);
-	// Assume latencies for EX2 LS-stage
     assume(latencies_i.LS_pipe.EX2 == 1);
     assume(latencies_j.LS_pipe.EX2 == 1);
     // Assume variable latencies for load and store opcodes in EX stage
-    assume((ops_i.LS_instr == load_op || ops_i.LS_instr == store_op)
-    	   ==> 0 < latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_latency);
-    assume((ops_j.LS_instr == load_op || ops_j.LS_instr == store_op)
-    	   ==> 0 < latencies_j.LS_pipe.EX && latencies_j.LS_pipe.EX <= param.max_latency);
+    assume(ops_i.LS_instr == load_store_op ==> (0 < latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_latency));
+    assume(ops_j.LS_instr == load_store_op ==> (0 < latencies_j.LS_pipe.EX && latencies_j.LS_pipe.EX <= param.max_latency));
     // Assume that other LS-operations take 1 cycle in EX stage 
-    assume((ops_i.LS_instr == nop || ops_i.LS_instr == other_LS_op) ==> latencies_i.LS_pipe.EX == 1);
-    assume((ops_j.LS_instr == nop || ops_j.LS_instr == other_LS_op) ==> latencies_j.LS_pipe.EX == 1);
+    assume((ops_i.LS_instr == nop || ops_i.LS_instr == other_op) ==> latencies_i.LS_pipe.EX == 1);
+    assume((ops_j.LS_instr == nop || ops_j.LS_instr == other_op) ==> latencies_j.LS_pipe.EX == 1);
     // Assume latencies for WB stage
     assume(latencies_i.I_pipe.WB == 1);
     assume(latencies_i.LS_pipe.WB == 1);

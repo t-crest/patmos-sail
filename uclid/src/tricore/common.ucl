@@ -3,7 +3,7 @@ module common {
 	type stage_t = enum { pre, IF, ID, EX, EX2, WB, post };
 	type dual_stage_t = record { I_pipe: stage_t, LS_pipe: stage_t };
 
-	type opcode_t = enum { load_op, store_op, mac_op, nop, other_I_op, other_LS_op };
+	type opcode_t = enum { load_store_op, mac_op, nop, other_op };
 
 	// Couple of an I- and a LS-instruction
 	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t }; //, is_LS_second: boolean };
