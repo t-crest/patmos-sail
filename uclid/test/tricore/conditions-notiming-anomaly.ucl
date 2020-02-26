@@ -21,7 +21,7 @@ module conditions {
     assume(0 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= param.max_latency);
     assume(0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_latency);
     // Reduce state space: current instructions (j) start both at pre and both pipelines reach IF at the same time
-    // MJ: why a similar assumption is not done for previous (i)? When a instruction reach the IF stage they are together also?
+    // MJ: why a similar assumption is not done for previous (i)? When a instruction reach the IF stage they are together also? -> no as instructions can move separatly
     // MJ: note that this is a simplification as a given first instruction could be on a cache line while the other on the next one (i.e. cache miss potentially)
     assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
 
