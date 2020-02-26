@@ -17,6 +17,7 @@ module tricore {
 		new = stages;
 		new_latencies = in_latencies;
 		if (progress_prime) {
+		   // MJ: what about nop instruction classes, usually they are kicked off the pipeline after ID
 			case
 			  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
 			  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
@@ -61,12 +62,12 @@ module tricore {
 			if (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
 				// Checking the stage being already in IF exclude the case of simultaneous transition
 				// by previous and current in EX and IF, as in this case, priority is given to the
-				// data access (??, assumption), i.e the previous instruction.
+				// data access (??, assumption), i.e the previous instruction. // MJ: yes, this is a classical assumption in memory design.
 				b.LS_pipe = false;
 				output_delays.LS_pipe = input_delays.LS_pipe + 1;
 			}
 	  	}
-		
+
 		b_both = b.I_pipe && b.LS_pipe;
 	}
 	
@@ -96,6 +97,7 @@ module tricore {
 		if (current_latencies.LS_pipe <= 1) {
 			case
 				// ... and its targeted next stage is not occupied by the previous
+				// MJ: is the test on the instruction class is really needed? On the LS pipeline only load_store_op can go or not? Can other_op lead to a latency in EX higher than 1?
 				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
