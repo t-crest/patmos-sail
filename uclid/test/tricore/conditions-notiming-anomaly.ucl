@@ -18,15 +18,15 @@ module conditions {
 
     // Assume variable latencies for all instructions in IF stage
     assume(0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_latency);
-    assume(0 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= param.max_latency);
+    //assume(0 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= param.max_latency);
+    // MJ: note that this is a simplification as a given first instruction could be on a cache line while the other on the next one (i.e. cache miss potentially)		
+    assume(latencies_i.I_pipe.IF == latencies_i.LS_pipe.IF);
     assume(0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_latency);
+    // MJ: why is there no constraints on the latencies for j over the LS_pipe ?    
+    assume(latencies_j.I_pipe.IF == latencies_j.LS_pipe.IF);    
     // Reduce state space: current instructions (j) start both at pre and both pipelines reach IF at the same time
-    // MJ: why a similar assumption is not done for previous (i)? When a instruction reach the IF stage they are together also? -> no as instructions can move separatly
-    // MJ: note that this is a simplification as a given first instruction could be on a cache line while the other on the next one (i.e. cache miss potentially)
     assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
-
-    // MJ: is there a way to set a constraint on the distance (in terms of stages) between  I_pipe and LS_pipe for (i) to reduce state space?
-
+ 
     // Assume latencies for ID stage
     assume(latencies_i.I_pipe.ID == 1);
     assume(latencies_i.LS_pipe.ID == 1);
