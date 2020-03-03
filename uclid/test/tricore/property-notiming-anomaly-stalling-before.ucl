@@ -1,0 +1,30 @@
+module main {
+
+  type dual_stage_t = common.dual_stage_t;
+  type instr_pair_t = common.instr_pair_t;
+
+  instance run : conditions();
+
+  next {
+    next(run);
+  }
+
+  property[LTL] no_timing_anomaly: G(run.cond.pipeline.previous_delays.LS_pipe == 0 && run.cond.pipeline.previous_delays.I_pipe == 0);
+
+  // To check that the previous instruction has finished
+  property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> ((run.cond.pipeline.previous_stages.I_pipe == WB || run.cond.pipeline.previous_stages.I_pipe == post) && (run.cond.pipeline.previous_stages.LS_pipe == WB || run.cond.pipeline.previous_stages.LS_pipe == post)));
+
+  control {
+    vbmc = bmc(param.bmc_depth);
+    check;
+    print_results;
+    vbmc.print_cex(run.cond.pipeline.current_ops, run.cond.pipeline.current_stages,
+			run.cond.pipeline.current_latencies, 
+			run.cond.pipeline.current_progress, run.cond.pipeline.current_delays,
+			run.cond.pipeline.previous_ops, run.cond.pipeline.previous_stages,
+			run.cond.pipeline.previous_latencies,
+			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
+			run.cond.pipeline.current_stalled,
+			run.latencies_i, run.latencies_j);
+  }
+}

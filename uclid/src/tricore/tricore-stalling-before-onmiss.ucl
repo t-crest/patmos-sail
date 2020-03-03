@@ -23,19 +23,34 @@ module tricore {
 			case
 			  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
 			  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
-			  (stages.LS_pipe == ID)  : { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
-			  (stages.LS_pipe == EX)  : { new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+			  (stages.LS_pipe == ID)  : { 
+			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+			  	else { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
+			  }
+			  (stages.LS_pipe == EX)  : {
+			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+			  	else {new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+			  }
 			  (stages.LS_pipe == WB || stages.LS_pipe == post)  : { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
 			esac
 		
 			case
 			  (stages.I_pipe == pre) : { new.I_pipe = IF; new_latencies.I_pipe = latencies.I_pipe.IF; }
 			  (stages.I_pipe == IF)  : { new.I_pipe = ID; new_latencies.I_pipe = latencies.I_pipe.ID; }
-			  (stages.I_pipe == ID)  : { new.I_pipe = EX; new_latencies.I_pipe = latencies.I_pipe.EX; }
+			  (stages.I_pipe == ID)  : {
+			  	if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
+			  	else { new.I_pipe = EX; new_latencies.I_pipe = latencies.I_pipe.EX; }
+			  }
 			  (stages.I_pipe == EX)  : { if (opcodes.I_instr == mac_op) { new.I_pipe = EX2; new_latencies.I_pipe = latencies.I_pipe.EX2; }
-										else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
+										else {
+											if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
+											else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
 										}
-			  (stages.I_pipe == EX2)  : { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
+			  }
+			  (stages.I_pipe == EX2)  : {
+			  	if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
+			  	else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
+			  }
 			  (stages.I_pipe == WB || stages.I_pipe == post) : { new.I_pipe = post; new_latencies.I_pipe = 0; }
 			esac
 		}
@@ -63,10 +78,10 @@ module tricore {
 		if (previous_latencies.LS_pipe <= 1) {
 			b.LS_pipe = true;
 
-			if (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
+			if (previous_stages.LS_pipe == ID && previous_initial_latencies.LS_pipe.EX > 1 && (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) {
 				// Checking the stage being already in IF excludes the case of simultaneous transition
 				// by previous and current in EX and IF, as in this case, priority is given to the
-				// data access (??, assumption), i.e the previous instruction.
+				// data access, i.e the previous instruction.
 				b.LS_pipe = false;
 				output_delays.LS_pipe = input_delays.LS_pipe + 1;
 			}
@@ -102,7 +117,7 @@ module tricore {
 		if (current_latencies.LS_pipe <= 1 && !stalled) {
 			case
 				// ... and its targeted next stage is not occupied by the previous
-				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_store_op || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}  // priority D??
+				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_initial_latencies.LS_pipe.EX == 1)) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}
@@ -116,7 +131,7 @@ module tricore {
 	// Checking stalls for the current instructions
 	procedure check_current_stalling(pprime_stages: common.dual_stage_t)
 	returns (b: boolean) {
-		b = (pprime_stages.LS_pipe == EX && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1) ||
+		b = (pprime_stages.LS_pipe == EX && previous_initial_latencies.LS_pipe.EX > 1) ||
 			(pprime_stages.LS_pipe == IF && previous_initial_latencies.LS_pipe.IF > 1) ||
 			(pprime_stages.I_pipe == IF && previous_initial_latencies.I_pipe.IF > 1);
 	}
