@@ -1,4 +1,5 @@
 module param {
-	const bmc_depth: integer = 55;
+	const bmc_depth: integer = 35;
 	const max_latency: integer = 10;
+	// NOTE: finished without BMC not enough with a depth of 21 and latency of 5
 }

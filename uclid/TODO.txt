@@ -142,3 +142,33 @@ processed by a WCET analysis ap- proach, it is assumed that a longer
 latency for an instruction necessarily imposes an at least equal or
 longer (bounded by the amount of the latency change) execution time
 for the overall instruction sequence under consideration.
+
+
+TRICORE
+
+- A previous set of 2 instructions (i.e. "bundle") can be in pre for
+  one instruction and in other stages for the other instruction. We
+  assume that a set of 2 instructions enters in the pipeline (IF)
+  simultaneously. If they enters at the same time in IF, they will
+  leave the IF stage at the same time, so they must be in the ID stage
+  at the same time. Differences in terms of stages can only occur when
+  they reach the EX stage as the LS instruction can decrement its
+  latency (cache miss) while the I instruction is stalled.
+  
+  ==> Well test all the values for a cache miss between 1 and
+  max_latency for previous instruction (for a single pipeline) makes
+  only sense if we start from the stage that generates the cache miss.
+  If not, then we have to consider the max_latency value only!
+
+  ==> We have to assume that the 2 instructions in previous are in IF
+  at the same time, this is going to drastically reduce the required
+  steps (9).
+
+  ==> The work on the tricore (and thus multiplying pipelines) has
+  shown that we cover more space in previous models (SIC, in-order,
+  K1, Patmos) than needed! However as the execution time was not
+  really an issue, we did not care ...
+
+=> Normally the K1 with several pipelines is simpler than the Tricore
+as instructions are fixed within a bundle, while for the Tricore the
+instructions can be separated at some points
