@@ -17,6 +17,6 @@ case $1 in
 		;;
 
 	*)
-		echo "Error on (on-miss stalling policy) argument: 'no-stalling', 'stalling-before' or 'stalling-whole'."
+		echo "Wrong usage. On-miss stalling policy argument must be: 'no-stalling', 'stalling-before' or 'stalling-whole'."
 		;;
 esac
