@@ -80,6 +80,7 @@ module tricore {
 				// Only load_store_op can have EX latency > 1
 				b.LS_pipe = false;
 				output_delays.LS_pipe = input_delays.LS_pipe + 1;
+				output_delays.I_pipe = input_delays.I_pipe + 1;
 			}
 	  	}
 

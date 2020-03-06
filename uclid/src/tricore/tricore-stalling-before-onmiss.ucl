@@ -84,7 +84,7 @@ module tricore {
 				// data access, i.e the previous instruction.
 				b.LS_pipe = false;
 				output_delays.LS_pipe = input_delays.LS_pipe + 1;
-				// MJ -> BB: what about the delay for the I_pipe ?
+				output_delays.I_pipe = input_delays.I_pipe + 1;
 			}
 	  	}
 		
