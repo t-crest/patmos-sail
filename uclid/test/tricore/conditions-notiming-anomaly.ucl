@@ -34,10 +34,23 @@ module conditions {
     assume(latencies_j.I_pipe.IF == 1 || latencies_j.I_pipe.IF == param.max_latency);
     
     // Assume latencies for ID stage
+    // For previous (i)
     assume(latencies_i.I_pipe.ID == 1);
-    assume(latencies_i.LS_pipe.ID == 1);
+    // Stalling in case of structural hazard: 1 stall cycle if it is a WAW, 1 or 2 (depending on the distance) if it is because of a MAC in the other pipeline
+    // Unless if ID stage yet overtaken
+    assume((stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || ops_i.LS_instr != load_store_op) ==> latencies_i.LS_pipe.ID == 1);
+    assume((stages_i.LS_pipe != EX && stages_i.LS_pipe != WB && ops_i.LS_instr == load_store_op) ==> (latencies_i.LS_pipe.ID >= 1 && latencies_i.LS_pipe.ID <= 3));
+    
+    // For current (j)
     assume(latencies_j.I_pipe.ID == 1);
-    assume(latencies_j.LS_pipe.ID == 1);
+    // Structural hazard possible only if the instr. of the other pipeline is other.
+    // Note that for the other pair (i), this other instruction is not represented in the model: it is not necessarily ops_i.I_instr, which can be in another stage
+    // j is at pre (for both instructions)
+    assume(((ops_j.I_instr != other_op && ops_j.I_instr != mac_op) || ops_j.LS_instr != load_store_op) ==> latencies_j.LS_pipe.ID == 1);
+    assume((ops_j.I_instr == other_op && ops_j.LS_instr == load_store_op) ==> (latencies_j.LS_pipe.ID == 1 || latencies_j.LS_pipe.ID == 2));
+    // Here the distance from the MAC we may depend on is kwown
+    assume((ops_j.I_instr == mac_op && ops_j.LS_instr == load_store_op) ==> (latencies_j.LS_pipe.ID == 1 || latencies_j.LS_pipe.ID == 3));
+    
     // Assume latencies for EX I-stage
     assume(latencies_i.I_pipe.EX == 1);
     assume(latencies_j.I_pipe.EX == 1);
@@ -56,8 +69,10 @@ module conditions {
     // If initially within EX stage, full range
     assume((ops_i.LS_instr == load_store_op && stages_i.LS_pipe == EX) ==> (0 < latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_latency));
 
-    // Current load/store instructions (j) will pass through EX, with either a cache hit or a cache miss
-    assume(ops_j.LS_instr == load_store_op ==> (latencies_j.LS_pipe.EX == 1 || latencies_j.LS_pipe.EX == param.max_latency));
+    // Current load/store instructions (j) will pass through EX, with either a cache hit or a cache miss if it is not a load dependig on a directly preceeding store (i.e. currently in IF)
+    assume((ops_j.LS_instr == load_store_op && (ops_i.LS_instr != load_store_op || stages_i.LS_pipe != IF)) ==> (latencies_j.LS_pipe.EX == 1 || latencies_j.LS_pipe.EX == param.max_latency));
+    // In this latter case, there can be a structural hazard: the load is stalled for two cycles. It is assumed that the data is then present (write-allocate)
+    assume((ops_j.LS_instr == load_store_op && ops_i.LS_instr == load_store_op && stages_i.LS_pipe == IF) ==> (latencies_j.LS_pipe.EX == 1 || latencies_j.LS_pipe.EX == 3));
     
     // Assume that other LS-operations take 1 cycle in EX stage 
     assume(ops_i.LS_instr != load_store_op ==> latencies_i.LS_pipe.EX == 1);
