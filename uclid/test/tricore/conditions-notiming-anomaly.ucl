@@ -48,7 +48,7 @@ module conditions {
         
     // Assume variable latencies for load and store opcodes in EX stage
     // For previous instructions (i)
-	// If EX stage not reached yet, then this will be either a cache hit or a cache miss
+	// If EX stage not reached yet, then this will be either a cache hit (possibly stalled for any hazard) or a cache miss
     assume((ops_i.LS_instr == load_store_op && stages_i.LS_pipe != EX) ==> ((latencies_i.I_pipe.EX <= latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_stalling) || latencies_i.LS_pipe.EX == param.max_latency));
     // If initially within EX stage, full range
     assume((ops_i.LS_instr == load_store_op && stages_i.LS_pipe == EX) ==> (0 < latencies_i.LS_pipe.EX && (latencies_i.LS_pipe.EX <= param.max_latency || latencies_i.LS_pipe.EX <= param.max_stalling)));
@@ -57,24 +57,23 @@ module conditions {
     assume(ops_j.LS_instr == load_store_op ==> ((latencies_j.I_pipe.EX <= latencies_j.LS_pipe.EX && latencies_j.LS_pipe.EX <= param.max_stalling) || latencies_j.LS_pipe.EX == param.max_latency));
     
     // Assume latencies for EX2 stage
-    assume(0 < latencies_i.I_pipe.EX2 && latencies_i.I_pipe.EX2 <= param.max_stalling);
-    assume(latencies_i.I_pipe.EX2 <= latencies_i.LS_pipe.EX2 && latencies_i.LS_pipe.EX2 <= param.max_stalling);
-    assume(0 < latencies_j.I_pipe.EX2 && latencies_j.I_pipe.EX2 <= param.max_stalling);
-    assume(latencies_j.I_pipe.EX2 <= latencies_j.LS_pipe.EX2 && latencies_j.LS_pipe.EX2 <= param.max_stalling);
+    // From this stage, instructions cannot be stalled anymore
+    assume(latencies_i.I_pipe.EX2 == 1);
+    assume(latencies_i.LS_pipe.EX2 == 1);
+    assume(latencies_j.I_pipe.EX2 == 1);
+    assume(latencies_j.LS_pipe.EX2 == 1);
       
     // Assume latencies for WB stage
-    assume(0 < latencies_i.I_pipe.WB && latencies_i.I_pipe.WB <= param.max_stalling);
-    assume(latencies_i.I_pipe.WB <= latencies_i.LS_pipe.WB && latencies_i.LS_pipe.WB <= param.max_stalling);
-    assume(0 < latencies_j.I_pipe.WB && latencies_j.I_pipe.WB <= param.max_stalling);
-    assume(latencies_j.I_pipe.WB <= latencies_j.LS_pipe.WB && latencies_j.LS_pipe.WB <= param.max_stalling);
+    assume(latencies_i.I_pipe.WB == 1);
+    assume(latencies_i.LS_pipe.WB == 1);
+    assume(latencies_j.I_pipe.WB == 1);
+    assume(latencies_j.LS_pipe.WB == 1);
     
     // Reduce state space by disabling variability: unused latencies since stages overtaken
-    assume(stages_i.I_pipe == WB ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1 && latencies_i.I_pipe.EX2 == 1));
-    assume(stages_i.I_pipe == EX2 ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
+    assume((stages_i.I_pipe == WB || stages_i.I_pipe == EX2) ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
     assume(stages_i.I_pipe == EX ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1));
     assume(stages_i.I_pipe == ID ==> (latencies_i.I_pipe.IF == 1));
-    assume(stages_i.LS_pipe == WB ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
-    assume(stages_i.LS_pipe == EX2 ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1));
+    assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == EX2) ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
     assume(stages_i.LS_pipe == EX ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1));
     assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
     
