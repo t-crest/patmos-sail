@@ -3,6 +3,7 @@ module tricore {
 	input current_ops, previous_ops: common.instr_pair_t;
 	input current_initial_latencies, previous_initial_latencies: common.dual_latencies_t;
 	input input_previous_stages: common.dual_stage_t;
+    input prior_ST_buff: boolean;
 
 	// The instructions
 	var current_stages, previous_stages: common.dual_stage_t;
@@ -17,19 +18,23 @@ module tricore {
 		new = stages;
 		new_latencies = in_latencies;
         
-		if (progress_prime.LS_pipe) {
-			case
-			  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
-			  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
-			  (stages.LS_pipe == ID)  : { 
-			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
-			  	else { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
-			  }
-			  (stages.LS_pipe == EX)  : {
-			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
-			  	else {new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
-			  }
-			  (stages.LS_pipe == WB || stages.LS_pipe == post)  : { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+        if (progress_prime.LS_pipe) {
+            case
+                (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
+                (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
+                (stages.LS_pipe == ID)  : {
+                    if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+                    else { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
+                }
+                (stages.LS_pipe == EX)  : {
+                    if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+                    else { new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+                }
+                (stages.LS_pipe == WB) : {
+                    if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.ST; }
+                    else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
+                }
+                (stages.LS_pipe == ST || stages.LS_pipe == post)  : { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
 			esac
         }
         else {
@@ -77,14 +82,23 @@ module tricore {
 		if (previous_latencies.LS_pipe <= 1) {
 			b.LS_pipe = true;
 
-            // Previous intends to access EX with a cache miss but the bus is busy (current yet in a cache miss request)
-			if ((previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_store_op && previous_initial_latencies.LS_pipe.EX > 1) && (current_stages.LS_pipe == IF && current_ops.LS_instr == load_store_op && current_latencies.LS_pipe > 1)) {
-				// Checking the stage being already in IF excludes the case of simultaneous transition by previous and current in EX and IF, as in this case, priority is given to the data access, i.e the previous instruction.
+			if ((previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && previous_initial_latencies.LS_pipe.EX > 1 &&
+                // Previous intends to access EX with a cache miss
+                current_stages.LS_pipe == IF && current_initial_latencies.LS_pipe.IF == param.max_latency && current_latencies.LS_pipe > 1) ||
+                // but the bus is still busy because of current, which has started a miss request.
+                // Checking the stage being already in IF excludes the case of simultaneous transition by previous and current in EX and IF, as in this case, priority is given to the data access, i.e the previous instruction.
+                (previous_stages.LS_pipe == ST && previous_initial_latencies.LS_pipe.ST > 1 &&
+                // Or it is an asynchronous store with a cache miss
+                ((current_stages.LS_pipe == IF && current_initial_latencies.LS_pipe.IF == param.max_latency && current_latencies.LS_pipe > 1) ||
+                 // Bus busy because of current in IF
+                 (current_ops.LS_instr == load_op && current_stages.LS_pipe == EX && current_initial_latencies.LS_pipe.EX == param.max_latency && current_latencies.LS_pipe > 1)
+                 // Bus busy because of current in EX
+            ))) {
 				b.LS_pipe = false;
                 output_delays.LS_pipe = input_delays.LS_pipe + 1;
                 // Both pipelines are stalled in this case
                 b.I_pipe = false;
-				output_delays.I_pipe = input_delays.I_pipe + 1;
+				output_delays.I_pipe = input_delays.I_pipe + 1;                
 			}
 	  	}
 	}
@@ -111,14 +125,22 @@ module tricore {
 		b.LS_pipe = false;
 		if (current_latencies.LS_pipe <= 1) {
 			case
-                // Moreover priority is given to previous in case of concurrent access to the bus
-				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF && (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_store_op || previous_initial_latencies.LS_pipe.EX != param.max_latency)) { b.LS_pipe = true; }} // attention : pas exhaustif...
+				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}
-				(current_stages.LS_pipe == WB || current_stages.LS_pipe == post)  : { b.LS_pipe = true; }
+				(current_stages.LS_pipe == WB || current_stages.LS_pipe == ST || current_stages.LS_pipe == post)  : { b.LS_pipe = true; }
 			esac
-		}
+            
+            if ((current_stages.LS_pipe == pre && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && previous_initial_latencies.LS_pipe.EX > 1) ||
+                // to give priority to data load access, i.e. previous
+                ((current_stages.LS_pipe == pre || current_stages.LS_pipe == EX) && pprime_stage.LS_pipe == ST && prior_ST_buff))
+                // to give priority to store access, i.e. previous, in some cases
+            {
+                b.LS_pipe = false;
+                b.I_pipe = false;
+            }
+        }
 	}
 
 	init {
@@ -128,6 +150,7 @@ module tricore {
 		assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID);
 		assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
 		assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
+        assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST);
 		assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);
 
 		assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
