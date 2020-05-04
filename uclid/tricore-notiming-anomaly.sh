@@ -3,7 +3,7 @@
 case $1 in
 	"no-stalling")
 		echo "no-stalling-onmiss"
-        sed -n 2,4p test/tricore/param-notiming-anomaly-nostalling.ucl
+        sed -n 4,7p test/tricore/param-notiming-anomaly-nostalling.ucl
 		time uclid test/tricore/param-notiming-anomaly-nostalling.ucl src/tricore/common.ucl src/tricore/tricore-nostalling-onmiss.ucl test/tricore/test.ucl test/tricore/conditions-notiming-anomaly.ucl test/tricore/property-notiming-anomaly.ucl -no-version-check
 		;;
 		

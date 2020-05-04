@@ -14,4 +14,6 @@ module common {
 
 	type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
 	type dual_boolean_t = record { I_pipe: boolean, LS_pipe: boolean };
+ 
+    type bus_access_t = record { pbus_i: boolean, dbus_i: boolean, pbus_j: boolean, dbus_j: boolean};
 }

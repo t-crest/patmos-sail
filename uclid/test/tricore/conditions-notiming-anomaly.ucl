@@ -1,113 +1,161 @@
 module conditions {
+    var ops_i, ops_j: common.instr_pair_t;
+    var latencies_i, latencies_j: common.dual_latencies_t;
+    var stages_i: common.dual_stage_t;
+    var bus: common.bus_access_t;
 
-  var ops_i, ops_j: common.instr_pair_t;
-  var latencies_i, latencies_j: common.dual_latencies_t;
-  var stages_i: common.dual_stage_t;
-  var prior_ST_buff: boolean;
-
-  instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
+    instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
   	   	       cond_latencies_i: (latencies_i),
 		       cond_latencies_j: (latencies_j),
 		       cond_stages_i: (stages_i),
-               cond_prior_ST_buff: (prior_ST_buff));
+               cond_bus: (bus));
 
-  init {
-    assume(ops_i.I_instr == other_op);
-    assume(ops_i.LS_instr == load_op);
-    assume(ops_j.I_instr == other_op);
-    assume(ops_j.LS_instr == store_op);
-      
-    // Assume all types of opcodes
-    assume(ops_i.I_instr == nop || ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
-    assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == other_op);
-    assume(ops_j.I_instr == nop || ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
-    assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == store_op || ops_j.LS_instr == other_op);
-    
-    // Assume latencies for instructions in IF stage
-    // Both pipelines reach IF at the same time by design
-	// Same latency assuming same cache line for I and LS instr.: this is a simplification as a given first instruction could be on a cache line while the other on the next one (i.e. cache miss potentially)
-    assume(latencies_i.LS_pipe.IF == latencies_i.I_pipe.IF);
-    assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
-    
-    // For previous instructions (i)
-    // If IF stage not reached yet, then this will be either a cache hit (possibly stalled for any hazard) or a cache miss
-    assume(stages_i.I_pipe == pre ==> ((0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_stalling) || latencies_i.I_pipe.IF == param.max_latency));
-    // If initially within IF stage, full range
-    assume(stages_i.I_pipe == IF ==> (0 < latencies_i.I_pipe.IF && (latencies_i.I_pipe.IF <= param.max_latency || latencies_i.I_pipe.IF <= param.max_stalling)));
-    
-    // Current instructions (j) start both at pre and will be either a cache hit or a cache miss in IF
-    assume((0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_stalling) || latencies_j.I_pipe.IF == param.max_latency);
-
-    // Assume latencies for ID stage
-    // Possibly stalled for any hazard
-    assume(0 < latencies_i.I_pipe.ID && latencies_i.I_pipe.ID <= param.max_stalling);
-    // LS pipeline always stalled for at least as much as I
-    assume(latencies_i.I_pipe.ID <= latencies_i.LS_pipe.ID && latencies_i.LS_pipe.ID <= param.max_stalling);
-    assume(0 < latencies_j.I_pipe.ID && latencies_j.I_pipe.ID <= param.max_stalling);
-    assume(latencies_j.I_pipe.ID <= latencies_j.LS_pipe.ID && latencies_j.LS_pipe.ID <= param.max_stalling);
-    
-    // Assume latencies for EX stage apart from load ops
-    assume(latencies_i.I_pipe.EX == 1);
-    // Specificity for load_store (cache hit/miss)
-    assume(ops_i.LS_instr != load_op ==> latencies_i.LS_pipe.EX == 1);
-    assume(latencies_j.I_pipe.EX == 1);
-    assume(ops_j.LS_instr != load_op ==> latencies_j.LS_pipe.EX == 1);
+    procedure set_init_no_stalling_on_hazard()
+        modifies latencies_i, latencies_j;
+    {
+        // No variable latency for SB, no need for specific store class
+        assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == other_op);
+        assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == other_op);
         
-    // Assume variable latencies for load opcodes in EX stage
-    // For previous instructions (i)
-	// If EX stage not reached yet, then this will be either a cache hit or a cache miss
-    assume((ops_i.LS_instr == load_op && stages_i.LS_pipe != EX) ==> (latencies_i.LS_pipe.EX == 1 || latencies_i.LS_pipe.EX == param.max_latency));
-    // If initially within EX stage, full range
-    assume((ops_i.LS_instr == load_op && stages_i.LS_pipe == EX) ==> (0 < latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= param.max_latency));
-      
-    // Current load/store instructions (j) will pass through EX, with either a cache hit or a cache miss
-    assume(ops_j.LS_instr == load_op ==> (latencies_j.LS_pipe.EX == 1 || latencies_j.LS_pipe.EX == param.max_latency));
-    
-    // Assume latencies for EX2 stage
-    // From this stage, instructions cannot be stalled anymore
-    assume(latencies_i.I_pipe.EX2 == 1);
-    assume(latencies_i.LS_pipe.EX2 == 1);
-    assume(latencies_j.I_pipe.EX2 == 1);
-    assume(latencies_j.LS_pipe.EX2 == 1);
-      
-    // Assume latencies for WB stage
-    assume(latencies_i.I_pipe.WB == 1);
-    assume(latencies_i.LS_pipe.WB == 1);
-    assume(latencies_j.I_pipe.WB == 1);
-    assume(latencies_j.LS_pipe.WB == 1);
-      
-    // Assume latencies for ST stage
-    assume(latencies_i.I_pipe.ST == 1);
-    assume(ops_i.LS_instr != store_op ==> latencies_i.LS_pipe.ST == 1);
-    assume(latencies_i.LS_pipe.ST == 1 || latencies_i.LS_pipe.ST == param.max_latency);
-    assume(latencies_j.I_pipe.ST == 1);
-    assume(ops_j.LS_instr != store_op ==> latencies_j.LS_pipe.ST == 1);
-    assume(latencies_j.LS_pipe.ST == 1 || latencies_j.LS_pipe.ST == param.max_latency);
-      
-    assume(ops_i.LS_instr != store_op ==> prior_ST_buff == false);
-    assume(prior_ST_buff == true || prior_ST_buff == false);
-    
-    // Reduce state space by disabling variability: unused latencies since stages overtaken
-    assume((stages_i.I_pipe == WB || stages_i.I_pipe == EX2) ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
-    assume(stages_i.I_pipe == EX ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1));
-    assume(stages_i.I_pipe == ID ==> (latencies_i.I_pipe.IF == 1));
-    assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == EX2) ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
-    assume(stages_i.LS_pipe == EX ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1));
-    assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
-    
-    // Assume initial stages for previous instr.
-    assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB);
-    assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
-    // This is to allow only specific operations in some stages
-    assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
-    assume(stages_i.LS_pipe == ST ==> ops_i.I_instr == store_op);
-    
-    // Instruction pairs can split only after IF stage
-    assume(stages_i.I_pipe == pre <==> stages_i.LS_pipe == pre);
-    assume(stages_i.I_pipe == IF <==> stages_i.LS_pipe == IF);
-  }
+        // For previous instructions (i)
+        // If IF stage not reached yet, then this will be total latencies for memory access (extreme values, e.g. cache hit/miss)
+        // No stalling for data/structural hazards
+        assume((!bus.pbus_i) ==> (latencies_i.I_pipe.IF == 1));
+        assume((bus.pbus_i && stages_i.I_pipe != IF) ==> (latencies_i.I_pipe.IF == 4 || latencies_i.I_pipe.IF == 5 || latencies_i.I_pipe.IF == 11));
+        
+        // If initially within IF stage, partial latencies too (full range)
+        assume((bus.pbus_i && stages_i.I_pipe == IF) ==> (0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= 11));
+        
+        // Current instructions (j) start both at pre: same as i
+        assume(!bus.pbus_j ==> latencies_j.I_pipe.IF == 1);
+        assume(bus.pbus_j ==> (latencies_j.I_pipe.IF == 4 || latencies_j.I_pipe.IF == 5 || latencies_j.I_pipe.IF == 11));
+        
+        // Both pipelines reach IF at the same time by design
+        assume(latencies_i.LS_pipe.IF == latencies_i.I_pipe.IF);
+        assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
 
-  next {
-	next(cond);
-  }
+        assume(latencies_i.I_pipe.ID == 1);
+        assume(latencies_j.I_pipe.ID == 1);
+        assume(latencies_i.LS_pipe.ID == 1);
+        assume(latencies_j.LS_pipe.ID == 1);
+    }
+    
+    procedure set_init_stalling_on_hazard()
+        modifies latencies_i, latencies_j;
+    {
+        // No variable latency for SB, no need for specific store class
+        assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == other_op);
+        assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == other_op);
+        
+        // For previous instructions (i)
+        // If IF stage not reached yet, then this will be total latencies for memory access (extreme values, e.g. cache hit/miss)
+        // Possible stalling for data/structural hazards
+        assume(!bus.pbus_i ==> (0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_stalling));
+        assume((bus.pbus_i && stages_i.I_pipe != IF) ==> ((latencies_i.I_pipe.IF == 4 || latencies_i.I_pipe.IF == 5 || latencies_i.I_pipe.IF == 11) || (0 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= param.max_stalling)));
+        
+        // If initially within IF stage, partial latencies too (full range)
+        assume((bus.pbus_i && stages_i.I_pipe == IF) ==> (0 < latencies_i.I_pipe.IF && (latencies_i.I_pipe.IF <= 11 || latencies_i.I_pipe.IF <= param.max_stalling)));
+
+        // Current instructions (j) start both at pre: same as i
+        assume(!bus.pbus_j ==> (0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_stalling));
+        assume(bus.pbus_j ==> ((latencies_j.I_pipe.IF == 4 || latencies_j.I_pipe.IF == 5 || latencies_j.I_pipe.IF == 11) || (0 < latencies_j.I_pipe.IF && latencies_j.I_pipe.IF <= param.max_stalling)));
+        
+        // Same latency for the other pipeline except for hazard stalling
+        // Hypothesis: stalling for hazards <= bus access
+        assume(bus.pbus_i ==> (latencies_i.LS_pipe.IF == latencies_i.I_pipe.IF));
+        assume(bus.pbus_j ==> (latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF));
+        // In case of stalling for hazards, LS cannot progress faster than I
+        assume(!bus.pbus_i ==> (latencies_i.LS_pipe.IF >= latencies_i.I_pipe.IF && latencies_i.LS_pipe.IF <= param.max_stalling));
+        assume(!bus.pbus_j ==> (latencies_j.LS_pipe.IF >= latencies_j.I_pipe.IF && latencies_j.LS_pipe.IF <= param.max_stalling));
+
+        // Transitive stalling
+        assume(0 < latencies_i.I_pipe.ID && latencies_i.I_pipe.ID <= param.max_stalling);
+        assume(0 < latencies_j.I_pipe.ID && latencies_j.I_pipe.ID <= param.max_stalling);
+        assume(0 < latencies_i.LS_pipe.ID && latencies_i.LS_pipe.ID <= param.max_stalling);
+        assume(0 < latencies_j.LS_pipe.ID && latencies_j.LS_pipe.ID <= param.max_stalling);
+    }
+    
+    procedure set_init_space_reduction()
+        modifies latencies_i, stages_i;
+    {
+        // Instruction pairs can split only after IF stage
+        assume(stages_i.I_pipe == pre <==> stages_i.LS_pipe == pre);
+        assume(stages_i.I_pipe == IF <==> stages_i.LS_pipe == IF);
+        
+        // Reduce state space by disabling variability: unused latencies since stages overtaken
+        assume((stages_i.I_pipe == WB || stages_i.I_pipe == EX2) ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
+        assume(stages_i.I_pipe == EX ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1));
+        assume(stages_i.I_pipe == ID ==> (latencies_i.I_pipe.IF == 1));
+        assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == EX2) ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
+        assume(stages_i.LS_pipe == EX ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1));
+        assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
+    }
+    
+    
+    init {
+        // Setting verification options
+        if (!param.hazards) {
+            call set_init_no_stalling_on_hazard();
+        }
+        else {
+            call set_init_stalling_on_hazard();
+        }
+        if (param.reduce_space) {
+            call set_init_space_reduction();
+        }
+        
+        assume(ops_i.LS_instr != load_op ==> !bus.dbus_i);
+        assume(ops_j.LS_instr != load_op ==> !bus.dbus_j);
+        
+        // Always assume all types of opcodes for I pipeline
+        assume(ops_i.I_instr == nop || ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
+        assume(ops_j.I_instr == nop || ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
+
+        // Assume latencies for EX stage apart from load ops with bus access
+        assume(ops_i.LS_instr != load_op ==> latencies_i.LS_pipe.EX == 1);
+        assume(ops_j.LS_instr != load_op ==> latencies_j.LS_pipe.EX == 1);
+        // If it is a load, a cache hit can span 2 cache lines
+        assume((!bus.dbus_i && ops_i.LS_instr == load_op) ==> (latencies_i.LS_pipe.EX == 1 || latencies_i.LS_pipe.EX == 2));
+        assume((!bus.dbus_j && ops_j.LS_instr == load_op) ==> (latencies_j.LS_pipe.EX == 1 || latencies_j.LS_pipe.EX == 2));
+        assume(latencies_i.I_pipe.EX == 1);
+        assume(latencies_j.I_pipe.EX == 1);
+            
+        // Load with bus access
+        assume((bus.dbus_i && stages_i.LS_pipe != EX) ==> (latencies_i.LS_pipe.EX == 5 || latencies_i.LS_pipe.EX == 15));
+        assume((bus.dbus_i && stages_i.LS_pipe == EX) ==> (0 <= latencies_i.LS_pipe.EX && latencies_i.LS_pipe.EX <= 15));
+          
+        // Current load instructions (j) will pass through EX
+        assume(bus.dbus_j ==> (latencies_j.LS_pipe.EX == 5 || latencies_j.LS_pipe.EX == 15));
+
+        // Assume latencies for EX2 stage
+        // From this stage, instructions cannot be stalled anymore
+        assume(latencies_i.I_pipe.EX2 == 1);
+        assume(latencies_i.LS_pipe.EX2 == 1);
+        assume(latencies_j.I_pipe.EX2 == 1);
+        assume(latencies_j.LS_pipe.EX2 == 1);
+          
+        // Assume latencies for WB stage
+        assume(latencies_i.I_pipe.WB == 1);
+        assume(latencies_i.LS_pipe.WB == 1);
+        assume(latencies_j.I_pipe.WB == 1);
+        assume(latencies_j.LS_pipe.WB == 1);
+          
+        // Assume latencies for ST stage
+        assume(latencies_i.I_pipe.ST == 1);
+        assume(ops_i.LS_instr != store_op ==> latencies_i.LS_pipe.ST == 1);
+        assume(latencies_j.I_pipe.ST == 1);
+        assume(ops_j.LS_instr != store_op ==> latencies_j.LS_pipe.ST == 1);
+
+        // Assume initial stages for previous instr.
+        assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB);
+        assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
+        
+        // This is to allow only specific operations in some stages
+        assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
+        assume(stages_i.LS_pipe == ST ==> ops_i.I_instr == store_op);
+    }
+
+    next {
+        next(cond);
+    }
 }
