@@ -40,7 +40,7 @@ uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-no
 
 
 Verif.	| Depth	| Time
-1.a.i	| 33	| 20,98s user 0,51s system 160% cpu 13,389 total
+1.a.i	| 31	| 20,98s user 0,51s system 160% cpu 13,389 total
 1.a.ii	| 31	| 20,69s user 0,53s system 161% cpu 13,157 total
 1.b.i	| 14	| 10,78s user 0,46s system 280% cpu 4,002 total
 1.b.ii	| 14	| 10,22s user 0,45s system 270% cpu 3,942 total
