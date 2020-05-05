@@ -1,0 +1,56 @@
+1.a.i. Former in-order
+uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+
+1.a.ii. In-order state space reduction
+uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+
+1.b.i. Former Patmos
+uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
+
+1.b.ii. Patmos state space reduction
+uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly-reduction.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
+
+1.c.i. Former SIC
+uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+
+1.c.ii. SIC state space reduction
+uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+
+
+2.a. TriCore with no-stalling-onmiss assumption; no reduction and no hazard
+./tricore-notiming-anomaly.sh no-stalling noreduction-nohazard
+
+2.b. TriCore with no-stalling-onmiss assumption; reductions but no hazard
+./tricore-notiming-anomaly.sh no-stalling reduction-nohazard
+
+2.c. TriCore with no-stalling-onmiss assumption; reduction and hazards
+./tricore-notiming-anomaly.sh no-stalling reduction-hazard
+
+2.d. TriCore with no-stalling-onmiss assumption; reduction and hazards, with reductions for hazards
+./tricore-notiming-anomaly.sh no-stalling reduction-limited-hazard
+
+
+3. TriCore with stalling-before-onmiss assumption; same as 2.d
+./tricore-notiming-anomaly.sh stalling-before
+
+
+4. TriCore with stalling-whole-onmiss assumption; same as 2.d
+./tricore-notiming-anomaly.sh stalling-whole
+
+
+
+Verif.	| Depth	| Time
+1.a.i	| 33	| 20,98s user 0,51s system 160% cpu 13,389 total
+1.a.ii	| 31	| 20,69s user 0,53s system 161% cpu 13,157 total
+1.b.i	| 14	| 10,78s user 0,46s system 280% cpu 4,002 total
+1.b.ii	| 14	| 10,22s user 0,45s system 270% cpu 3,942 total
+1.c.i	| 23	| 22,22s user 0,54s system 153% cpu 14,840 total
+1.c.ii	| 23	| 22,10s user 0,50s system 157% cpu 14,378 total
+
+2.a	| 38	| 464,71s user 2,22s system 101% cpu 7:39,30 total
+2.b	| 38	| 253,22s user 1,85s system 105% cpu 4:02,39 total
+2.c	|
+2.d	|
+
+3	| 
+4	| 

@@ -91,6 +91,15 @@ module conditions {
         assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
     }
     
+    procedure set_init_hazard_reduction()
+        modifies latencies_i, latencies_j;
+    {
+        assume(-1 * param.max_pipeline_diff_stalling <= latencies_i.I_pipe.IF - latencies_i.LS_pipe.IF && latencies_i.I_pipe.IF - latencies_i.LS_pipe.IF <= param.max_pipeline_diff_stalling);
+        assume(-1 * param.max_pipeline_diff_stalling <= latencies_i.I_pipe.ID - latencies_i.LS_pipe.ID && latencies_i.I_pipe.ID - latencies_i.LS_pipe.ID <= param.max_pipeline_diff_stalling);
+        assume(-1 * param.max_pipeline_diff_stalling <= latencies_j.I_pipe.IF - latencies_j.LS_pipe.IF && latencies_j.I_pipe.IF - latencies_j.LS_pipe.IF <= param.max_pipeline_diff_stalling);
+        assume(-1 * param.max_pipeline_diff_stalling <= latencies_j.I_pipe.ID - latencies_j.LS_pipe.ID && latencies_j.I_pipe.ID - latencies_j.LS_pipe.ID <= param.max_pipeline_diff_stalling);
+    }
+    
     
     init {
         // Setting verification options
@@ -102,6 +111,9 @@ module conditions {
         }
         if (param.reduce_space) {
             call set_init_space_reduction();
+        }
+        if (param.reduce_space_hazards) {
+            call set_init_hazard_reduction();
         }
         
         assume(ops_i.LS_instr != load_op ==> !bus.dbus_i);

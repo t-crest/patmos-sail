@@ -1,0 +1,53 @@
+module conditions {
+
+  var op_i, op_j: common.opcode_t;
+  var latencies_i, latencies_j: common.latencies_t;
+  var stage_i: common.stage_t;  
+
+  instance cond : test(cond_op_i: (op_i), cond_op_j: (op_j),
+  	   	       cond_latencies_i: (latencies_i),
+		       cond_latencies_j: (latencies_j),
+		       cond_stage_i: (stage_i));		       
+
+  init {
+    // Assume all type of opcodes
+    // NOTE: there is no nop operation in Patmos
+    assume(op_i == load_op || op_i == store_op ||
+    	   op_i == branch_op || op_i == other_op);
+    assume(op_j == load_op || op_j == store_op ||
+    	   op_j == branch_op || op_j == other_op);
+    // Assume variable latencies for all instructions in IF stage
+    assume(latencies_i.fetch == 1);
+    assume(latencies_j.fetch == 1);
+    // Assume latencies for ID stage
+    assume(latencies_i.id == 1);
+    assume(latencies_j.id == 1);
+    // Assume latencies for EX stage
+    assume(latencies_i.ex == 1);
+    assume(latencies_j.ex == 1);            
+    // Assume variable latencies for load and store opcodes in MEM stage
+    assume((stage_i == MEM && (op_i == load_op || op_i == store_op))
+    	   ==> (0 < latencies_i.mem && latencies_i.mem <= param.max_latency));
+    assume((stage_i != MEM && (op_i == load_op || op_i == store_op))
+              ==> (latencies_i.mem == 1 || latencies_i.mem == param.max_latency));
+    // j initialized at pre => only hit or miss, no intermediate values
+    assume((op_j == load_op || op_j == store_op)
+    	   ==> (latencies_j.mem == 1 || latencies_j.mem == param.max_latency));
+    // Assume that other operations takes 1 cycle in MEM stage 
+    assume((op_i == branch_op || op_i == other_op) ==> latencies_i.mem == 1);
+    assume((op_j == branch_op || op_j == other_op) ==> latencies_j.mem == 1);
+    // Assume latencies for WB stage
+    assume(latencies_i.wb == 1);
+    assume(latencies_j.wb == 1);            
+    assume(stage_i == pre || stage_i == IF || stage_i == ID || stage_i == EX ||
+           stage_i == MEM || stage_i == WB);
+    
+    // Reduce state space by disabling variability: unused latencies since stages overtaken
+    assume(stage_i == WB ==> latencies_i.mem == 1);
+  }
+
+  next {
+    next(cond);
+  }
+
+}
