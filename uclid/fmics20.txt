@@ -23,10 +23,13 @@ uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-no
 2.b. TriCore with no-stalling-onmiss assumption; reductions but no hazard
 ./tricore-notiming-anomaly.sh no-stalling reduction-nohazard
 
-2.c. TriCore with no-stalling-onmiss assumption; reduction and hazards
+2.c. TriCore with no-stalling-onmiss assumption; more reductions (+instruction classes) but no hazard
+./tricore-notiming-anomaly.sh no-stalling more-reduction-nohazard
+
+2.d. TriCore with no-stalling-onmiss assumption; reduction and hazards
 ./tricore-notiming-anomaly.sh no-stalling reduction-hazard
 
-2.d. TriCore with no-stalling-onmiss assumption; reduction and hazards, with reductions for hazards
+2.e. TriCore with no-stalling-onmiss assumption; reduction and hazards, with reductions for hazards
 ./tricore-notiming-anomaly.sh no-stalling reduction-limited-hazard
 
 
@@ -51,6 +54,7 @@ Verif.	| Depth	| Time
 2.b	| 38	| 253,22s user 1,85s system 105% cpu 4:02,39 total
 2.c	|
 2.d	|
+2.e	|
 
 3	| 
 4	| 

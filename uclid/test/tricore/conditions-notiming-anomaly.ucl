@@ -91,6 +91,14 @@ module conditions {
         assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
     }
     
+    procedure set_init_symmetry_reduction()
+        modifies ops_i, ops_j;
+    {
+        // Instruction pairs can split only after IF stage
+        assume(ops_i.LS_instr != nop || ops_i.I_instr != nop || ops_j.LS_instr != nop || ops_j.I_instr != nop);
+        assume(ops_i.LS_instr != other_op || ops_i.I_instr != other_op || ops_j.LS_instr != other_op || ops_j.I_instr != other_op);
+    }
+    
     procedure set_init_hazard_reduction()
         modifies latencies_i, latencies_j;
     {
@@ -111,6 +119,9 @@ module conditions {
         }
         if (param.reduce_space) {
             call set_init_space_reduction();
+        }
+        if (param.reduce_more_space) {
+            call set_init_symmetry_reduction();
         }
         if (param.reduce_space_hazards) {
             call set_init_hazard_reduction();

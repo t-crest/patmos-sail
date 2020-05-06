@@ -16,6 +16,12 @@ case $1 in
                 echo "space reduction and no hazards"
                 a="$a-1"
                 ;;
+                
+            "more-reduction-nohazard")
+                sed -n 6,11p test/tricore/param-notiming-anomaly-nostalling-5.ucl
+                echo "more space reduction (instr. classes) and no hazards"
+                a="$a-5"
+                ;;
             
             "reduction-hazard")
                 sed -n 6,11p test/tricore/param-notiming-anomaly-nostalling-3.ucl
@@ -30,7 +36,7 @@ case $1 in
                 ;;
             
             *)
-                echo "Wrong usage. Verification context argument must be: 'noreduction-nohazard', 'reduction-nohazard', 'reduction-hazard' or 'reduction-limited-hazard'."
+                echo "Wrong usage. Verification context argument must be: 'noreduction-nohazard', 'reduction-nohazard', 'more-reduction-nohazard', 'reduction-hazard' or 'reduction-limited-hazard'."
                 ;;
         esac
         a="$a.ucl src/tricore/common.ucl src/tricore/tricore-nostalling-onmiss.ucl test/tricore/test.ucl test/tricore/conditions-notiming-anomaly.ucl test/tricore/property-notiming-anomaly.ucl -no-version-check"
