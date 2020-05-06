@@ -2,19 +2,19 @@
 uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
 
 1.a.ii. In-order state space reduction
-uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly-reduction.ucl test/inorder/property-notiming-anomaly.ucl
 
 1.b.i. Former Patmos
 uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
 
 1.b.ii. Patmos state space reduction
-uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly-reduction.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly-reduction.ucl test/patmos/conditions-notiming-anomaly-reduction.ucl test/patmos/property-notiming-anomaly.ucl
 
 1.c.i. Former SIC
 uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
 
 1.c.ii. SIC state space reduction
-uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
+uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly-reduction.ucl test/inorder/property-notiming-anomaly.ucl
 
 
 2.a. TriCore with no-stalling-onmiss assumption; no reduction and no hazard
