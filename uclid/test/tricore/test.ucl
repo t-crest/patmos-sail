@@ -6,13 +6,16 @@ module test {
   input cond_latencies_i, cond_latencies_j: common.dual_latencies_t;
   input cond_stages_i: common.dual_stage_t;
   input cond_bus: common.bus_access_t;
+  input cond_full_SB_i, cond_mem_dep: boolean;
 
   instance pipeline : tricore(current_ops: (cond_ops_j), previous_ops: (cond_ops_i),
 								current_initial_latencies: (cond_latencies_j),
 								previous_initial_latencies: (cond_latencies_i),
 								input_previous_stages: (cond_stages_i),
-                                bus_access: (cond_bus));
-
+                                bus_access: (cond_bus),
+                                full_SB_i: (cond_full_SB_i),
+                                mem_dep: (cond_mem_dep));
+ 
   init {
     step = 0;
   }

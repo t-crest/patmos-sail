@@ -24,6 +24,11 @@ case $1 in
                 sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-4.ucl
                 a="$a-4"
                 ;;
+                
+            "SB-hazard-more-reduction")
+                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-5.ucl
+                a="$a-5"
+                ;;
             
             *)
                 echo "Wrong usage: verification context argument."

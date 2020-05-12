@@ -29,28 +29,31 @@ uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-no
 2.d. TriCore with no-stalling-onmiss assumption; same more additional reduction
 ./tricore-notiming-anomaly.sh no-stalling hazard-more-reduction
 
+2.e. TriCore with no-stalling-onmiss assumption; same more SB
+./tricore-notiming-anomaly.sh no-stalling SB-hazard-more-reduction
+
 
 3. TriCore with stalling-before-onmiss assumption; same as 2.d
 ./tricore-notiming-anomaly.sh stalling-before
-
 
 4. TriCore with stalling-whole-onmiss assumption; same as 2.d
 ./tricore-notiming-anomaly.sh stalling-whole
 
 
 
-Verif.	| Depth	| Time
-1.a.i	| 31	| 20,98s user 0,51s system 160% cpu 13,389 total
-1.a.ii	| 31	| 18,38s user 0,52s system 175% cpu 10,791 total
-1.b.i	| 14	| 10,78s user 0,46s system 280% cpu 4,002 total
-1.b.ii	| 14	| 9,95s user 0,44s system 274% cpu 3,790 total
-1.c.i	| 23	| 22,22s user 0,54s system 153% cpu 14,840 total
-1.c.ii	| 23	| 17,77s user 0,51s system 185% cpu 9,861 total
+Verif.	| Depth		| Time
+1.a.i	| 31		| 20,98s user 0,51s system 160% cpu 13,389 total
+1.a.ii	| 31		| 18,38s user 0,52s system 175% cpu 10,791 total
+1.b.i	| 14		| 10,78s user 0,46s system 280% cpu 4,002 total
+1.b.ii	| 14		| 9,95s user 0,44s system 274% cpu 3,790 total
+1.c.i	| 23		| 22,22s user 0,54s system 153% cpu 14,840 total
+1.c.ii	| 23		| 17,77s user 0,51s system 185% cpu 9,861 total
 
-2.a	| 38	| 841,34s user 2,26s system 101% cpu 13:54,92 total
-2.b	| 38	| 1375,55s user 2,85s system 100% cpu 22:48,97 total
-2.c	| 38	| 414,40s user 1,44s system 102% cpu 6:45,59 total
-2.d	| 38	| 368,37s user 1,97s system 102% cpu 6:00,78 total
+2.a	| 38		| 841,34s user 2,26s system 101% cpu 13:54,92 total
+2.b	| 38		| 1375,55s user 2,85s system 100% cpu 22:48,97 total
+2.c	| 38		| 414,40s user 1,44s system 102% cpu 6:45,59 total
+2.d	| 38		| 368,37s user 1,97s system 102% cpu 6:00,78 total
+2.e	| ≤50 (>45)	| 1658,18s user 5,96s system 100% cpu 27:37,66 total
 
-3	| 38	| 369,29s user 2,23s system 102% cpu 6:02,16 total
-4	| ≤40	| 1326,00s user 6,72s system 100% cpu 22:08,97 total
+3	| 38		| 369,29s user 2,23s system 102% cpu 6:02,16 total
+4	| 40 (>37)	| 1326,00s user 6,72s system 100% cpu 22:08,97 total
