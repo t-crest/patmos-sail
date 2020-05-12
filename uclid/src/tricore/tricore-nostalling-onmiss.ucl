@@ -141,14 +141,18 @@ module tricore {
             if (
                 // To give priority to data load access, i.e. previous
                 (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && bus_access.dbus_i) ||
-                // To give priority to SB when it is full
+                // only LS tested…
+                // To give priority to SB when it is full:
                 (pprime_stage.LS_pipe == ST && bus_access.dbus_i && full_SB_i &&
-                 ((current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j))) ||
-                // To give priority to SB because of a data dependency (in fact stalling occurs in EX)
-                 (current_stages.LS_pipe == ID && mem_dep && previous_stages.LS_pipe != post)
-                ) { // only LS tested…
+                 ((current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j)))) {
                 b.LS_pipe = false;
                 b.I_pipe = false;
+            }
+            
+            // To give priority to SB because of a data dependency (in fact stalling occurs in EX)
+            if (current_stages.LS_pipe == ID && mem_dep && previous_stages.LS_pipe != post) {
+                // Only LS is stalled
+                b.LS_pipe = false;
             }
         }
 	}

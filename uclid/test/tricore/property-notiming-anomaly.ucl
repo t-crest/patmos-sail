@@ -25,6 +25,8 @@ module main {
 			run.cond.pipeline.previous_latencies,
 			run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delays,
 			run.latencies_i, run.latencies_j,
-            run.bus);
+            run.bus,
+            run.full_SB_i,
+            run.mem_dep);
   }
 }

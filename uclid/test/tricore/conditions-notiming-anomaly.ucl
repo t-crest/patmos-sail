@@ -80,6 +80,10 @@ module conditions {
     init {
         if (param.store_buff) {
             call set_init_SB();
+            /*assume(ops_i.LS_instr == store_op);
+            assume(ops_j.LS_instr == load_op);
+            assume(ops_i.I_instr == other_op);
+            assume(ops_j.I_instr == other_op);*/
         }
         else {
             // No variable latency for SB, no need for specific store class
