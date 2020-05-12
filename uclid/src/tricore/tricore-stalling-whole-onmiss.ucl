@@ -93,8 +93,8 @@ module tricore {
 	procedure check_previous_stalling(input_delays: common.dual_integer_t)
 	returns (b: boolean, output_delays: common.dual_integer_t) {
 		// Stalling whenever one of the current instructions is in IF with a bus access...
-        b = (current_stages.I_pipe == IF && bus_access.pbus_j && current_latencies.I_pipe > 1) ||
-			(current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) ||
+        b = (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
+			(current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) ||
 			// ... or in EX with a bus access (load only, in LS pipeline)
 			(current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
 
@@ -140,8 +140,8 @@ module tricore {
 	procedure check_current_stalling(pprime_stages: common.dual_stage_t)
 	returns (b: boolean) {
 		b = (pprime_stages.LS_pipe == EX && bus_access.dbus_i) ||
-			(pprime_stages.LS_pipe == IF && bus_access.pbus_i) ||
-			(pprime_stages.I_pipe == IF && bus_access.pbus_i);
+			(pprime_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe) ||
+			(pprime_stages.I_pipe == IF && bus_access.pbus_i.I_pipe);
 	}
 
 

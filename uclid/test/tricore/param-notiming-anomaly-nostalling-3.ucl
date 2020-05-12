@@ -1,14 +1,13 @@
 module param {
     const hazards: boolean;
-    const reduce_space: boolean;
-    const reduce_more_space: boolean;
-    const reduce_space_hazards: boolean;
+    const specific_reduction: boolean;
+    const additional_reduction: boolean;
+    const store_buff: boolean;
     
-    const bmc_depth: integer = 35;
+    const bmc_depth: integer = 38;
     assume(hazards);
-    assume(reduce_space);
-    assume(reduce_more_space);
-    assume(!reduce_space_hazards);
-    const max_stalling: integer = 5;
-    const max_pipeline_diff_stalling: integer = 3;
+    assume(specific_reduction);
+    assume(!additional_reduction);
+    assume(!store_buff);
+    const max_stalling: integer = 3;
 }

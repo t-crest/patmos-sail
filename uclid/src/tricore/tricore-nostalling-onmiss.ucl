@@ -87,7 +87,7 @@ module tricore {
                 (previous_stages.LS_pipe == ID && bus_access.dbus_i &&
                 // ... but the bus is still busy because of current, which has started a bus request.
                 // Checking the stage being already in IF excludes the case of simultaneous transition by previous and current in EX and IF, as in this case, priority is given to the data access, i.e the previous instruction.
-                 current_stages.LS_pipe == IF && bus_access.pbus_j && current_latencies.LS_pipe > 1)) {
+                 ((current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) || (current_stages.I_pipe == IF && current_latencies.I_pipe > 1)))) {
                 /*||
                 (previous_stages.LS_pipe == ST && previous_initial_latencies.LS_pipe.ST > 1 &&
                 // Or it is an asynchronous store with a cache miss
