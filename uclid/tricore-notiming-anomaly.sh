@@ -3,38 +3,44 @@
 case $1 in
 	"no-stalling")
 		echo "no-stalling-onmiss"
-		a="time uclid test/tricore/param-notiming-anomaly-nostalling"
+		a="time uclid src/tricore/common.ucl"
         case $2 in
             "basic")
                 sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-1.ucl
-                a="$a-1"
+                a="$a test/tricore/param-notiming-anomaly-nostalling-1.ucl src/tricore/tricore-nostalling-onmiss.ucl"
                 ;;
             
-            "hazard")
+            "reduction")
                 sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-2.ucl
-                a="$a-2"
+                a="$a test/tricore/param-notiming-anomaly-nostalling-2.ucl src/tricore/tricore-nostalling-onmiss-reduction.ucl"
                 ;;
                 
-            "hazard-reduction")
+            "more-reduction")
                 sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-3.ucl
-                a="$a-3"
+                a="$a test/tricore/param-notiming-anomaly-nostalling-3.ucl src/tricore/tricore-nostalling-onmiss-reduction.ucl"
+                ;;
+                
+            "hazard")
+                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-4.ucl
+                a="$a test/tricore/param-notiming-anomaly-nostalling-4.ucl src/tricore/tricore-nostalling-onmiss.ucl"
                 ;;
             
-            "hazard-more-reduction")
-                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-4.ucl
-                a="$a-4"
+            "hazard-reduction")
+                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-5.ucl
+                a="$a test/tricore/param-notiming-anomaly-nostalling-5.ucl src/tricore/tricore-nostalling-onmiss-reduction.ucl"
                 ;;
                 
-            "SB-hazard-more-reduction")
-                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-5.ucl
-                a="$a-5"
+            "SB")
+                sed -n 7,12p test/tricore/param-notiming-anomaly-nostalling-6.ucl
+                a="$a test/tricore/param-notiming-anomaly-nostalling-6.ucl src/tricore/tricore-nostalling-onmiss-reduction-SB.ucl"
                 ;;
             
             *)
                 echo "Wrong usage: verification context argument."
                 ;;
         esac
-        a="$a.ucl src/tricore/common.ucl src/tricore/tricore-nostalling-onmiss.ucl test/tricore/test.ucl test/tricore/conditions-notiming-anomaly.ucl test/tricore/property-notiming-anomaly.ucl -no-version-check"
+        a="$a test/tricore/test.ucl test/tricore/conditions-notiming-anomaly.ucl test/tricore/property-notiming-anomaly.ucl -no-version-check"
+        echo $a
         eval $a
 		;;
 		

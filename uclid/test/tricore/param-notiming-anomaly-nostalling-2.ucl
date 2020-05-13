@@ -5,8 +5,8 @@ module param {
     const store_buff: boolean;
     
     const bmc_depth: integer = 38;
-    assume(hazards);
-    assume(!specific_reduction);
+    assume(!hazards);
+    assume(specific_reduction);
     assume(!additional_reduction);
     assume(!store_buff);
     const max_stalling: integer = 3;

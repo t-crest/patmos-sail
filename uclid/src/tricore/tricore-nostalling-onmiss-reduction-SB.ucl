@@ -88,7 +88,16 @@ module tricore {
                 (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && bus_access.dbus_i &&
                 // ... but the bus is still busy because of current, which has started a bus request.
                 // Checking the stage being already in IF excludes the case of simultaneous transition by previous and current in EX and IF, as in this case, priority is given to the data access, i.e the previous instruction.
-                 ((current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) || (current_stages.I_pipe == IF && current_latencies.I_pipe > 1)))
+                 (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) ||
+                // Previous intends to access ST with a bus access
+                (previous_stages.LS_pipe == WB && previous_ops.LS_instr == store_op && bus_access.dbus_i &&
+                 // ... but the bus is still busy because of current, which has started a bus request in IF:
+                 ((current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) ||
+                  // ... or in EX
+                  (current_stages.LS_pipe == EX && bus_access.dbus_i && current_latencies.LS_pipe > 1) ||
+                  // Moreover priority is not given to SB, except if the SB is full:
+                  (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe && !full_SB_i) ||
+                  (current_stages.LS_pipe == ID && current_latencies.LS_pipe <= 1 && current_ops.LS_instr == load_op && bus_access.dbus_j && !full_SB_i)))
             ) {
                 b.LS_pipe = false;
                 output_delays.LS_pipe = input_delays.LS_pipe + 1;
@@ -130,10 +139,19 @@ module tricore {
             
             if (
                 // To give priority to data load access, i.e. previous
-                ((current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.I_pipe == pre && bus_access.pbus_j.I_pipe))
-                 && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && bus_access.dbus_i) {
+                (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe
+                 && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && bus_access.dbus_i) ||
+                // To give priority to SB when it is full:
+                (pprime_stage.LS_pipe == ST && bus_access.dbus_i && full_SB_i &&
+                 ((current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j)))) {
                 b.LS_pipe = false;
                 b.I_pipe = false;
+            }
+            
+            // To give priority to SB because of a data dependency (in fact stalling occurs in EX)
+            if (current_stages.LS_pipe == ID && mem_dep && previous_stages.LS_pipe != post) {
+                // Only LS is stalled
+                b.LS_pipe = false;
             }
         }
 	}

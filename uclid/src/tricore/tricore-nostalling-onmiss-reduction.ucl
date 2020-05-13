@@ -88,7 +88,7 @@ module tricore {
                 (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && bus_access.dbus_i &&
                 // ... but the bus is still busy because of current, which has started a bus request.
                 // Checking the stage being already in IF excludes the case of simultaneous transition by previous and current in EX and IF, as in this case, priority is given to the data access, i.e the previous instruction.
-                 ((current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) || (current_stages.I_pipe == IF && current_latencies.I_pipe > 1)))
+                 (current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1)) // only LS tested here (due to reduction assumptions)
             ) {
                 b.LS_pipe = false;
                 output_delays.LS_pipe = input_delays.LS_pipe + 1;
@@ -130,8 +130,8 @@ module tricore {
             
             if (
                 // To give priority to data load access, i.e. previous
-                ((current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.I_pipe == pre && bus_access.pbus_j.I_pipe))
-                 && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && bus_access.dbus_i) {
+                current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe && pprime_stage.LS_pipe == EX && previous_ops.LS_instr == load_op && bus_access.dbus_i
+            ) {
                 b.LS_pipe = false;
                 b.I_pipe = false;
             }

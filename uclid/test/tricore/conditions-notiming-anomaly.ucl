@@ -61,7 +61,10 @@ module conditions {
     procedure set_init_specific_reduction()
         modifies latencies_i, latencies_j, stages_i;
     {
-        // Both pipelines reach IF at the same time
+        // Instruction pairs can split only after IF stage, i.e. both pipelines reach IF at the same time
+        assume(stages_i.I_pipe == pre <==> stages_i.LS_pipe == pre);
+        assume(stages_i.I_pipe == IF <==> stages_i.LS_pipe == IF);
+        
         // Simplification: same component/cache line
         assume(latencies_i.LS_pipe.IF == latencies_i.I_pipe.IF);
         assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
@@ -175,10 +178,6 @@ module conditions {
         // Assume initial stages for previous instr.
         assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB);
         assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
-        
-        // Instruction pairs can split only after IF stage
-        assume(stages_i.I_pipe == pre <==> stages_i.LS_pipe == pre);
-        assume(stages_i.I_pipe == IF <==> stages_i.LS_pipe == IF);
         
         // This is to allow only specific operations in some stages
         assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
