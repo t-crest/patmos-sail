@@ -2,17 +2,22 @@ module conditions {
     var ops_i, ops_j: common.instr_pair_t;
     var latencies_i, latencies_j: common.dual_latencies_t;
     var stages_i: common.dual_stage_t;
+    var stage_j: common.stage_t;
     var bus: common.bus_access_t;
-    var full_SB_i: boolean;
+    var full_SB_i, full_SB_j: boolean;
     var mem_dep: boolean;
+    var waw: common.waw_t;
 
     instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
                          cond_latencies_i: (latencies_i),
                          cond_latencies_j: (latencies_j),
                          cond_stages_i: (stages_i),
+                         cond_stage_j: (stage_j),
                          cond_bus: (bus),
                          cond_full_SB_i: (full_SB_i),
-                         cond_mem_dep: (mem_dep));
+                         cond_full_SB_j: (full_SB_j),
+                         cond_mem_dep: (mem_dep),
+                         cond_waw: (waw));
     
     
     procedure set_init_SB()
@@ -23,6 +28,13 @@ module conditions {
         
         // SB unused if not a store
         assume(ops_i.LS_instr != store_op ==> full_SB_i == false);
+        assume(ops_j.LS_instr != store_op ==> full_SB_j == false);
+        
+        // If SB is full for i, it cannot be anymore for j
+        assume(full_SB_i ==> !full_SB_j);
+        // The SB cannot remain full
+        assume(full_SB_j ==> !full_SB_i);
+        
         // A load following a store may be dependent: load is current (j) and store is previous (i)
         assume((ops_i.LS_instr != store_op || ops_j.LS_instr != load_op) ==> mem_dep == false);
         
@@ -37,53 +49,12 @@ module conditions {
         assume((bus.dbus_j && ops_j.LS_instr == store_op) ==> latencies_j.LS_pipe.ST == 15);
     }
     
-    procedure set_init_general_reduction()
-        modifies latencies_i, latencies_j;
-    {
-        // Reduce state space by disabling variability: unused latencies since stages overtaken
-        assume((stages_i.I_pipe == WB || stages_i.I_pipe == EX2) ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
-        assume(stages_i.I_pipe == EX ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1));
-        assume(stages_i.I_pipe == ID ==> (latencies_i.I_pipe.IF == 1));
-        assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == EX2) ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
-        assume(stages_i.LS_pipe == EX ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1));
-        assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
-        
-        // For previous instructions (i)
-        // If IF stage not reached yet, then this will be total latencies for memory access (extreme values, e.g. cache hit/miss)
-        assume((bus.pbus_i.I_pipe && stages_i.I_pipe != IF) ==> (latencies_i.I_pipe.IF == 4 || latencies_i.I_pipe.IF == 5 || latencies_i.I_pipe.IF == 11));
-        // If initially within IF stage, partial latencies too (full range)
-        assume((bus.pbus_i.I_pipe && stages_i.I_pipe == IF) ==> (1 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= 11));
-                
-        // Current instructions (j) start both at pre: same as i
-        assume(bus.pbus_j.I_pipe ==> (latencies_j.I_pipe.IF == 4 || latencies_j.I_pipe.IF == 5 || latencies_j.I_pipe.IF == 11));
-    }
-    
-    procedure set_init_specific_reduction()
-        modifies latencies_i, latencies_j, stages_i;
-    {
-        // Instruction pairs can split only after IF stage, i.e. both pipelines reach IF at the same time
-        assume(stages_i.I_pipe == pre <==> stages_i.LS_pipe == pre);
-        assume(stages_i.I_pipe == IF <==> stages_i.LS_pipe == IF);
-        
-        // Simplification: same component/cache line
-        assume(latencies_i.LS_pipe.IF == latencies_i.I_pipe.IF);
-        assume(latencies_j.LS_pipe.IF == latencies_j.I_pipe.IF);
-        assume(bus.pbus_i.I_pipe == bus.pbus_i.LS_pipe);
-        assume(bus.pbus_j.I_pipe == bus.pbus_j.LS_pipe);
-    }
-    
-    procedure set_init_symmetry_reduction()
-        modifies ops_i, ops_j;
-    {
-        assume(ops_i.LS_instr != nop || ops_i.I_instr != nop || ops_j.LS_instr != nop || ops_j.I_instr != nop);
-        assume(ops_i.LS_instr != other_op || ops_i.I_instr != other_op || ops_j.LS_instr != other_op || ops_j.I_instr != other_op);
-    }
-    
     
     init {
         if (param.store_buff) {
             call set_init_SB();
-            /*assume(ops_i.LS_instr == store_op);
+            /*// Test config
+            assume(ops_i.LS_instr == store_op);
             assume(ops_j.LS_instr == load_op);
             assume(ops_i.I_instr == other_op);
             assume(ops_j.I_instr == other_op);*/
@@ -92,24 +63,32 @@ module conditions {
             // No variable latency for SB, no need for specific store class
             assume(ops_i.LS_instr == nop || ops_i.LS_instr == load_op || ops_i.LS_instr == other_op);
             assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == other_op);
-            assume(full_SB_i == false && mem_dep == false);
+            full_SB_i = false; full_SB_j = false; mem_dep = false;
         }
-        
-        call set_init_general_reduction();
         
         if (param.additional_reduction) {
-            call set_init_symmetry_reduction();
+            assume(ops_i.LS_instr != nop || ops_i.I_instr != nop || ops_j.LS_instr != nop || ops_j.I_instr != nop); // only nops in pipelines
+            assume(ops_i.LS_instr != other_op || ops_i.I_instr != other_op || ops_j.LS_instr != other_op || ops_j.I_instr != other_op); // only others
         }
         
-        if (param.specific_reduction) {
-            call set_init_specific_reduction();
+        if (!param.hazards) {
+            waw.ii = false; waw.ij = false;
+            waw.ji = false; waw.jj = false;
         }
         else {
-            // Same as I for LS since no equality assumptions (nor any assumptions elsewhere)
-            assume((bus.pbus_i.LS_pipe && stages_i.LS_pipe != IF) ==> (latencies_i.LS_pipe.IF == 4 || latencies_i.LS_pipe.IF == 5 || latencies_i.LS_pipe.IF == 11));
-            assume((bus.pbus_i.LS_pipe && stages_i.LS_pipe == IF) ==> (1 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= 11));
-            assume(bus.pbus_j.LS_pipe ==> (latencies_j.LS_pipe.IF == 4 || latencies_j.LS_pipe.IF == 5 || latencies_j.LS_pipe.IF == 11));
+            // nop cannot be dependent
+            assume(ops_i.LS_instr == nop ==> (!waw.ii && !waw.ij));
+            assume(ops_j.LS_instr == nop ==> (!waw.ji && !waw.jj));
+            // nor cause a dependency
+            assume(ops_i.I_instr == nop ==> (!waw.ii && !waw.ji));
+            assume(ops_j.I_instr == nop ==> (!waw.ij && !waw.jj));
+            
+            // pontential dependencies are not relevant if the involved stages are overtaken
+            assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == ST) ==> (!waw.ii && !waw.ij));
+            assume((stages_i.I_pipe != pre && stages_i.I_pipe != IF && stages_i.I_pipe != ID) ==> (!waw.ii && !waw.ji));
+            assume((stage_j != pre && stage_j != IF && stage_j != ID) ==> (!waw.ij && !waw.jj));
         }
+        
         
         // Always assume all types of opcodes for I pipeline
         assume(ops_i.I_instr == nop || ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
@@ -125,20 +104,25 @@ module conditions {
         assume(!bus.pbus_j.LS_pipe ==> latencies_j.LS_pipe.IF == 1);
         assume(!bus.pbus_j.I_pipe ==> latencies_j.I_pipe.IF == 1);
         
-        // Assume latencies for ID in I pipeline
+        // For previous instructions (i)
+        // If IF stage not reached yet, then this will be total latencies for memory access (extreme values, e.g. cache hit/miss)
+        assume((bus.pbus_i.I_pipe && stages_i.I_pipe != IF) ==> (latencies_i.I_pipe.IF == 4 || latencies_i.I_pipe.IF == 5 || latencies_i.I_pipe.IF == 11));
+        // If initially within IF stage, partial latencies too (full range)
+        assume((bus.pbus_i.I_pipe && stages_i.I_pipe == IF) ==> (1 < latencies_i.I_pipe.IF && latencies_i.I_pipe.IF <= 11));
+                
+        // Current instructions (j) start both at pre: same as i
+        assume(bus.pbus_j.I_pipe ==> (latencies_j.I_pipe.IF == 4 || latencies_j.I_pipe.IF == 5 || latencies_j.I_pipe.IF == 11));
+        
+        // Same as I for LS since no equality assumptions (nor any assumptions elsewhere)
+        assume((bus.pbus_i.LS_pipe && stages_i.LS_pipe != IF) ==> (latencies_i.LS_pipe.IF == 4 || latencies_i.LS_pipe.IF == 5 || latencies_i.LS_pipe.IF == 11));
+        assume((bus.pbus_i.LS_pipe && stages_i.LS_pipe == IF) ==> (1 < latencies_i.LS_pipe.IF && latencies_i.LS_pipe.IF <= 11));
+        assume(bus.pbus_j.LS_pipe ==> (latencies_j.LS_pipe.IF == 4 || latencies_j.LS_pipe.IF == 5 || latencies_j.LS_pipe.IF == 11));
+        
+        // Assume latencies for ID
         assume(latencies_i.I_pipe.ID == 1);
         assume(latencies_j.I_pipe.ID == 1);
-        
-        if (!param.hazards) {
-            // No hazard: no variability here
-            assume(latencies_i.LS_pipe.ID == 1);
-            assume(latencies_j.LS_pipe.ID == 1);
-        }
-        else {
-            // Possible stalling in LS for data/structural hazards
-            assume(0 < latencies_i.LS_pipe.ID && latencies_i.LS_pipe.ID <= param.max_stalling);
-            assume(0 < latencies_j.LS_pipe.ID && latencies_j.LS_pipe.ID <= param.max_stalling);
-        }
+        assume(latencies_i.LS_pipe.ID == 1);
+        assume(latencies_j.LS_pipe.ID == 1);
         
         // Assume latencies for EX stage apart from load ops with bus access
         assume(ops_i.LS_instr != load_op ==> latencies_i.LS_pipe.EX == 1);
@@ -178,10 +162,34 @@ module conditions {
         // Assume initial stages for previous instr.
         assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB);
         assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
+        // (stages_j.LS is at pre by design)
+        assume(((stages_i.LS_pipe == IF && bus.pbus_i.LS_pipe) || (stages_i.LS_pipe == EX && ops_i.LS_instr == load_op && bus.dbus_i)) ==> ((stages_i.I_pipe != IF || !bus.pbus_i.I_pipe) && (stage_j != IF || !bus.pbus_j.I_pipe)));
+        
+        // Assume initial stage for current I instr.
+        assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stage_j == pre);
+        assume(stages_i.I_pipe == ID ==> (stage_j == pre || stage_j == IF));
+        assume(stages_i.I_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID));
+        assume(stages_i.I_pipe == EX2 ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX));
+        assume(stages_i.I_pipe == WB ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2));
+        
+        assume(stages_i.I_pipe != pre || stages_i.LS_pipe != pre || stage_j != pre);
         
         // This is to allow only specific operations in some stages
         assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
-        assume(stages_i.LS_pipe == ST ==> ops_i.I_instr == store_op);
+        assume(stage_j == EX2 ==> ops_j.I_instr == mac_op);
+        assume(stages_i.LS_pipe == ST ==> ops_i.LS_instr == store_op);
+        
+        // Reduce state space by disabling variability: unused latencies since stages overtaken
+        assume((stages_i.I_pipe == WB || stages_i.I_pipe == EX2) ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1 && latencies_i.I_pipe.EX == 1));
+        assume(stages_i.I_pipe == EX ==> (latencies_i.I_pipe.IF == 1 && latencies_i.I_pipe.ID == 1));
+        assume(stages_i.I_pipe == ID ==> (latencies_i.I_pipe.IF == 1));
+        assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == EX2) ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1 && latencies_i.LS_pipe.EX == 1 && latencies_i.LS_pipe.EX2 == 1));
+        assume(stages_i.LS_pipe == EX ==> (latencies_i.LS_pipe.IF == 1 && latencies_i.LS_pipe.ID == 1));
+        assume(stages_i.LS_pipe == ID ==> (latencies_i.LS_pipe.IF == 1));
+        
+        assume((stage_j == WB || stage_j == EX2) ==> (latencies_j.I_pipe.IF == 1 && latencies_j.I_pipe.ID == 1 && latencies_j.I_pipe.EX == 1));
+        assume(stage_j == EX ==> (latencies_j.I_pipe.IF == 1 && latencies_j.I_pipe.ID == 1));
+        assume(stage_j == ID ==> (latencies_j.I_pipe.IF == 1));
     }
 
     next {
