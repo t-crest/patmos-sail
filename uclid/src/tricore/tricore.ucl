@@ -72,14 +72,14 @@ module tricore {
 	}
 
    // These are the conditions for the previous instructions to check if they can progress
-	procedure check_previous_progress(stalled: common.dual_boolean_t)
-	returns(b: common.dual_boolean_t) {
-		// By default the instructions cannot move to the next stages
-		b.I_pipe = false;
+    procedure check_previous_progress(stalled: common.dual_boolean_t)
+    returns(b: common.dual_boolean_t) {
+        // By default the instructions cannot move to the next stages
+        b.I_pipe = false;
         // Except if their latencies are going to run out or have run out
         // And their pipelines are not stalled
-		if (previous_latencies.I_pipe <= 1 && !stalled.I_pipe) {
-			b.I_pipe = true;
+        if (previous_latencies.I_pipe <= 1 && !stalled.I_pipe) {
+            b.I_pipe = true;
             
             // priority is always given to LS in case of simultaneous transitions
             if (previous_stages.I_pipe == pre && bus_access.pbus_i.I_pipe &&
@@ -87,13 +87,13 @@ module tricore {
                  (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && bus_access.dbus_i) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j))) {
                 b.I_pipe = false;
             }
-		}
+        }
 
-		b.LS_pipe = false;
-		if (previous_latencies.LS_pipe <= 1 && !stalled.LS_pipe) {
-			b.LS_pipe = true;
-	  	}
-	}
+        b.LS_pipe = false;
+        if (previous_latencies.LS_pipe <= 1 && !stalled.LS_pipe) {
+            b.LS_pipe = true;
+          }
+    }
 
 	// Checking stalls for the previous instructions
 	procedure check_previous_stalling()
@@ -105,7 +105,11 @@ module tricore {
             // ... or in EX with a bus access (load only, in LS pipeline)
             (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
         b.I_pipe = common_stalling || (previous_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe && previous_latencies.LS_pipe > 1) || (previous_stages.LS_pipe == EX && bus_access.dbus_i && previous_latencies.LS_pipe > 1);
-        b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1);
+        b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1) ||
+                // solving WAW hazards in ID
+                (previous_stages.LS == ID &&
+                (waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
+                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 	
 	// These are the conditions for the current instructions to check if they can progress
@@ -157,7 +161,11 @@ module tricore {
 			(pprime_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe) ||
 			(pprime_stages.I_pipe == IF && bus_access.pbus_i.I_pipe);
         b.I_pipe = common_stalling || (current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) || (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
-        b.LS_pipe = common_stalling || (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1);
+        b.LS_pipe = common_stalling || (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
+                // solving WAW hazards in ID
+                (current_stages.LS == ID &&
+                (waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
+                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 
 
@@ -203,17 +211,17 @@ module tricore {
 		if (inc_I) { new_delays.I_pipe = delays.I_pipe+1; } else { new_delays.I_pipe = delays.I_pipe; }
 	}
 
-	// Updating the state of the instructions
-	next {
-		call (previous_stalled') = check_previous_stalling();
-		call (previous_progress') = check_previous_progress(previous_stalled');
-		call (previous_stages', previous_latencies') = next_stages(previous_progress', previous_stalled', previous_stages, previous_ops, previous_initial_latencies, previous_latencies);
-		
-		call (current_stalled') = check_current_stalling(previous_stages');
-		call (current_progress') = check_current_progress(current_stalled', previous_stages');
-		call (current_stages', current_latencies') = next_stages(current_progress', current_stalled', current_stages, current_ops, current_initial_latencies, current_latencies);
+    // Updating the state of the instructions
+    next {
+        call (previous_stalled') = check_previous_stalling();
+        call (previous_progress') = check_previous_progress(previous_stalled');
+        call (previous_stages', previous_latencies') = next_stages(previous_progress', previous_stalled', previous_stages, previous_ops, previous_initial_latencies, previous_latencies);
+        
+        call (current_stalled') = check_current_stalling(previous_stages');
+        call (current_progress') = check_current_progress(current_stalled', previous_stages');
+        call (current_stages', current_latencies') = next_stages(current_progress', current_stalled', current_stages, current_ops, current_initial_latencies, current_latencies);
 
-		call (previous_delays') = update_delays(previous_delays, !previous_progress'.LS_pipe && (previous_latencies'.LS_pipe == 0 || previous_stalled'.LS_pipe) && previous_stages'.LS_pipe != post, !previous_progress'.I_pipe && (previous_latencies'.I_pipe == 0 || previous_stalled'.I_pipe) && previous_stages'.I_pipe != post);
+        call (previous_delays') = update_delays(previous_delays, !previous_progress'.LS_pipe && (previous_latencies'.LS_pipe == 0 || previous_stalled'.LS_pipe) && previous_stages'.LS_pipe != post, !previous_progress'.I_pipe && (previous_latencies'.I_pipe == 0 || previous_stalled'.I_pipe) && previous_stages'.I_pipe != post);
         call (current_delays') = update_delays(current_delays, !current_progress'.LS_pipe && (current_latencies'.LS_pipe == 0 || current_stalled'.LS_pipe) && current_stages'.LS_pipe != post, !current_progress'.I_pipe && (current_latencies'.I_pipe == 0 || current_stalled'.I_pipe) && current_stages'.I_pipe != post);
-	}
+    }
 }

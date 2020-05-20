@@ -3,8 +3,8 @@ module param {
     const additional_reduction: boolean;
     const store_buff: boolean;
     
-    const bmc_depth: integer = 70; // > 70, > 6h
+    const bmc_depth: integer = 45;
     assume(!hazards);
-    assume(!additional_reduction);
+    assume(additional_reduction);
     assume(!store_buff);
 }
