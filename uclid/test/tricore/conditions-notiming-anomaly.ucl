@@ -8,6 +8,8 @@ module conditions {
     var mem_dep: boolean;
     var waw: common.waw_t;
 
+    instance param_set : param();
+    
     instance cond : test(cond_ops_i: (ops_i), cond_ops_j: (ops_j),
                          cond_latencies_i: (latencies_i),
                          cond_latencies_j: (latencies_j),
@@ -29,8 +31,8 @@ module conditions {
         assume(ops_j.LS_instr == load_op ||  ops_j.LS_instr == store_op ||ops_j.LS_instr == other_op);
         
         // SB unused if not a store
-        assume(ops_i.LS_instr != store_op ==> full_SB_i == false);
-        assume(ops_j.LS_instr != store_op ==> full_SB_j == false);
+        assume(ops_i.LS_instr != store_op ==> !full_SB_i);
+        assume(ops_j.LS_instr != store_op ==> !full_SB_j);
         
         // If SB is full for i, it cannot be anymore for j
         assume(full_SB_i ==> !full_SB_j);
@@ -38,7 +40,7 @@ module conditions {
         assume(full_SB_j ==> !full_SB_i);
         
         // A load following a store may be dependent: load is current (j) and store is previous (i)
-        assume((ops_i.LS_instr != store_op || ops_j.LS_instr != load_op) ==> mem_dep == false);
+        assume((ops_i.LS_instr != store_op || ops_j.LS_instr != load_op) ==> !mem_dep);
         
         // Write-allocate cache: no main mem access
         assume(mem_dep ==> !bus.dbus_j); // simplification as scratchpads…
@@ -53,7 +55,7 @@ module conditions {
     
     
     init {
-        if (param.store_buff) {
+        if (param_set.store_buff) {
             call set_init_SB();
             /*// Test config
             assume(ops_i.LS_instr == store_op);
@@ -67,30 +69,25 @@ module conditions {
             assume(ops_j.LS_instr == nop || ops_j.LS_instr == load_op || ops_j.LS_instr == other_op);*/
             assume(ops_i.LS_instr == load_op || ops_i.LS_instr == other_op);
             assume(ops_j.LS_instr == load_op || ops_j.LS_instr == other_op);
-            full_SB_i = false; full_SB_j = false; mem_dep = false;
+            assume(!full_SB_i && !full_SB_j && !mem_dep);
         }
         
-        if (param.additional_reduction) {
+        if (param_set.additional_reduction) {
             //assume(ops_i.LS_instr != nop || ops_i.I_instr != nop || ops_j.LS_instr != nop || ops_j.I_instr != nop); // only nops in pipelines
-            assume(ops_i.LS_instr != other_op || ops_j.LS_instr != other_op); // two others in LS: evicted
+            assume(ops_i.LS_instr != other_op || ops_j.LS_instr != other_op); // two other_op in LS: evicted
             
-            // no one depends on i
-            assume((!waw.ii && !waw.ji) ==> stages_i.I_pipe == post);
+            // no one depends on i: no interaction
+            assume((!waw.ii && !waw.ji) <==> stages_i.I_pipe == post);
             // no one depends on j
-            assume((!waw.ij && !waw.jj) ==> stage_j == post);
+            assume((!waw.ij && !waw.jj) <==> stage_j == post);
         }
         else {
-            // Assume initial stage for current I instr.
-            assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stage_j == pre);
-            assume(stages_i.I_pipe == ID ==> (stage_j == pre || stage_j == IF));
-            assume(stages_i.I_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID));
-            assume(stages_i.I_pipe == EX2 ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX));
-            assume(stages_i.I_pipe == WB ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2));
+            assume(stages_i.I_pipe != post);
         }
         
-        if (!param.hazards) {
-            waw.ii = false; waw.ij = false;
-            waw.ji = false; waw.jj = false;
+        if (!param_set.hazards) {
+            assume(!waw.ii && !waw.ij);
+            assume(!waw.ji && !waw.jj);
         }
         else {
             /*
@@ -104,7 +101,9 @@ module conditions {
             assume(ops_j.I_instr == nop ==> (!waw.ij && !waw.jj));*/
             
             // pontential dependencies are not relevant if the involved stages are overtaken
+            // LS is considered independent
             assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == ST) ==> (!waw.ii && !waw.ij));
+            // I is not considered a cause of dependency
             assume((stages_i.I_pipe == EX2 || stages_i.I_pipe == WB) ==> (!waw.ii && !waw.ji));
             assume((stage_j == EX2 || stage_j == WB) ==> (!waw.ij && !waw.jj));
         }
@@ -182,13 +181,24 @@ module conditions {
         assume(latencies_j.I_pipe.ST == 1);
         assume(ops_j.LS_instr != store_op ==> latencies_j.LS_pipe.ST == 1);
 
-        // Assume initial stages for previous instr.
-        assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB);
+        // Assume initial stages for previous instructions
+        assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB || stages_i.I_pipe == post);
         assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
-        // Potential conflicts (stages_j.LS is at pre by design)
+        
+        // Current LS is at pre by design (tricore*.ucl)
+        // Assume initial stage for current I instruction
+        assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stage_j == pre);
+        assume(stages_i.I_pipe == ID ==> (stage_j == pre || stage_j == IF));
+        assume(stages_i.I_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID));
+        assume(stages_i.I_pipe == EX2 ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX));
+        assume(stages_i.I_pipe == WB ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2));
+        
+        // Potential conflicts
+        // If previous LS has a "problem", then I pipelines have not.
+        // By contraposition, if one of the I pipelines has a problem, then LS has not.
         assume(((stages_i.LS_pipe == IF && bus.pbus_i.LS_pipe) || (stages_i.LS_pipe == EX && ops_i.LS_instr == load_op && bus.dbus_i) || (stages_i.LS_pipe == ST && bus.dbus_i)) ==> ((stages_i.I_pipe != IF || !bus.pbus_i.I_pipe) && (stage_j != IF || !bus.pbus_j.I_pipe)));
         
-        assume(stages_i.I_pipe != pre || stages_i.LS_pipe != pre || stage_j != pre); // all at pre
+        assume(stages_i.I_pipe != pre || stages_i.LS_pipe != pre || stage_j != pre); // all at pre is meaningless
         
         // This is to allow only specific operations in some stages
         assume(stages_i.I_pipe == EX2 ==> ops_i.I_instr == mac_op);
@@ -198,8 +208,8 @@ module conditions {
         // Reduce state space by disabling variability: unused latencies since stages overtaken
         assume((stages_i.I_pipe != pre && stages_i.I_pipe != IF) ==> latencies_i.I_pipe.IF == 1);
         assume((stages_i.LS_pipe != pre && stages_i.LS_pipe != IF) ==> latencies_i.LS_pipe.IF == 1);
-        assume((stages_i.LS_pipe == ST || stages_i.LS_pipe == WB) ==> latencies_i.LS_pipe.EX == 1);
         assume((stage_j != pre && stage_j != IF) ==> latencies_j.I_pipe.IF == 1);
+        assume((stages_i.LS_pipe == ST || stages_i.LS_pipe == WB) ==> latencies_i.LS_pipe.EX == 1);
     }
 
     next {

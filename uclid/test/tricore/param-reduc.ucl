@@ -1,10 +1,13 @@
 module param {
-    const hazards: boolean;
-    const additional_reduction: boolean;
-    const store_buff: boolean;
+    var hazards: boolean;
+    var additional_reduction: boolean;
+    var store_buff: boolean;
     
-    const bmc_depth: integer = 45;
-    assume(!hazards);
-    assume(additional_reduction);
-    assume(!store_buff);
+    const bmc_depth: integer = 38;
+    
+    init {
+        hazards = false;
+        additional_reduction = true;
+        store_buff = false;
+    }
 }

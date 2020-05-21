@@ -107,9 +107,9 @@ module tricore {
         b.I_pipe = common_stalling || (previous_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe && previous_latencies.LS_pipe > 1) || (previous_stages.LS_pipe == EX && bus_access.dbus_i && previous_latencies.LS_pipe > 1);
         b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1) ||
                 // solving WAW hazards in ID
-                (previous_stages.LS == ID &&
+                (previous_stages.LS_pipe == ID &&
                 (waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
+                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 	
 	// These are the conditions for the current instructions to check if they can progress
@@ -163,9 +163,9 @@ module tricore {
         b.I_pipe = common_stalling || (current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) || (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
         b.LS_pipe = common_stalling || (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
                 // solving WAW hazards in ID
-                (current_stages.LS == ID &&
+                (current_stages.LS_pipe == ID &&
                 (waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
+                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 
 
@@ -186,7 +186,7 @@ module tricore {
 		assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);
         
         current_stages.LS_pipe = pre;
-        current_latencies.LS_pipe = 0;
+        current_latencies.LS_pipe = 1;
         
         assume(current_stages.I_pipe == input_current_stage);
         assume(input_current_stage == IF ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.IF);
