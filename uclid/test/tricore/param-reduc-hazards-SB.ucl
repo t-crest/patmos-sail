@@ -3,11 +3,11 @@ module param {
     var additional_reduction: boolean;
     var store_buff: boolean;
     
-    const bmc_depth: integer = 38; // 447,09s user 1,84s system 102% cpu 7:16,15 total
+    const bmc_depth: integer = 60; // in progress
     
     init {
-        hazards = false;
+        hazards = true;
         additional_reduction = true;
-        store_buff = false;
+        store_buff = true;
     }
 }

@@ -100,8 +100,8 @@ module tricore {
 	returns (b: common.dual_boolean_t) {
         var common_stalling: boolean;
 		// Stalling whenever one of the current instructions is in IF with a bus access...
-        common_stalling = (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
-			(current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) ||
+        common_stalling = (current_stages.I_pipe == IF && current_latencies.I_pipe > 1) ||
+			(current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) ||
             // ... or in EX with a bus access (load only, in LS pipeline)
             (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
         b.I_pipe = common_stalling || (previous_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe && previous_latencies.LS_pipe > 1) || (previous_stages.LS_pipe == EX && bus_access.dbus_i && previous_latencies.LS_pipe > 1);
@@ -127,7 +127,7 @@ module tricore {
                                                        (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
                                                        (pprime_stage.LS_pipe != IF || !bus_access.pbus_i.LS_pipe) &&
                                                        (current_stages.LS_pipe != pre || !bus_access.pbus_j.LS_pipe) &&
-                                                       (current_stages.LS_pipe != EX || current_ops.LS_instr != load_op || !bus_access.dbus_j)) { b.I_pipe = true; }}
+                                                       (current_stages.LS_pipe != ID || current_ops.LS_instr != load_op || !bus_access.dbus_j)) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
 				(current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
 				(current_stages.I_pipe == EX)  : { if ((current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) || (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2)) { b.I_pipe = true; }}	
@@ -165,7 +165,7 @@ module tricore {
                 // solving WAW hazards in ID
                 (current_stages.LS_pipe == ID &&
                 (waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
+                (waw_dep.jj && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 
 

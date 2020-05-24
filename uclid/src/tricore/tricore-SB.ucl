@@ -87,7 +87,7 @@ module tricore {
                  (previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && bus_access.dbus_i) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j) ||
                 // if LS are waiting for SB (i.e. in WB), they moreover must be with higher priority
                 (previous_stages.LS_pipe == WB && previous_ops.LS_instr == store_op && bus_access.dbus_i && full_SB_i) || (current_stages.LS_pipe == WB && current_ops.LS_instr == store_op && bus_access.dbus_j && full_SB_j) ||
-                 // bus still busy
+                 // bus still busy: different from other cases as no stalling
                  (previous_stages.LS_pipe == ST && bus_access.dbus_i && previous_latencies.LS_pipe > 1) || (current_stages.LS_pipe == ST && bus_access.dbus_j && current_latencies.LS_pipe > 1))) {
                 b.I_pipe = false;
             }
@@ -100,7 +100,7 @@ module tricore {
             // priority is given to st. else than SB except if it is full
             if (previous_stages.LS_pipe == WB && previous_ops.LS_instr == store_op && bus_access.dbus_i && !full_SB_i &&
                 ((previous_stages.I_pipe == pre && bus_access.pbus_i.I_pipe) || (current_stages.I_pipe == pre && bus_access.pbus_j.I_pipe) ||
-                  || (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j))) { // (should be current'…)
+                 (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j))) {
                     b.LS_pipe = false;
             }
         }
@@ -112,15 +112,15 @@ module tricore {
         var common_stalling: boolean;
 		// Stalling whenever one of the current instructions is in IF with a bus access...
         common_stalling = (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
-			(current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) ||
+			(current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) ||
             // ... or in EX with a bus access (load only, in LS pipeline)
             (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
         b.I_pipe = common_stalling || (previous_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe && previous_latencies.LS_pipe > 1) || (previous_stages.LS_pipe == EX && bus_access.dbus_i && previous_latencies.LS_pipe > 1);
         b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1) ||
                 // solving WAW hazards in ID
-                (previous_stages.LS == ID &&
+                (previous_stages.LS_pipe == ID &&
                 (waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
+                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
 	}
 	
 	// These are the conditions for the current instructions to check if they can progress
@@ -137,10 +137,10 @@ module tricore {
                                                        // priority is given to LS in case of simultaneous transitions
                                                        (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
                                                        (pprime_stage.LS_pipe != IF || !bus_access.pbus_i.LS_pipe) &&
+                                                       (current_stages.LS_pipe != pre || !bus_access.pbus_j.LS_pipe) &&
+                                                       (current_stages.LS_pipe != ID || current_ops.LS_instr != load_op || !bus_access.dbus_j) &&
                                                        // except if SB is not full
                                                        (pprime_stage.LS_pipe != ST || !bus_access.dbus_i || !full_SB_i) &&
-                                                       (current_stages.LS_pipe != pre || !bus_access.pbus_j.LS_pipe) &&
-                                                       (current_stages.LS_pipe != EX || current_ops.LS_instr != load_op || !bus_access.dbus_j) &&
                                                        // waiting for entering ST
                                                        (current_stages.LS_pipe != WB || current_ops.LS_instr != store_op || !bus_access.dbus_j || !full_SB_j)) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
@@ -169,9 +169,7 @@ module tricore {
                                                         // priority to fetch if SB not full
                                                         (full_SB_j ||
                                                          ((current_stages.I_pipe != pre || !bus_access.pbus_j.I_pipe) &&
-                                                         // bus not busy
-                                                        (current_stages.I_pipe != IF || !bus_access.pbus_j.I_pipe || current_latencies.I_pipe <= 1) &&
-                                                        (pprime_stage.I_pipe != IF || !bus_access.pbus_i.I_pipe)))) { b.LS_pipe = true; }}
+                                                          (pprime_stage.I_pipe != IF || !bus_access.pbus_i.I_pipe)))) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ST || current_stages.LS_pipe == post)  : { b.LS_pipe = true; }
 			esac
 		}
@@ -190,30 +188,30 @@ module tricore {
                 (current_stages.LS_pipe == ID &&
                  // solving WAW hazards in ID
                 (waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep_ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)) ||
+                (waw_dep.jj && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)) ||
                 // To give priority to SB because of a mem ref data dependency (in fact stalling occurs in EX)
-                (mem_dep && previous_stages.LS_pipe != post));
+                (mem_dep && pprime_stages.LS_pipe != post));
 	}
 
 
-	init {
-		assume(previous_stages == input_previous_stages);
-		assume(input_previous_stages.LS_pipe == IF ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.IF);
-		assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID);
-		assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
-		assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
+    init {
+        assume(previous_stages == input_previous_stages);
+        assume(input_previous_stages.LS_pipe == IF ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.IF);
+        assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID);
+        assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
+        assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
         assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST);
-		assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);    
+        assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);
 
-		assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
-		assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID);
-		assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX);
-		assume(input_previous_stages.I_pipe == EX2 ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX2);
-		assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB);
-		assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);
+        assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
+        assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID);
+        assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX);
+        assume(input_previous_stages.I_pipe == EX2 ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX2);
+        assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB);
+        assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);
         
         current_stages.LS_pipe = pre;
-        current_latencies.LS_pipe = 0;
+        current_latencies.LS_pipe = 1;
         
         assume(current_stages.I_pipe == input_current_stage);
         assume(input_current_stage == IF ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.IF);
@@ -223,20 +221,20 @@ module tricore {
         assume(input_current_stage == WB ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.WB);
         assume(input_current_stage == pre ==> current_latencies.I_pipe == 1);
 
-		previous_delays.I_pipe = 0; previous_delays.LS_pipe = 0;
-		previous_progress.I_pipe = false; previous_progress.LS_pipe = false;
-		previous_stalled.I_pipe = false; previous_stalled.LS_pipe = false;
-		
-		current_delays.I_pipe = 0; current_delays.LS_pipe = 0;
-		current_progress.I_pipe = false; current_progress.LS_pipe = false;
-		current_stalled.I_pipe = false; current_stalled.LS_pipe = false;
-	}
+        previous_delays.I_pipe = 0; previous_delays.LS_pipe = 0;
+        previous_progress.I_pipe = false; previous_progress.LS_pipe = false;
+        previous_stalled.I_pipe = false; previous_stalled.LS_pipe = false;
+        
+        current_delays.I_pipe = 0; current_delays.LS_pipe = 0;
+        current_progress.I_pipe = false; current_progress.LS_pipe = false;
+        current_stalled.I_pipe = false; current_stalled.LS_pipe = false;
+    }
 
-	procedure update_delays(delays: common.dual_integer_t, inc_LS: boolean, inc_I: boolean)
-	returns (new_delays: common.dual_integer_t) {
-		if (inc_LS) { new_delays.LS_pipe = delays.LS_pipe+1; } else { new_delays.LS_pipe = delays.LS_pipe; }
-		if (inc_I) { new_delays.I_pipe = delays.I_pipe+1; } else { new_delays.I_pipe = delays.I_pipe; }
-	}
+    procedure update_delays(delays: common.dual_integer_t, inc_LS: boolean, inc_I: boolean)
+    returns (new_delays: common.dual_integer_t) {
+        if (inc_LS) { new_delays.LS_pipe = delays.LS_pipe+1; } else { new_delays.LS_pipe = delays.LS_pipe; }
+        if (inc_I) { new_delays.I_pipe = delays.I_pipe+1; } else { new_delays.I_pipe = delays.I_pipe; }
+    }
 
     // Updating the state of the instructions
     next {
