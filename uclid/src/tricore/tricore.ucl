@@ -124,10 +124,11 @@ module tricore {
 				// ... and its targeted next stage is not occupied by the previous
 				(current_stages.I_pipe == pre) : { if (pprime_stage.I_pipe != IF &&
                                                        // priority is always given to LS in case of simultaneous transitions
-                                                       (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
+                                                       (!bus_access.pbus_j.I_pipe ||
+                                                       ((pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
                                                        (pprime_stage.LS_pipe != IF || !bus_access.pbus_i.LS_pipe) &&
                                                        (current_stages.LS_pipe != pre || !bus_access.pbus_j.LS_pipe) &&
-                                                       (current_stages.LS_pipe != ID || current_ops.LS_instr != load_op || !bus_access.dbus_j)) { b.I_pipe = true; }}
+                                                       (current_stages.LS_pipe != ID || current_ops.LS_instr != load_op || !bus_access.dbus_j)))) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
 				(current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
 				(current_stages.I_pipe == EX)  : { if ((current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) || (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2)) { b.I_pipe = true; }}	
@@ -143,7 +144,7 @@ module tricore {
 				// ... and its targeted next stage is not occupied by the previous
 				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF &&
                                                         // priority is given to previous in EX in case of simultaneous transitions
-                                                        (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i)) { b.LS_pipe = true; }}
+                                                        (!bus_access.pbus_j.LS_pipe || pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i)) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == EX)  : { if (pprime_stage.LS_pipe != WB) { b.LS_pipe = true; }}

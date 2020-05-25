@@ -135,14 +135,15 @@ module tricore {
 				// ... and its targeted next stage is not occupied by the previous
 				(current_stages.I_pipe == pre) : { if (pprime_stage.I_pipe != IF &&
                                                        // priority is given to LS in case of simultaneous transitions
-                                                       (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
+                                                       (!bus_access.pbus_j.I_pipe ||
+                                                       ((pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
                                                        (pprime_stage.LS_pipe != IF || !bus_access.pbus_i.LS_pipe) &&
                                                        (current_stages.LS_pipe != pre || !bus_access.pbus_j.LS_pipe) &&
                                                        (current_stages.LS_pipe != ID || current_ops.LS_instr != load_op || !bus_access.dbus_j) &&
                                                        // except if SB is not full
                                                        (pprime_stage.LS_pipe != ST || !bus_access.dbus_i || !full_SB_i) &&
                                                        // waiting for entering ST
-                                                       (current_stages.LS_pipe != WB || current_ops.LS_instr != store_op || !bus_access.dbus_j || !full_SB_j)) { b.I_pipe = true; }}
+                                                       (current_stages.LS_pipe != WB || current_ops.LS_instr != store_op || !bus_access.dbus_j || !full_SB_j)))) { b.I_pipe = true; }}
 				(current_stages.I_pipe == IF)  : { if (pprime_stage.I_pipe != ID) { b.I_pipe = true; }}
 				(current_stages.I_pipe == ID)  : { if (pprime_stage.I_pipe != EX) { b.I_pipe = true; }}
 				(current_stages.I_pipe == EX)  : { if ((current_ops.I_instr != mac_op && pprime_stage.I_pipe != WB) || (current_ops.I_instr == mac_op && pprime_stage.I_pipe != EX2)) { b.I_pipe = true; }}	
@@ -157,9 +158,10 @@ module tricore {
 			case
 				// ... and its targeted next stage is not occupied by the previous
 				(current_stages.LS_pipe == pre) : { if (pprime_stage.LS_pipe != IF &&
+                                                        (!bus_access.pbus_j.LS_pipe ||
                                                         // priority is given to previous in EX in case of simultaneous transitions
-                                                        (pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
-                                                        (pprime_stage.LS_pipe != ST || !bus_access.dbus_i || !full_SB_i)) { b.LS_pipe = true; }}
+                                                        ((pprime_stage.LS_pipe != EX || previous_ops.LS_instr != load_op || !bus_access.dbus_i) &&
+                                                        (pprime_stage.LS_pipe != ST || !bus_access.dbus_i || !full_SB_i)))) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == IF)  : { if (pprime_stage.LS_pipe != ID) { b.LS_pipe = true; }}
 				(current_stages.LS_pipe == ID)  : { if (pprime_stage.LS_pipe != EX &&
                                                         // priority to ST if full and current is a load
