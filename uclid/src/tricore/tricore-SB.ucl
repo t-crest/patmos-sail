@@ -119,8 +119,8 @@ module tricore {
         b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1) ||
                 // solving WAW hazards in ID
                 (previous_stages.LS_pipe == ID &&
-                (waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
-                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)));
+                ((waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
+                (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX))));
 	}
 	
 	// These are the conditions for the current instructions to check if they can progress
@@ -189,10 +189,10 @@ module tricore {
         b.LS_pipe = common_stalling || (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
                 (current_stages.LS_pipe == ID &&
                  // solving WAW hazards in ID
-                (waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
+                ((waw_dep.ji && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
                 (waw_dep.jj && (current_stages.I_pipe == ID || current_stages.I_pipe == EX)) ||
                 // To give priority to SB because of a mem ref data dependency (in fact stalling occurs in EX)
-                (mem_dep && pprime_stages.LS_pipe != post));
+                (mem_dep && pprime_stages.LS_pipe != post)));
 	}
 
 

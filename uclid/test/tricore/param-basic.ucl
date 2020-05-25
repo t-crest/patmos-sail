@@ -3,7 +3,7 @@ module param {
     var additional_reduction: boolean;
     var store_buff: boolean;
     
-    const bmc_depth: integer = 70; // > 70 --> not checked after changes
+    const bmc_depth: integer = 60; // < 70
     
     init {
         hazards = false;

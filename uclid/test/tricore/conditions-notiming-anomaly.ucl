@@ -43,6 +43,9 @@ module conditions {
         // Write-allocate cache: no main mem access
         assume(mem_dep ==> !bus.dbus_j); // simplification as scratchpads…
         
+        // Mem dep => exceptional priority to store (in-order mem access)
+        assume((ops_i.LS_instr == store_op && ops_j.LS_instr == load_op) ==> full_SB_i);
+        
         // Assume variable latencies for SB
         assume((!bus.dbus_i && ops_i.LS_instr == store_op) ==> (latencies_i.LS_pipe.ST == 1 || latencies_i.LS_pipe.ST == 2));
         assume((!bus.dbus_j && ops_j.LS_instr == store_op) ==> (latencies_j.LS_pipe.ST == 1 || latencies_j.LS_pipe.ST == 2));
