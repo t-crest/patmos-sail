@@ -17,47 +17,29 @@ uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-no
 uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly-reduction.ucl test/inorder/property-notiming-anomaly.ucl
 
 
-2.a. TriCore with no-stalling-onmiss assumption; no specific reductions and no hazards
-./tricore-notiming-anomaly.sh no-stalling basic
+2.a. TriCore with no specific reductions, no hazards and no SB
+./tricore-notiming-anomaly.sh basic
 
-2.b. TriCore with no-stalling-onmiss assumption; specific reductions but no hazards
-./tricore-notiming-anomaly.sh no-stalling reduction
+2.b. TriCore with specific reductions (no hazards and no SB)
+./tricore-notiming-anomaly.sh reduc
 
-2.c. TriCore with no-stalling-onmiss assumption; same more additional reduction
-./tricore-notiming-anomaly.sh no-stalling more-reduction
+2.c. TriCore with specific reductions and hazards (no SB)
+./tricore-notiming-anomaly.sh reduc-hazards
 
-2.d. TriCore with no-stalling-onmiss assumption; no specific reductions but hazards
-./tricore-notiming-anomaly.sh no-stalling hazard
-
-2.e. TriCore with no-stalling-onmiss assumption; hazards with all reductions
-./tricore-notiming-anomaly.sh no-stalling hazard-reduction
-
-2.f. TriCore with no-stalling-onmiss assumption; same more SB
-./tricore-notiming-anomaly.sh no-stalling SB
-
-
-3. TriCore with stalling-before-onmiss assumption; same as 2.d
-./tricore-notiming-anomaly.sh stalling-before
-
-4. TriCore with stalling-whole-onmiss assumption; same as 2.d
-./tricore-notiming-anomaly.sh stalling-whole
+2.d. TriCore with specific reductions, hazards and SB
+./tricore-notiming-anomaly.sh réductionnismes-hazards-SB
 
 
 
-Verif.	| Depth		| Time
-1.a.i	| 31		| 20,98s user 0,51s system 160% cpu 13,389 total
-1.a.ii	| 31		| 18,38s user 0,52s system 175% cpu 10,791 total
-1.b.i	| 14		| 10,78s user 0,46s system 280% cpu 4,002 total
-1.b.ii	| 14		| 9,95s user 0,44s system 274% cpu 3,790 total
-1.c.i	| 23		| 22,22s user 0,54s system 153% cpu 14,840 total
-1.c.ii	| 23		| 17,77s user 0,51s system 185% cpu 9,861 total
+Verif.	| Depth	| Time
+1.a.i	| 31	| 20,98s user 0,51s system 160% cpu 13,389 total
+1.a.ii	| 31	| 18,38s user 0,52s system 175% cpu 10,791 total
+1.b.i	| 14	| 10,78s user 0,46s system 280% cpu 4,002 total
+1.b.ii	| 14	| 9,95s user 0,44s system 274% cpu 3,790 total
+1.c.i	| 23	| 22,22s user 0,54s system 153% cpu 14,840 total
+1.c.ii	| 23	| 17,77s user 0,51s system 185% cpu 9,861 total
 
-2.a	| 38		| 1055,24s user 2,98s system 101% cpu 17:26,81 total
-2.b	| 38		| 234,80s user 0,96s system 106% cpu 3:42,15 total
-2.c	| 38		| 244,40s user 1,12s system 106% cpu 3:49,93 total
-2.d	| 38		| 894,52s user 2,19s system 101% cpu 14:42,03 total
-2.e	| 38		| 324,40s user 1,08s system 104% cpu 5:12,52 total
-2.f	| ≤49 (>45)	| 1816,44s user 3,52s system 100% cpu 30:10,41 total
-
-3	| 38		| 369,29s user 2,23s system 102% cpu 6:02,16 total
-4	| 40 (>37)	| 1326,00s user 6,72s system 100% cpu 22:08,97 total
+2.a	| 49	| 4881,85s user 13,37s system 100% cpu 1:21:29,61 total
+2.b	| 38	| 447,09s user 1,84s system 102% cpu 7:16,15 total
+2.c	| 49	| 7495,26s user 9,88s system 100% cpu 2:04:52,70 total
+2.d	| 53	| ?

@@ -103,7 +103,7 @@ module conditions {
             if (param_set.additional_reduction) {
                 // pontential dependencies are not relevant if the involved stages are overtaken
                 // LS is considered independent
-                assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == ST) ==> (!waw.ii && !waw.ij));
+                assume((stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST) ==> (!waw.ii && !waw.ij));
                 // I is not considered a cause of dependency
                 assume((stages_i.I_pipe == EX2 || stages_i.I_pipe == WB) ==> (!waw.ii && !waw.ji));
                 assume((stage_j == EX2 || stage_j == WB) ==> (!waw.ij && !waw.jj));
