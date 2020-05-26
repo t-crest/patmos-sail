@@ -42,4 +42,4 @@ Verif.	| Depth	| Time
 2.a	| 49	| 4881,85s user 13,37s system 100% cpu 1:21:29,61 total
 2.b	| 38	| 447,09s user 1,84s system 102% cpu 7:16,15 total
 2.c	| 49	| 7495,26s user 9,88s system 100% cpu 2:04:52,70 total
-2.d	| 53	| ?
+2.d	| 53	| 22218,58s user 31,61s system 100% cpu 6:10:36,72 total
