@@ -177,14 +177,15 @@ module tricore {
 		assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
 		assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
         assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST);
-		assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);    
-
+		assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);
+        
 		assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
 		assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID);
 		assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX);
 		assume(input_previous_stages.I_pipe == EX2 ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX2);
 		assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB);
 		assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);
+        assume(input_previous_stages.I_pipe == post ==> previous_latencies.I_pipe == 0);
         
         current_stages.LS_pipe = pre;
         current_latencies.LS_pipe = 1;
@@ -196,6 +197,7 @@ module tricore {
         assume(input_current_stage == EX2 ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.EX2);
         assume(input_current_stage == WB ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.WB);
         assume(input_current_stage == pre ==> current_latencies.I_pipe == 1);
+        assume(input_current_stage == post ==> current_latencies.I_pipe == 0);
 
 		previous_delays.I_pipe = 0; previous_delays.LS_pipe = 0;
 		previous_progress.I_pipe = false; previous_progress.LS_pipe = false;

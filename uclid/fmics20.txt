@@ -1,45 +1,15 @@
-1.a.i. Former in-order
-uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
-
-1.a.ii. In-order state space reduction
-uclid src/riscs/common.ucl src/riscs/inorder-nostalling-onmiss.ucl test/inorder/test.ucl test/inorder/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly-reduction.ucl test/inorder/property-notiming-anomaly.ucl
-
-1.b.i. Former Patmos
-uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly.ucl test/patmos/conditions-notiming-anomaly.ucl test/patmos/property-notiming-anomaly.ucl
-
-1.b.ii. Patmos state space reduction
-uclid src/riscs/common.ucl src/riscs/patmos-singleissue-methodcache.ucl test/patmos/test.ucl test/patmos/param-notiming-anomaly-reduction.ucl test/patmos/conditions-notiming-anomaly-reduction.ucl test/patmos/property-notiming-anomaly.ucl
-
-1.c.i. Former SIC
-uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly.ucl test/inorder/conditions-notiming-anomaly.ucl test/inorder/property-notiming-anomaly.ucl
-
-1.c.ii. SIC state space reduction
-uclid src/riscs/common.ucl src/riscs/sic.ucl test/sic/test.ucl test/sic/param-notiming-anomaly-reduction.ucl test/inorder/conditions-notiming-anomaly-reduction.ucl test/inorder/property-notiming-anomaly.ucl
-
-
-2.a. TriCore with no specific reductions, no hazards and no SB
-./tricore-notiming-anomaly.sh basic
-
-2.b. TriCore with specific reductions (no hazards and no SB)
-./tricore-notiming-anomaly.sh reduc
-
-2.c. TriCore with specific reductions and hazards (no SB)
-./tricore-notiming-anomaly.sh reduc-hazards
-
-2.d. TriCore with specific reductions, hazards and SB
-./tricore-notiming-anomaly.sh réductionnismes-hazards-SB
-
+1. basic: SB, no hazards, general reductions only	./tricore-notiming-anomaly.sh basic
+2. basic + pipeline reductions				./tricore-notiming-anomaly.sh pipeline_reduc
+3. same without general reductions			./tricore-notiming-anomaly.sh general_reduc
+4. without SB: general/pipeline reductions + hazards 	./tricore-notiming-anomaly.sh hazards_noSB
+5. same + hazard reductions				./tricore-notiming-anomaly.sh hazards_noSB_reduc
+6. SB, hazards, all reductions 				./tricore-notiming-anomaly.sh hazards_all_reduc
 
 
 Verif.	| Depth	| Time
-1.a.i	| 31	| 20,98s user 0,51s system 160% cpu 13,389 total
-1.a.ii	| 31	| 18,38s user 0,52s system 175% cpu 10,791 total
-1.b.i	| 14	| 10,78s user 0,46s system 280% cpu 4,002 total
-1.b.ii	| 14	| 9,95s user 0,44s system 274% cpu 3,790 total
-1.c.i	| 23	| 22,22s user 0,54s system 153% cpu 14,840 total
-1.c.ii	| 23	| 17,77s user 0,51s system 185% cpu 9,861 total
-
-2.a	| 49	| 4881,85s user 13,37s system 100% cpu 1:21:29,61 total
-2.b	| 38	| 447,09s user 1,84s system 102% cpu 7:16,15 total
-2.c	| 49	| 7495,26s user 9,88s system 100% cpu 2:04:52,70 total
-2.d	| 53	| 22218,58s user 31,61s system 100% cpu 6:10:36,72 total
+1	| 53	| 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
+2	| 38	| 310,86s user 1,17s system 105% cpu 4:55,19 total
+3	| 38	| 441,96s user 1,99s system 104% cpu 7:06,37 total
+4	| 	50 & 53 	in
+5	| 	50 & 53		progress
+6	| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total

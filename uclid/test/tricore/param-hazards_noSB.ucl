@@ -5,13 +5,13 @@ module param {
     var hazards: boolean;
     var hazard_reductions: boolean;
         
-    const bmc_depth: integer = 53; // 30168,53s user 36,21s system 100% cpu 8:23:04,48 total (>49)
+    const bmc_depth: integer = 53; // en cours x2 (>49)
     
     init {
-        store_buff = true;
+        store_buff = false;
         general_reductions = true;
-        pipeline_reductions = false;
-        hazards = false;
+        pipeline_reductions = true;
+        hazards = true;
         hazard_reductions = false;
     }
 }
