@@ -35,14 +35,14 @@ module conditions {
         // If SB is full for i, it cannot be anymore for j
         assume(full_SB_i ==> !full_SB_j);
         
-        // A load following a store may be dependent: load is current (j) and store is previous (i)
+        // A load following a store may be dependent: load is current (j) and store is previous (i), else no mem dependency
         assume((ops_i.LS_instr != store_op || ops_j.LS_instr != load_op) ==> !mem_dep);
         
         // Write-allocate cache: no main mem access
         assume(mem_dep ==> !bus.dbus_j); // simplification as scratchpads…
         
-        // Mem dep => exceptional priority to store (in-order mem access)
-        assume((ops_i.LS_instr == store_op && ops_j.LS_instr == load_op) ==> full_SB_i);
+        // Mem dep => exceptional priority to store
+        assume(mem_dep ==> full_SB_i);
         
         // Assume variable latencies for SB
         assume((!bus.dbus_i && ops_i.LS_instr == store_op) ==> (latencies_i.LS_pipe.ST == 1 || latencies_i.LS_pipe.ST == 2));

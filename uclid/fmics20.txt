@@ -10,6 +10,6 @@ Verif.	| Depth	| Time
 1	| 53	| 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
 2	| 38	| 310,86s user 1,17s system 105% cpu 4:55,19 total
 3	| 38	| 441,96s user 1,99s system 104% cpu 7:06,37 total
-4	| 	50 & 53 	in
-5	| 	50 & 53		progress
+4	| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
+5	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
 6	| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
