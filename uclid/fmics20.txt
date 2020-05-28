@@ -1,8 +1,14 @@
 1. basic: SB, no hazards, general reductions only	./tricore-notiming-anomaly.sh basic
 2. basic + pipeline reductions				./tricore-notiming-anomaly.sh pipeline_reduc
 3. same without general reductions			./tricore-notiming-anomaly.sh general_reduc
+
+
+./tricore-notiming-anomaly.sh hazards
+
+
 4. without SB: general/pipeline reductions + hazards 	./tricore-notiming-anomaly.sh hazards_noSB
 5. same + hazard reductions				./tricore-notiming-anomaly.sh hazards_noSB_reduc
+
 6. SB, hazards, all reductions 				./tricore-notiming-anomaly.sh hazards_all_reduc
 
 
