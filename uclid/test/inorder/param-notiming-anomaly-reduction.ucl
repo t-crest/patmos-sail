@@ -1,7 +1,7 @@
 module param {
   // The BMC is 31 for inorder prime (without stalling and stalling before)
   // The BMC is 33 for inorder prime (whole pipeline stall)
-  const bmc_depth: integer = 31;
+  const bmc_depth: integer = 33;
 
   const max_latency: integer = 10;
 }

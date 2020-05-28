@@ -1,21 +1,17 @@
 1. basic: SB, no hazards, general reductions only	./tricore-notiming-anomaly.sh basic
 2. basic + pipeline reductions				./tricore-notiming-anomaly.sh pipeline_reduc
 3. same without general reductions			./tricore-notiming-anomaly.sh general_reduc
-
-
-./tricore-notiming-anomaly.sh hazards
-
-
-4. without SB: general/pipeline reductions + hazards 	./tricore-notiming-anomaly.sh hazards_noSB
-5. same + hazard reductions				./tricore-notiming-anomaly.sh hazards_noSB_reduc
-
-6. SB, hazards, all reductions 				./tricore-notiming-anomaly.sh hazards_all_reduc
+4. basic + pipeline reductions + hazards		./tricore-notiming-anomaly.sh hazards
+5. without SB: general/pipeline reductions + hazards 	./tricore-notiming-anomaly.sh hazards_noSB
+6. same + hazard reductions				./tricore-notiming-anomaly.sh hazards_noSB_reduc
+7. SB, hazards, all reductions 				./tricore-notiming-anomaly.sh hazards_all_reduc
 
 
 Verif.	| Depth	| Time
 1	| 53	| 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
 2	| 38	| 310,86s user 1,17s system 105% cpu 4:55,19 total
 3	| 38	| 441,96s user 1,99s system 104% cpu 7:06,37 total
-4	| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
-5	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
-6	| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
+4	| >53 	| *26629,56s user 28,83s system 100% cpu 7:23:53,00 total (53) — (>54)
+5	| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
+6	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
+7	| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
