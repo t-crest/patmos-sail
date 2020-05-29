@@ -2,16 +2,17 @@ module param {
     var store_buff: boolean;
     var general_reductions: boolean;
     var pipeline_reductions: boolean;
-    var hazards: boolean;
+    var mem_hazards: boolean;
+    var waw_hazards: boolean;
     var hazard_reductions: boolean;
         
-    const bmc_depth: integer = 53; // 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
+    const bmc_depth: integer = 53; // 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
     
     init {
         store_buff = false;
         general_reductions = true;
         pipeline_reductions = true;
         hazards = true;
-        hazard_reductions = true;
+        hazard_reductions = false;
     }
 }

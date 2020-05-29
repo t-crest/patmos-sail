@@ -6,12 +6,12 @@ module param {
     var waw_hazards: boolean;
     var hazard_reductions: boolean;
         
-    const bmc_depth: integer = 38; // 411,56s user 1,54s system 102% cpu 6:41,80 total
+    const bmc_depth: integer = 53; // 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
     
     init {
         store_buff = true;
-        general_reductions = false;
-        pipeline_reductions = true;
+        general_reductions = true;
+        pipeline_reductions = false;
         mem_hazards = true;
         waw_hazards = false;
         hazard_reductions = false;

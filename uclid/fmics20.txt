@@ -1,17 +1,12 @@
-1. basic: SB, no hazards, general reductions only	./tricore-notiming-anomaly.sh basic
-2. basic + pipeline reductions				./tricore-notiming-anomaly.sh pipeline_reduc
-3. same without general reductions			./tricore-notiming-anomaly.sh general_reduc
-4. basic + pipeline reductions + hazards		./tricore-notiming-anomaly.sh hazards
-5. without SB: general/pipeline reductions + hazards 	./tricore-notiming-anomaly.sh hazards_noSB
-6. same + hazard reductions				./tricore-notiming-anomaly.sh hazards_noSB_reduc
-7. SB, hazards, all reductions 				./tricore-notiming-anomaly.sh hazards_all_reduc
+$ ./tricore-notiming-anomaly.sh #cond
 
-
-Verif.	| Depth	| Time
-1	| 53	| 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
-2	| 38	| 310,86s user 1,17s system 105% cpu 4:55,19 total
-3	| 38	| 441,96s user 1,99s system 104% cpu 7:06,37 total
-4	| >53 	| *26629,56s user 28,83s system 100% cpu 7:23:53,00 total (53) — (>54)
-5	| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
-6	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
-7	| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
+Verification					| #cond			| Depth	| Time
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+~1 pipeline, SB					| pipeline_reduc	| 38	| 411,56s user 1,54s system 102% cpu 6:41,80 total
++ general reductions				| pipeline_general_reduc| 38	| 323,66s user 1,33s system 103% cpu 5:13,63 total
++ memdep					| reduc_memdep		| 38	| 333,35s user 1,34s system 103% cpu 5:23,17 total
+2nd pipeline + general reductions + memdep	| dual_pipeline_memdep	| 53	| 30168,53s user 36,21s system 100% cpu 8:23:04,48 total
++ pipeline reductions + WAW hazards		| waw			| >53	| *26629,56s user 28,83s system 100% cpu 7:23:53,00 total (53) — (>54)
++ WAW reductions				| waw_reduc		| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
+- SB						| waw_reduc_noSB	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
+- WAW reductions				| waw_noSB		| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total 
