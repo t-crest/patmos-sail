@@ -7,6 +7,7 @@ module conditions {
     var full_SB_i, full_SB_j: boolean;
     var mem_dep: boolean;
     var waw: common.waw_t;
+    var set_specific: boolean;
 
     instance param_set : param();
     
@@ -25,8 +26,14 @@ module conditions {
     procedure set_init_SB()
         modifies ops_i, ops_j, full_SB_i, full_SB_j, mem_dep, bus, latencies_i, latencies_j;
     {
-        assume(ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == other_op);
-        assume(ops_j.LS_instr == load_op ||  ops_j.LS_instr == store_op ||ops_j.LS_instr == other_op);
+        if (!set_specific) {
+            assume(ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == other_op);
+            assume(ops_j.LS_instr == load_op ||  ops_j.LS_instr == store_op ||ops_j.LS_instr == other_op);
+        }
+        else {
+            assume(ops_i.LS_instr == load_op);
+            assume(ops_j.LS_instr == load_op);
+        }
         
         // SB unused if not a store
         assume(ops_i.LS_instr != store_op ==> !full_SB_i);
@@ -66,13 +73,10 @@ module conditions {
     
     
     init {
+        set_specific = true;
+    
         if (param_set.store_buff) {
             call set_init_SB();
-            /*// Test config
-            assume(ops_i.LS_instr == store_op);
-            assume(ops_j.LS_instr == load_op);
-            assume(ops_i.I_instr == other_op);
-            assume(ops_j.I_instr == other_op);*/
         }
         else {
             // No variable latency for SB, no need for specific store class
@@ -113,9 +117,15 @@ module conditions {
             }
         }
         
-        // Always assume all types of opcodes for I pipeline
-        assume(ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
-        assume(ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
+        if (!set_specific) {
+            // Always assume all types of opcodes for I pipeline
+            assume(ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
+            assume(ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
+        }
+        else {
+            assume(ops_i.I_instr == mac_op);
+            assume(ops_j.I_instr == mac_op);
+        }
         
         // Only load/store ops can access bus aside from IF
         assume((ops_i.LS_instr != load_op && ops_i.LS_instr != store_op) ==> !bus.dbus_i);
@@ -203,12 +213,14 @@ module conditions {
         assume(latencies_j.I_pipe.ST == 1);
         assume(ops_j.LS_instr != store_op ==> latencies_j.LS_pipe.ST == 1);
 
-        // Assume initial stages for previous instructions
-        assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB || stages_i.I_pipe == post);
+        // Assume initial stage for LS instruction
+        // Current (j) LS is at pre by design (tricore*.ucl)
         assume(stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST);
         
-        // Current LS is at pre by design (tricore*.ucl)
-        // Assume initial stage for current I instruction
+        // Assume initial stages for I instructions
+        // previous (i)
+        assume(stages_i.I_pipe == pre || stages_i.I_pipe == IF || stages_i.I_pipe == ID || stages_i.I_pipe == EX || stages_i.I_pipe == EX2 || stages_i.I_pipe == WB || stages_i.I_pipe == post);
+        // current (j) is necessarily less advanced in the pipeline
         assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stage_j == pre);
         assume(stages_i.I_pipe == ID ==> (stage_j == pre || stage_j == IF));
         assume(stages_i.I_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID));
@@ -227,13 +239,32 @@ module conditions {
         assume(stage_j == EX2 ==> ops_j.I_instr == mac_op);
         assume(stages_i.LS_pipe == ST ==> ops_i.LS_instr == store_op);
         
+        if (set_specific) {
+            // Assume stages s.t.: (pre=j.LS <=) j.I <= i.LS <= i.I (pipeline-stage order)
+            // i.LS <= i.I:
+            assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stages_i.LS_pipe == pre);
+            assume(stages_i.I_pipe == ID ==> (stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID));
+            assume(stages_i.I_pipe == EX ==> (stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX));
+            assume(stages_i.I_pipe == EX2 ==> (stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB));
+            assume(stages_i.I_pipe == WB ==> (stages_i.LS_pipe == pre || stages_i.LS_pipe == IF || stages_i.LS_pipe == ID || stages_i.LS_pipe == EX || stages_i.LS_pipe == WB || stages_i.LS_pipe == ST));
+            // j.I <= i.LS:
+            assume((stages_i.LS_pipe == pre || stages_i.LS_pipe == IF) ==> stage_j == pre);
+            assume(stages_i.LS_pipe == ID ==> (stage_j == pre || stage_j == IF || stage_j == ID));
+            assume(stages_i.LS_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX));
+            assume((stages_i.LS_pipe == WB || stages_i.LS_pipe == ST) ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2 || stage_j == WB));
+        }
+        
         if (param_set.general_reductions) {
             assume(ops_i.LS_instr != other_op || ops_j.LS_instr != other_op); // two other_op in LS: evicted
         
             // Reduce state space by disabling variability: unused latencies since stages overtaken
-            assume((stages_i.I_pipe != pre && stages_i.I_pipe != IF) ==> latencies_i.I_pipe.IF == 1);
-            assume((stages_i.LS_pipe != pre && stages_i.LS_pipe != IF) ==> latencies_i.LS_pipe.IF == 1);
+            // current (j) I:
             assume((stage_j != pre && stage_j != IF) ==> latencies_j.I_pipe.IF == 1);
+            // current (j) LS is at pre
+            // previous (i) I:
+            assume((stages_i.I_pipe != pre && stages_i.I_pipe != IF) ==> latencies_i.I_pipe.IF == 1);
+            // previous (i) LS
+            assume((stages_i.LS_pipe != pre && stages_i.LS_pipe != IF) ==> latencies_i.LS_pipe.IF == 1);
             assume((stages_i.LS_pipe == ST || stages_i.LS_pipe == WB) ==> latencies_i.LS_pipe.EX == 1);
         }
     }
