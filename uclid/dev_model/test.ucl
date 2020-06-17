@@ -1,0 +1,42 @@
+module test_mod
+{
+    input titi: integer;
+    sharedvar toto: integer;
+    
+    init {
+        toto = 3;
+    }
+}
+
+module main
+{
+  var rom : [bv4]bv8;
+  type rec_t = record{a: integer, b: boolean};
+  var rec: rec_t;
+  var tata: integer;
+  
+  instance ins: test_mod(toto: (tata));
+ 
+  procedure update_record(a: integer, b: boolean)
+  modifies rec;
+  {
+    rec.a = a;
+    rec.b = b;
+  }
+
+  init {
+  }
+
+  next {
+      rom' = rom[1bv4->1bv8];
+      call update_record(2, false);
+  }
+
+  invariant debug: 1<1;
+  control {
+    v = unroll (2);
+    check;
+    print_results;
+    v.print_cex(rom, rec, tata);
+  }
+}

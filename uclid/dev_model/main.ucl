@@ -1,0 +1,181 @@
+module instruction {
+    type stage_t = enum { stage_pre, stage_IF, stage_ID, stage_EX, stage_WB };
+    type op_t = enum { op_load, op_store, op_mac, op_other };
+    type context_t = record {
+        I_cache_miss: boolean,
+        D_cache_miss: boolean
+    };
+    
+    type instr_t = record {
+        context: context_t,
+        opcode: op_t,
+        local_times: [stage_t]integer,
+        global_time: integer
+    };
+}
+
+
+module stage {
+    type content_t = record {
+        stage_name: instruction.stage_t,
+        instr: integer,
+        curr_latency: integer,
+        stalled: boolean,
+        free: boolean
+    };
+    
+    input stage_name: instruction.stage_t;
+    input n_instr: integer;
+    sharedvar instructions: [integer]instruction.instr_t;
+    sharedvar content, next_content: content_t;
+    sharedvar stalled: boolean;
+        
+    var i_instr: integer;
+    const bus_latency: integer = 5;
+    
+    init {
+        content.stage_name = stage_name;
+        content.curr_latency = -1;
+        content.stalled = false;
+        content.free = true;
+        i_instr = 0;
+    }
+    
+    procedure update_content()
+    modifies content, next_content, i_instr, instructions;
+    {
+        var new_instr: instruction.instr_t;
+        new_instr = instructions[content.instr];
+        
+        if (stage_name == stage_pre && content.free && i_instr < n_instr) {
+            content.instr = i_instr;
+            new_instr.local_times = new_instr.local_times[stage_pre->1];
+            content.curr_latency = 1;
+            content.free = false;
+            i_instr = i_instr + 1;
+        }
+        
+        if (content.curr_latency != -1) {
+            if (content.curr_latency >= instructions[content.instr].local_times[stage_name]) {
+                content.stalled = false;
+                
+                if (next_content.free && !stalled) {
+                    content.free = true;
+                    new_instr.global_time = new_instr.global_time + content.curr_latency;
+                    content.curr_latency = -1;
+                    
+                    if (stage_name != stage_WB) {
+                        next_content.instr = content.instr;
+                        
+                        if ((stage_name == stage_pre && instructions[content.instr].context.I_cache_miss) || (stage_name == stage_ID && instructions[content.instr].context.D_cache_miss)) {
+                            next_content.stalled = true;
+                            new_instr.local_times = new_instr.local_times[next_content.stage_name->bus_latency];
+                        }
+                        else {
+                            next_content.stalled = false;
+                            new_instr.local_times = new_instr.local_times[next_content.stage_name->1];
+                        }
+                        next_content.curr_latency = 1;
+                        next_content.free = (stage_name == stage_WB); // next_stage == post -> always free
+                    }
+                }
+                else {
+                    content.free = false;
+                    content.curr_latency = content.curr_latency + 1;
+                }
+            }
+            else {
+                content.free = false;
+                content.curr_latency = content.curr_latency + 1;
+            }
+        }
+        
+        instructions = instructions[content.instr->new_instr];
+    }
+    
+    next {
+        call update_content();
+    }
+}
+
+
+module pipeline {
+    input n_instr: integer;
+    sharedvar instructions: [integer]instruction.instr_t;
+    output stalled: boolean;
+    
+    /*var content: [instruction.stage_t]stage.content_t;    
+    // mapping with array entries not working
+    instance pre_stage: stage(stage_name: (stage_pre), content: (content[stage_pre]), next_content: (content[stage_IF]), stalled: (stalled));
+    instance IF_stage: stage(stage_name: (stage_IF), content: (content[stage_IF]), next_content: (content[stage_ID]), stalled: (stalled));
+    instance ID_stage: stage(stage_name: (stage_ID), content: (content[stage_ID]), next_content: (content[stage_EX]), stalled: (stalled));
+    instance EX_stage: stage(stage_name: (stage_EX), content: (content[stage_EX]), next_content: (content[stage_WB]), stalled: (stalled));
+    instance WB_stage: stage(stage_name: (stage_WB), content: (content[stage_WB]), stalled: (stalled));*/
+    
+    var pre_content, IF_content, ID_content, EX_content, WB_content, post_content: stage.content_t;
+    
+    instance pre_stage: stage(stage_name: (stage_pre), content: (pre_content), next_content: (IF_content), stalled: (stalled), instructions: (instructions), n_instr: (n_instr));
+    instance IF_stage: stage(stage_name: (stage_IF), content: (IF_content), next_content: (ID_content), stalled: (stalled), instructions: (instructions), n_instr: (n_instr));
+    instance ID_stage: stage(stage_name: (stage_ID), content: (ID_content), next_content: (EX_content), stalled: (stalled), instructions: (instructions), n_instr: (n_instr));
+    instance EX_stage: stage(stage_name: (stage_EX), content: (EX_content), next_content: (WB_content), stalled: (stalled), instructions: (instructions), n_instr: (n_instr));
+    instance WB_stage: stage(stage_name: (stage_WB), content: (WB_content), next_content: (post_content), stalled: (stalled), instructions: (instructions), n_instr: (n_instr));
+    
+    init {
+        stalled = false;
+        post_content.free = true;
+    }
+    
+    procedure update_stalled()
+    modifies stalled;
+    {
+        stalled = IF_content.stalled || EX_content.stalled;
+    }
+        
+    next {
+        next(WB_stage);
+        next(EX_stage);
+        next(ID_stage);
+        next(IF_stage);
+        next(pre_stage);
+        
+        //call update_stalled();
+    }
+}
+
+
+module main {
+    const context0: instruction.context_t;
+    
+    var instructions: [integer]instruction.instr_t;
+    var n_instr: integer;
+    var instr: instruction.instr_t;
+    instance LS_pipe: pipeline(n_instr: (n_instr), instructions: (instructions));
+    
+    init {
+        assume(!context0.I_cache_miss && !context0.D_cache_miss);
+        instr.context = context0;
+        instr.opcode = op_load;
+        instr.global_time = 0;
+        instructions[0] = instr;
+        
+        instr.opcode = op_store;
+        instructions[1] = instr;
+        n_instr = 2;
+    }
+    
+    next {
+        next(LS_pipe);
+    }
+    
+    invariant debug: 1<1;
+    control {
+        v = unroll(1);
+        check;
+        print_results;
+        v.print_cex(LS_pipe.pre_content.free, LS_pipe.IF_content.free, LS_pipe.ID_content.free, LS_pipe.EX_content.free, LS_pipe.WB_content.free,
+                    LS_pipe.pre_content.instr, LS_pipe.IF_content.instr, LS_pipe.ID_content.instr, LS_pipe.EX_content.instr, LS_pipe.WB_content.instr,
+                    LS_pipe.pre_content.curr_latency, LS_pipe.IF_content.curr_latency, LS_pipe.ID_content.curr_latency, LS_pipe.EX_content.curr_latency, LS_pipe.WB_content.curr_latency,
+                    LS_pipe.pre_content.stalled, LS_pipe.IF_content.stalled, LS_pipe.ID_content.stalled, LS_pipe.EX_content.stalled, LS_pipe.WB_content.stalled
+                    );
+    }
+}
