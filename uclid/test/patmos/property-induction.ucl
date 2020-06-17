@@ -1,0 +1,29 @@
+module main {
+
+  type stage_t = common.stage_t;
+  type opcode_t = common.opcode_t;
+
+  instance run : conditions();
+
+  next {
+    next(run);
+  }
+
+  property no_timing_anomaly: (run.cond.pipeline.previous_delay == 0);
+
+  invariant stage_1_cycle : (run.latencies_i.fetch == 1 && run.latencies_j.fetch == 1 && run.latencies_i.id == 2 && run.latencies_j.id == 2 /*&& run.cond.pipeline.current_latency == 1*/);
+
+  control {
+    v = induction;
+    check;
+    print_results;
+    v.print_cex(run.cond.pipeline.current_op, run.cond.pipeline.current_stage,
+    		   run.cond.pipeline.current_latency, 
+		   run.cond.pipeline.current_progress, run.cond.pipeline.current_delay,
+		   run.cond.pipeline.previous_op, run.cond.pipeline.previous_stage,
+    		   run.cond.pipeline.previous_latency, 
+		   run.cond.pipeline.previous_progress, run.cond.pipeline.previous_delay,
+		   run.cond.pipeline.pipeline_after_stalled, run.cond.pipeline.pipeline_before_stalled,
+		   run.latencies_i, run.latencies_j);
+  }
+}
