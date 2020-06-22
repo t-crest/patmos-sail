@@ -21,7 +21,9 @@ module stage {
         instr: integer,
         curr_latency: integer,
         stalled: boolean,
-        free: boolean
+        free: boolean,
+        
+        base_latency: integer
     };
     
     input stage_name: instruction.stage_t;
@@ -39,29 +41,33 @@ module stage {
         content.stalled = false;
         content.free = true;
         i_instr = 0;
+        
+        content.base_latency = 0;
     }
     
     procedure update_content()
     modifies content, next_content, i_instr, instructions;
     {
-        var new_instr: instruction.instr_t;
-        new_instr = instructions[content.instr];
+        /*var new_instr: instruction.instr_t;
+        new_instr = instructions[content.instr];*/
         
         if (stage_name == stage_pre && content.free && i_instr < n_instr) {
             content.instr = i_instr;
-            new_instr.local_times = new_instr.local_times[stage_pre->1];
+            //new_instr.local_times = new_instr.local_times[stage_pre->1];
+            content.base_latency = 1;
             content.curr_latency = 1;
             content.free = false;
             i_instr = i_instr + 1;
         }
         
         if (content.curr_latency != -1) {
-            if (content.curr_latency >= instructions[content.instr].local_times[stage_name]) {
+            //if (content.curr_latency >= instructions[content.instr].local_times[stage_name]) {
+            if (content.curr_latency >= content.base_latency) {
                 content.stalled = false;
                 
                 if (next_content.free && !stalled) {
                     content.free = true;
-                    new_instr.global_time = new_instr.global_time + content.curr_latency;
+                    //new_instr.global_time = new_instr.global_time + content.curr_latency;
                     content.curr_latency = -1;
                     
                     if (stage_name != stage_WB) {
@@ -69,11 +75,13 @@ module stage {
                         
                         if ((stage_name == stage_pre && instructions[content.instr].context.I_cache_miss) || (stage_name == stage_ID && instructions[content.instr].context.D_cache_miss)) {
                             next_content.stalled = true;
-                            new_instr.local_times = new_instr.local_times[next_content.stage_name->bus_latency];
+                            //new_instr.local_times = new_instr.local_times[next_content.stage_name->bus_latency];
+                            next_content.base_latency = bus_latency;
                         }
                         else {
                             next_content.stalled = false;
-                            new_instr.local_times = new_instr.local_times[next_content.stage_name->1];
+                            //new_instr.local_times = new_instr.local_times[next_content.stage_name->1];
+                            next_content.base_latency = 1;
                         }
                         next_content.curr_latency = 1;
                         next_content.free = (stage_name == stage_WB); // next_stage == post -> always free
@@ -90,7 +98,7 @@ module stage {
             }
         }
         
-        instructions = instructions[content.instr->new_instr];
+        //instructions = instructions[content.instr->new_instr];
     }
     
     next {
@@ -104,7 +112,7 @@ module pipeline {
     sharedvar instructions: [integer]instruction.instr_t;
     output stalled: boolean;
     
-    /*var content: [instruction.stage_t]stage.content_t;    
+    /*var content: [instruction.stage_t]stage.content_t;
     // mapping with array entries not working
     instance pre_stage: stage(stage_name: (stage_pre), content: (content[stage_pre]), next_content: (content[stage_IF]), stalled: (stalled));
     instance IF_stage: stage(stage_name: (stage_IF), content: (content[stage_IF]), next_content: (content[stage_ID]), stalled: (stalled));
