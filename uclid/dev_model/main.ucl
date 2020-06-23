@@ -40,6 +40,7 @@ module stage {
         content.curr_latency = -1;
         content.stalled = false;
         content.free = true;
+        content.instr = -1;
         i_instr = 0;
         
         content.base_latency = 0;
@@ -66,10 +67,6 @@ module stage {
                 content.stalled = false;
                 
                 if (next_content.free && !stalled) {
-                    content.free = true;
-                    //new_instr.global_time = new_instr.global_time + content.curr_latency;
-                    content.curr_latency = -1;
-                    
                     if (stage_name != stage_WB) {
                         next_content.instr = content.instr;
                         
@@ -86,6 +83,11 @@ module stage {
                         next_content.curr_latency = 1;
                         next_content.free = (stage_name == stage_WB); // next_stage == post -> always free
                     }
+                    
+                    content.free = true;
+                    content.instr = -1;
+                    //new_instr.global_time = new_instr.global_time + content.curr_latency;
+                    content.curr_latency = -1;
                 }
                 else {
                     content.free = false;
@@ -177,7 +179,7 @@ module main {
     
     invariant debug: 1<1;
     control {
-        v = unroll(1);
+        v = unroll(10);
         check;
         print_results;
         v.print_cex(LS_pipe.pre_content.free, LS_pipe.IF_content.free, LS_pipe.ID_content.free, LS_pipe.EX_content.free, LS_pipe.WB_content.free,
