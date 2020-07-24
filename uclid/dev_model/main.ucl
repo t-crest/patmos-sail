@@ -153,7 +153,7 @@ module pipeline {
 
 
 module param {
-	const bound: integer = 6;
+	const bound: integer = 5; // 6+(n_instr-1) to satisfy the property (+/-1 --> counter-ex)
 }
 
 
@@ -173,12 +173,12 @@ module main {
         instr.opcode = op_load;
         assume(forall(s: instruction.stage_t) :: instr.local_times[s] == 0);
         instr.global_time = 0;
-        instructions[0] = instr;
         
-        instr.opcode = op_store;
-        instructions[1] = instr;
-        n_instr = 2;
-        
+        n_instr = 13;
+        for i in range(0, 12) {
+        	instructions[i] = instr;
+        }
+		
         clk = 0;
     }
     
