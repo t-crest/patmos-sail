@@ -1,5 +1,5 @@
 module instruction {
-    type stage_t = enum { stage_pre, stage_IF, stage_ID, stage_EX, stage_WB };
+    type stage_t = enum { stage_pre, stage_IF, stage_ID, stage_EX, stage_WB, stage_post };
     type op_t = enum { op_load, op_store, op_mac, op_other };
     type context_t = record {
         I_cache_miss: boolean,
@@ -21,9 +21,7 @@ module stage {
         instr: integer,
         curr_latency: integer,
         stalled: boolean,
-        free: boolean,
-        
-        base_latency: integer
+        free: boolean
     };
     
     input stage_name: instruction.stage_t;
@@ -33,7 +31,7 @@ module stage {
     sharedvar stalled: boolean;
         
     var i_instr: integer;
-    const bus_latency: integer = 5;
+    const bus_latency: integer = 10;
     
     init {
         content.stage_name = stage_name;
@@ -42,65 +40,63 @@ module stage {
         content.free = true;
         content.instr = -1;
         i_instr = 0;
-        
-        content.base_latency = 0;
     }
     
     procedure update_content()
     modifies content, next_content, i_instr, instructions;
     {
-        /*var new_instr: instruction.instr_t;
-        new_instr = instructions[content.instr];*/
+        var new_instr: instruction.instr_t;
+    	new_instr = instructions[content.instr];
+    	
+	    if (content.curr_latency != -1) {
+	        if (content.curr_latency >= instructions[content.instr].local_times[stage_name]) {
+	            content.stalled = false;
+	            
+	            if (next_content.free && !stalled) {
+					next_content.instr = content.instr;
+					
+	               	if (stage_name != stage_WB) {
+	                    if ((stage_name == stage_pre && instructions[content.instr].context.I_cache_miss) || (stage_name == stage_ID && instructions[content.instr].context.D_cache_miss)) {
+	                        next_content.stalled = true;
+	                        new_instr.local_times = new_instr.local_times[next_content.stage_name->bus_latency];
+	                    }
+	                    else {
+	                        next_content.stalled = false;
+	                        new_instr.local_times = new_instr.local_times[next_content.stage_name->1];
+	                    }
+	                    
+	                    next_content.curr_latency = 1;
+	                    next_content.free = false;
+	                }
+	                
+	                new_instr.global_time = instructions[content.instr].global_time + content.curr_latency;
+	                content.free = true;
+	                content.instr = -1;
+	                content.curr_latency = -1;
+	            }
+	            else {
+	                content.free = false;
+	                content.curr_latency = content.curr_latency + 1;
+	            }
+	        }
+	        else {
+	            content.free = false;
+	            content.curr_latency = content.curr_latency + 1;
+	        }
+	    }
+        
+        instructions = instructions[content.instr->new_instr];
         
         if (stage_name == stage_pre && content.free && i_instr < n_instr) {
             content.instr = i_instr;
-            //new_instr.local_times = new_instr.local_times[stage_pre->1];
-            content.base_latency = 1;
+        	new_instr = instructions[content.instr];
+            new_instr.local_times = new_instr.local_times[stage_pre->1];
             content.curr_latency = 1;
             content.free = false;
             i_instr = i_instr + 1;
+            
+            instructions = instructions[content.instr->new_instr];
         }
-        
-        if (content.curr_latency != -1) {
-            //if (content.curr_latency >= instructions[content.instr].local_times[stage_name]) {
-            if (content.curr_latency >= content.base_latency) {
-                content.stalled = false;
-                
-                if (next_content.free && !stalled) {
-                    if (stage_name != stage_WB) {
-                        next_content.instr = content.instr;
-                        
-                        if ((stage_name == stage_pre && instructions[content.instr].context.I_cache_miss) || (stage_name == stage_ID && instructions[content.instr].context.D_cache_miss)) {
-                            next_content.stalled = true;
-                            //new_instr.local_times = new_instr.local_times[next_content.stage_name->bus_latency];
-                            next_content.base_latency = bus_latency;
-                        }
-                        else {
-                            next_content.stalled = false;
-                            //new_instr.local_times = new_instr.local_times[next_content.stage_name->1];
-                            next_content.base_latency = 1;
-                        }
-                        next_content.curr_latency = 1;
-                        next_content.free = (stage_name == stage_WB); // next_stage == post -> always free
-                    }
-                    
-                    content.free = true;
-                    content.instr = -1;
-                    //new_instr.global_time = new_instr.global_time + content.curr_latency;
-                    content.curr_latency = -1;
-                }
-                else {
-                    content.free = false;
-                    content.curr_latency = content.curr_latency + 1;
-                }
-            }
-            else {
-                content.free = false;
-                content.curr_latency = content.curr_latency + 1;
-            }
-        }
-        
-        //instructions = instructions[content.instr->new_instr];
     }
     
     next {
@@ -132,7 +128,10 @@ module pipeline {
     
     init {
         stalled = false;
-        post_content.free = true;
+        post_content.stage_name = stage_post;
+        post_content.curr_latency = -1;
+		post_content.free = true;
+        post_content.instr = -1;
     }
     
     procedure update_stalled()
@@ -153,39 +152,56 @@ module pipeline {
 }
 
 
+module param {
+	const bound: integer = 6;
+}
+
+
 module main {
     const context0: instruction.context_t;
     
     var instructions: [integer]instruction.instr_t;
     var n_instr: integer;
     var instr: instruction.instr_t;
+    var clk: integer;
+    
     instance LS_pipe: pipeline(n_instr: (n_instr), instructions: (instructions));
     
     init {
         assume(!context0.I_cache_miss && !context0.D_cache_miss);
         instr.context = context0;
         instr.opcode = op_load;
+        assume(forall(s: instruction.stage_t) :: instr.local_times[s] == 0);
         instr.global_time = 0;
         instructions[0] = instr;
         
         instr.opcode = op_store;
         instructions[1] = instr;
         n_instr = 2;
+        
+        clk = 0;
     }
     
     next {
         next(LS_pipe);
+        clk' = clk+1;
     }
     
-    invariant debug: 1<1;
+    //invariant debug: 1<1;
+    property[LTL] bmc_bound: G((clk < param.bound ==> LS_pipe.post_content.instr < n_instr-1) && (clk == param.bound ==> LS_pipe.post_content.instr == n_instr-1));
     control {
-        v = unroll(10);
+    	//v = unroll(10);
+        v = bmc(param.bound);
         check;
         print_results;
-        v.print_cex(LS_pipe.pre_content.free, LS_pipe.IF_content.free, LS_pipe.ID_content.free, LS_pipe.EX_content.free, LS_pipe.WB_content.free,
-                    LS_pipe.pre_content.instr, LS_pipe.IF_content.instr, LS_pipe.ID_content.instr, LS_pipe.EX_content.instr, LS_pipe.WB_content.instr,
+        v.print_cex(//LS_pipe.pre_content.free, LS_pipe.IF_content.free, LS_pipe.ID_content.free, LS_pipe.EX_content.free, LS_pipe.WB_content.free,
+                    LS_pipe.pre_content.instr, LS_pipe.IF_content.instr, LS_pipe.ID_content.instr, LS_pipe.EX_content.instr, LS_pipe.WB_content.instr, LS_pipe.post_content.instr,
                     LS_pipe.pre_content.curr_latency, LS_pipe.IF_content.curr_latency, LS_pipe.ID_content.curr_latency, LS_pipe.EX_content.curr_latency, LS_pipe.WB_content.curr_latency,
-                    LS_pipe.pre_content.stalled, LS_pipe.IF_content.stalled, LS_pipe.ID_content.stalled, LS_pipe.EX_content.stalled, LS_pipe.WB_content.stalled
+                    //LS_pipe.pre_content.stalled, LS_pipe.IF_content.stalled, LS_pipe.ID_content.stalled, LS_pipe.EX_content.stalled, LS_pipe.WB_content.stalled,
+                    instructions[0].local_times[stage_EX],
+                    instructions[0].global_time,
+                    clk, param.bound,
+                    instructions[0].context
                     );
     }
 }

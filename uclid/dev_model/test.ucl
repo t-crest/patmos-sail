@@ -3,6 +3,8 @@ module test_mod
     input titi: integer;
     sharedvar toto: integer;
     
+
+    
     init {
         toto = 3;
     }
@@ -10,10 +12,15 @@ module test_mod
 
 module main
 {
-  var rom : [bv4]bv8;
+	type op_t = enum { op_load, op_store };
+	
+  var rom : [bv10]bv8;
   type rec_t = record{a: integer, b: boolean};
-  var rec: rec_t;
+  var rec, rec2: rec_t;
   var tata: integer;
+  var arr: [integer]integer;
+  var arr2: [integer]op_t;
+  var step: integer;
   
   instance ins: test_mod(toto: (tata));
  
@@ -25,18 +32,31 @@ module main
   }
 
   init {
+    for i in range(0, 1000) {
+		arr[i] = i;
+		arr2[i] = op_load;
+	}
+	for i in range(2bv10, 1023bv10) {
+		rom[i] = 3bv8;
+	}
+	
+	rec = rec2;
+	step = 0;
   }
 
   next {
-      rom' = rom[1bv4->1bv8];
+      //rom' = rom[1bv4->1bv8];
       call update_record(2, false);
+      step' = step+1;
   }
 
-  invariant debug: 1<1;
+  invariant debug: step<10;
+  //property[LTL] debug: G(true);
   control {
-    v = unroll (2);
+    v = unroll(11);
+    //v = bmc(100);
     check;
     print_results;
-    v.print_cex(rom, rec, tata);
+    v.print_cex(rom, rec, tata, arr, rec2);
   }
 }
