@@ -24,18 +24,18 @@ module tricore {
         
 		if (progress_prime.LS_pipe) {
 			case
-			  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF; }
-			  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID; }
+			  (stages.LS_pipe == pre) : { new.LS_pipe = IF; new_latencies.LS_pipe = latencies.LS_pipe.IF_lat; }
+			  (stages.LS_pipe == IF)  : { new.LS_pipe = ID; new_latencies.LS_pipe = latencies.LS_pipe.ID_lat; }
 			  (stages.LS_pipe == ID)  : { 
 			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
-			  	else { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX; }
+			  	else { new.LS_pipe = EX; new_latencies.LS_pipe = latencies.LS_pipe.EX_lat; }
 			  }
 			  (stages.LS_pipe == EX)  : {
 			  	if (opcodes.LS_instr == nop) { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
-			  	else {new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB; }
+			  	else {new.LS_pipe = WB; new_latencies.LS_pipe = latencies.LS_pipe.WB_lat; }
 			  }
             (stages.LS_pipe == WB) : {
-                    if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.ST; }
+                    if (opcodes.LS_instr == store_op) { new.LS_pipe = ST; new_latencies.LS_pipe = latencies.LS_pipe.ST_lat; }
                     else { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
                 }
                 (stages.LS_pipe == ST || stages.LS_pipe == post)  : { new.LS_pipe = post; new_latencies.LS_pipe = 0; }
@@ -47,21 +47,21 @@ module tricore {
         
         if (progress_prime.I_pipe) {
 			case
-			  (stages.I_pipe == pre) : { new.I_pipe = IF; new_latencies.I_pipe = latencies.I_pipe.IF; }
-			  (stages.I_pipe == IF)  : { new.I_pipe = ID; new_latencies.I_pipe = latencies.I_pipe.ID; }
+			  (stages.I_pipe == pre) : { new.I_pipe = IF; new_latencies.I_pipe = latencies.I_pipe.IF_lat; }
+			  (stages.I_pipe == IF)  : { new.I_pipe = ID; new_latencies.I_pipe = latencies.I_pipe.ID_lat; }
 			  (stages.I_pipe == ID)  : {
 			  	if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
-			  	else { new.I_pipe = EX; new_latencies.I_pipe = latencies.I_pipe.EX; }
+			  	else { new.I_pipe = EX; new_latencies.I_pipe = latencies.I_pipe.EX_lat; }
 			  }
-			  (stages.I_pipe == EX)  : { if (opcodes.I_instr == mac_op) { new.I_pipe = EX2; new_latencies.I_pipe = latencies.I_pipe.EX2; }
+			  (stages.I_pipe == EX)  : { if (opcodes.I_instr == mac_op) { new.I_pipe = EX2; new_latencies.I_pipe = latencies.I_pipe.EX2_lat; }
 										else {
 											if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
-											else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
+											else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB_lat; }
 										}
 			  }
 			  (stages.I_pipe == EX2)  : {
 			  	if (opcodes.I_instr == nop) { new.I_pipe = post; new_latencies.I_pipe = 0; }
-			  	else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB; }
+			  	else { new.I_pipe = WB; new_latencies.I_pipe = latencies.I_pipe.WB_lat; }
 			  }
 			  (stages.I_pipe == WB || stages.I_pipe == post) : { new.I_pipe = post; new_latencies.I_pipe = 0; }
 			esac
@@ -172,18 +172,18 @@ module tricore {
 
 	init {
 		assume(previous_stages == input_previous_stages);
-		assume(input_previous_stages.LS_pipe == IF ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.IF);
-		assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID);
-		assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX);
-		assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB);
-        assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST);
+		assume(input_previous_stages.LS_pipe == IF ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.IF_lat);
+		assume(input_previous_stages.LS_pipe == ID ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ID_lat);
+		assume(input_previous_stages.LS_pipe == EX ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.EX_lat);
+		assume(input_previous_stages.LS_pipe == WB ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.WB_lat);
+        assume(input_previous_stages.LS_pipe == ST ==> previous_latencies.LS_pipe == previous_initial_latencies.LS_pipe.ST_lat);
 		assume(input_previous_stages.LS_pipe == pre ==> previous_latencies.LS_pipe == 1);
         
-		assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF);
-		assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID);
-		assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX);
-		assume(input_previous_stages.I_pipe == EX2 ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX2);
-		assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB);
+		assume(input_previous_stages.I_pipe == IF ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.IF_lat);
+		assume(input_previous_stages.I_pipe == ID ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.ID_lat);
+		assume(input_previous_stages.I_pipe == EX ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX_lat);
+		assume(input_previous_stages.I_pipe == EX2 ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.EX2_lat);
+		assume(input_previous_stages.I_pipe == WB ==> previous_latencies.I_pipe == previous_initial_latencies.I_pipe.WB_lat);
 		assume(input_previous_stages.I_pipe == pre ==> previous_latencies.I_pipe == 1);
         assume(input_previous_stages.I_pipe == post ==> previous_latencies.I_pipe == 0);
         
@@ -191,11 +191,11 @@ module tricore {
         current_latencies.LS_pipe = 1;
         
         assume(current_stages.I_pipe == input_current_stage);
-        assume(input_current_stage == IF ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.IF);
-        assume(input_current_stage == ID ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.ID);
-        assume(input_current_stage == EX ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.EX);
-        assume(input_current_stage == EX2 ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.EX2);
-        assume(input_current_stage == WB ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.WB);
+        assume(input_current_stage == IF ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.IF_lat);
+        assume(input_current_stage == ID ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.ID_lat);
+        assume(input_current_stage == EX ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.EX_lat);
+        assume(input_current_stage == EX2 ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.EX2_lat);
+        assume(input_current_stage == WB ==> current_latencies.I_pipe == current_initial_latencies.I_pipe.WB_lat);
         assume(input_current_stage == pre ==> current_latencies.I_pipe == 1);
         assume(input_current_stage == post ==> current_latencies.I_pipe == 0);
 

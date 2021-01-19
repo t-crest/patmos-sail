@@ -9,7 +9,7 @@ module common {
 	type instr_pair_t = record { I_instr: opcode_t, LS_instr: opcode_t };
 
 	// Latencies information for each instruction
-	type latencies_t = record { IF: integer, ID: integer, EX: integer, EX2: integer, WB: integer, ST: integer };
+	type latencies_t = record { IF_lat: integer, ID_lat: integer, EX_lat: integer, EX2_lat: integer, WB_lat: integer, ST_lat: integer };
 	type dual_latencies_t = record { I_pipe: latencies_t, LS_pipe: latencies_t };
 
 	type dual_integer_t = record { I_pipe: integer, LS_pipe: integer };
