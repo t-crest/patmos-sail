@@ -13,4 +13,4 @@ Verification					| #cond			| Depth	| Time
 + WAW reductions				| waw_reduc		| 53	| 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
 - SB						| waw_reduc_noSB	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
 - WAW reductions				| waw_noSB		| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
-code-specific waw_reduc				| waw_reduc / spec Bool.| 42	| 1734,55s user 4,00s system 100% cpu 28:48,99 total
+code-specific waw_reduc				| waw_reduc_code_spec	| 42	| 1734,55s user 4,00s system 100% cpu 28:48,99 total

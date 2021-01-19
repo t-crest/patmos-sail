@@ -5,8 +5,9 @@ module param {
     var mem_hazards: boolean;
     var waw_hazards: boolean;
     var hazard_reductions: boolean;
+    var code_spec: boolean;
         
-    const bmc_depth: integer = 42; // 1734,55s user 4,00s system 100% cpu 28:48,99 total // const bmc_depth: integer = 53; // 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
+    const bmc_depth: integer = 53; // 24707,26s user 36,29s system 100% cpu 6:52:15,03 total
     
     init {
         store_buff = true;
@@ -15,5 +16,6 @@ module param {
         mem_hazards = true;
         waw_hazards = true;
         hazard_reductions = true;
+        code_spec = false;
     }
 }

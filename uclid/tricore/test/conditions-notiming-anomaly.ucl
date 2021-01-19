@@ -7,7 +7,6 @@ module conditions {
     var full_SB_i, full_SB_j: boolean;
     var mem_dep: boolean;
     var waw: common.waw_t;
-    var set_specific: boolean;
 
     instance param_set : param();
     
@@ -26,7 +25,7 @@ module conditions {
     procedure set_init_SB()
         modifies ops_i, ops_j, full_SB_i, full_SB_j, mem_dep, bus, latencies_i, latencies_j;
     {
-        if (!set_specific) {
+        if (!param_set.code_spec) {
             assume(ops_i.LS_instr == load_op || ops_i.LS_instr == store_op || ops_i.LS_instr == other_op);
             assume(ops_j.LS_instr == load_op ||  ops_j.LS_instr == store_op ||ops_j.LS_instr == other_op);
         }
@@ -72,9 +71,7 @@ module conditions {
     }
     
     
-    init {
-        set_specific = true;
-    
+    init {    
         if (param_set.store_buff) {
             call set_init_SB();
         }
@@ -117,7 +114,7 @@ module conditions {
             }
         }
         
-        if (!set_specific) {
+        if (!param_set.code_spec) {
             // Always assume all types of opcodes for I pipeline
             assume(ops_i.I_instr == mac_op || ops_i.I_instr == other_op);
             assume(ops_j.I_instr == mac_op || ops_j.I_instr == other_op);
@@ -239,7 +236,7 @@ module conditions {
         assume(stage_j == EX2 ==> ops_j.I_instr == mac_op);
         assume(stages_i.LS_pipe == ST ==> ops_i.LS_instr == store_op);
         
-        if (set_specific) {
+        if (param_set.code_spec) {
             // Assume stages s.t.: (pre=j.LS <=) j.I <= i.LS <= i.I (pipeline-stage order)
             // i.LS <= i.I:
             assume((stages_i.I_pipe == pre || stages_i.I_pipe == IF) ==> stages_i.LS_pipe == pre);
