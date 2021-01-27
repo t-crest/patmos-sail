@@ -61,7 +61,7 @@ def all_smt(s, initial_terms):
 		
 	def all_smt_rec(terms):
 		''' Split the state space into disjoint problems and solve them '''
-		iteration = 0
+		global iteration
 		print("** iteration "+str(iteration))
 		iteration += 1
 		
@@ -141,6 +141,7 @@ for i in range(1, 43):
 
 # Solve
 start_time = time.time()
+iteration = 0
 for m in all_smt(s, state0_terms.items()): continue
 print("Total time (s): "+str(time.time()-start_time))
 
