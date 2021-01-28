@@ -76,19 +76,26 @@ def all_smt(s, initial_terms):
 			yield m
 			
 			for i in range(len(terms)):
-				print("\n** Blocking term: "+terms[i][0]+" ≠ "+str(eval_model(m, terms[i][1])).replace('\n', ''))
-				print("** Fixing term(s):" if i > 0 else "** Fixing terms: None")
+				block_str = terms[i][0]+" ≠ "+str(eval_model(m, terms[i][1])).replace('\n', '')
+				fix_strs = []
+				print("\n** Blocking new term: "+block_str)
+				print("** Fixing new term(s):" if i > 0 else "** Fixing new terms: None")
 				
 				s.push()
 				''' Accumulate (and then remove) assertions freezing the first constants (up to i-1) and forcing the i-th to vary wrt to the previous set of assertions '''
 				block_term(s, m, terms[i][1])
 				for j in range(i):
-					print(terms[j][0]+" = "+str(eval_model(m, terms[j][1])).replace('\n', ''))
+					fix_strs.append(terms[j][0]+" = "+str(eval_model(m, terms[j][1])).replace('\n', ''))
 					fix_term(s, m, terms[j][1])
+				if (len(fix_strs)): print(fix_strs)
 					
 				for m in all_smt_rec(terms[i+1:]):
 					yield m
 				s.pop()
+				
+				print("(* Forgetting: "+block_str)
+				if (len(fix_strs)): print(fix_strs)
+				print("*)")
 		else:
 			print("\t\tunsat")
 	
