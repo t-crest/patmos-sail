@@ -1,6 +1,6 @@
 The following command enables to rerun all the experiments conducted for FMICS 20 paper: Scalable Detection of Amplification TimingAnomalies for the Superscalar TriCoreArchitecture
 
-$ ./tricore-notiming-anomaly.sh #cond
+$ ./tricore-notiming-anomaly.sh #cond ['smtLog'] ['before']
 
 
 Verification					| #cond			| Depth	| Time

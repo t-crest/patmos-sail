@@ -98,9 +98,13 @@ module tricore {
             b.LS_pipe = true;
             
             // priority is given to st. else than SB except if it is full
-            if (previous_stages.LS_pipe == WB && previous_ops.LS_instr == store_op && bus_access.dbus_i && !full_SB_i &&
-                ((previous_stages.I_pipe == pre && bus_access.pbus_i.I_pipe) || (current_stages.I_pipe == pre && bus_access.pbus_j.I_pipe) ||
-                 (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j))) {
+            // look for already busy bus before entering EX for loads
+            if ((previous_stages.LS_pipe == WB && previous_ops.LS_instr == store_op && bus_access.dbus_i && !full_SB_i &&
+                	((previous_stages.I_pipe == pre && bus_access.pbus_i.I_pipe) || (current_stages.I_pipe == pre && bus_access.pbus_j.I_pipe) ||
+                 	 (current_stages.LS_pipe == pre && bus_access.pbus_j.LS_pipe) || (current_stages.LS_pipe == ID && current_ops.LS_instr == load_op && bus_access.dbus_j)))
+                || ((previous_stages.LS_pipe == ID && previous_ops.LS_instr == load_op && bus_access.dbus_i) &&
+                	 ((current_stages.LS_pipe == IF && bus_access.pbus_j.LS_pipe && current_latencies.LS_pipe > 1) || (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1)))
+               ) {
                     b.LS_pipe = false;
             }
         }
@@ -109,15 +113,8 @@ module tricore {
 	// Checking stalls for the previous instructions
 	procedure check_previous_stalling()
 	returns (b: common.dual_boolean_t) {
-        var common_stalling: boolean;
-		// Stalling whenever one of the current instructions is in IF with a bus access...
-        common_stalling = (current_stages.I_pipe == IF && bus_access.pbus_j.I_pipe && current_latencies.I_pipe > 1) ||
-			(current_stages.LS_pipe == IF && current_latencies.LS_pipe > 1) ||
-            // ... or in EX with a bus access (load only, in LS pipeline)
-            (current_stages.LS_pipe == EX && bus_access.dbus_j && current_latencies.LS_pipe > 1);
-        b.I_pipe = common_stalling || (previous_stages.LS_pipe == IF && bus_access.pbus_i.LS_pipe && previous_latencies.LS_pipe > 1) || (previous_stages.LS_pipe == EX && bus_access.dbus_i && previous_latencies.LS_pipe > 1);
-        b.LS_pipe = common_stalling || (previous_stages.I_pipe == IF && bus_access.pbus_i.I_pipe && previous_latencies.I_pipe > 1) ||
-                // solving WAW hazards in ID
+		b.I_pipe = false;
+        b.LS_pipe = // solving WAW hazards in ID
                 (previous_stages.LS_pipe == ID &&
                 ((waw_dep.ii && (previous_stages.I_pipe == ID || previous_stages.I_pipe == EX)) ||
                 (waw_dep.ij && (current_stages.I_pipe == ID || current_stages.I_pipe == EX))));

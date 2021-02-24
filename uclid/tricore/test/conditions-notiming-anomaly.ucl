@@ -222,7 +222,7 @@ module conditions {
         assume(stages_i.I_pipe == ID ==> (stage_j == pre || stage_j == IF));
         assume(stages_i.I_pipe == EX ==> (stage_j == pre || stage_j == IF || stage_j == ID));
         assume(stages_i.I_pipe == EX2 ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX));
-        assume(stages_i.I_pipe == WB ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2));
+        assume((stages_i.I_pipe == WB || stages_i.I_pipe == post) ==> (stage_j == pre || stage_j == IF || stage_j == ID || stage_j == EX || stage_j == EX2));
         
         // Potential conflicts
         // If previous LS has a "problem", then I pipelines have not.

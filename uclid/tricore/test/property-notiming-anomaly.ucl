@@ -13,6 +13,9 @@ module main {
 
   // To check that the previous instruction has finished
   property[LTL] bmc_enough: G(run.cond.step == param.bmc_depth ==> ((run.cond.pipeline.previous_stages.I_pipe == WB || run.cond.pipeline.previous_stages.I_pipe == post) && ((run.cond.pipeline.previous_ops.LS_instr != store_op && run.cond.pipeline.previous_stages.LS_pipe == WB) || run.cond.pipeline.previous_stages.LS_pipe == post)));
+  
+  /* property[LTL] no_anomaly_bmc_enough: G((run.cond.pipeline.previous_delays.LS_pipe == 0 && run.cond.pipeline.previous_delays.I_pipe == 0) &&
+  										(run.cond.step == param.bmc_depth ==> ((run.cond.pipeline.previous_stages.I_pipe == WB || run.cond.pipeline.previous_stages.I_pipe == post) && ((run.cond.pipeline.previous_ops.LS_instr != store_op && run.cond.pipeline.previous_stages.LS_pipe == WB) || run.cond.pipeline.previous_stages.LS_pipe == post))));*/
 
   control {
     vbmc = bmc(param.bmc_depth);
