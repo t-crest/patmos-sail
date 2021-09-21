@@ -349,7 +349,7 @@ def approx_smt(s, initial_terms, w):
 
 
 if len(sys.argv) < 3 or sys.argv[2] not in ('approx', 'all_actual', 'all'):
-	exit("Wrong usage: $ python all_smt.py filename 'approx'|'all'|'all_actual'")
+	exit("Wrong usage: $ python all_smt.py smt_filename 'approx'|'all'|'all_actual'\napprox=broad-spectrum incremental exploration (Algo 2)\nall_actual=delay-scenario exploration (Algo 3)\nall=basic (Algo 1)")
 	#a = raw_input("\nDo you want to execute: $ python all_smt.py smt_prop_together/smtLogwaw_reduc_code_spec-property_no_timing_anomaly:safety-vbmc-0170.smt now? [y/n] ")
 	#if a == 'y':
 		#filename = "smt_prop_together/smtLogwaw_reduc_code_spec-property_no_timing_anomaly:safety-vbmc-0170.smt"

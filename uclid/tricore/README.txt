@@ -1,7 +1,17 @@
-The following command enables to rerun all the experiments conducted for FMICS 20 paper: Scalable Detection of Amplification TimingAnomalies for the Superscalar TriCoreArchitecture
+* src/ contains the UCLID5 specification of TriCore
+* test/ contains all the auxiliary files, which fix the properties to verify, the constants and the initial conditions.
+* all_smt.py implements the SMT-based heuristics.
 
+
+The following commands enable to rerun all the experiments conducted for the FMICS 20 paper:
+    Scalable Detection of Amplification TimingAnomalies for the Superscalar TriCoreArchitecture
+and for the STTT paper:
+    Formal Modeling and Verification for Amplification Timing Anomalies in the Superscalar TriCore Architecture
+
+* Evaluations of various configurations (Table 6 in STTT):
 $ ./tricore-notiming-anomaly.sh #cond ['smtLog'] ['before']
-
+    'smtLog' produces the SMT files instead of calling the SMT solver
+    'before' uses the stalling-before specific logic instead of whole
 
 Verification					| #cond			| Depth	| Time
 -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -14,3 +24,11 @@ Verification					| #cond			| Depth	| Time
 - SB						| waw_reduc_noSB	| 53	| 12711,24s user 73,43s system 97% cpu 3:38:37,54 total
 - WAW reductions				| waw_noSB		| 53	| 13311,25s user 75,16s system 97% cpu 3:48:35,00 total
 code-specific waw_reduc				| waw_reduc_code_spec	| 42	| 1734,55s user 4,00s system 100% cpu 28:48,99 total
+
+
+* Evaluation of the SMT-based heuristics (Tables 9, 10 and 11 in STTT):
+$ python all_smt.py smt_filename 'approx'|'all'|'all_actual'
+    smt_filename is the file that contains the SMT problem (SMT-Lib format)
+    'approx': broad-spectrum incremental exploration (Algo 2)
+    'all_actual': delay-scenario exploration (Algo 3)
+    'all': basic (Algo 1)
